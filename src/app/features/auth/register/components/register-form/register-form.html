@@ -1,0 +1,156 @@
+<form class="register-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  @if (formError(); as message) {
+    <fz-alert tone="error">{{ message }}</fz-alert>
+  }
+
+  <fz-form-field label="Email" [required]="true" [error]="emailError()" #emailField>
+    <input
+      fzInput
+      type="email"
+      formControlName="email"
+      [id]="emailField.controlId"
+      [fzInvalid]="!!emailError()"
+      [attr.aria-describedby]="emailField.describedBy()"
+      [attr.aria-invalid]="emailField.ariaInvalid()"
+      autocomplete="email"
+      inputmode="email"
+      autocapitalize="none"
+      spellcheck="false"
+    />
+  </fz-form-field>
+
+  <fz-form-field
+    label="Tên hiển thị"
+    hint="Đây là tên mọi người nhìn thấy. Bỏ trống sẽ dùng tên đăng nhập."
+    [error]="displayNameError()"
+    #displayNameField
+  >
+    <input
+      fzInput
+      type="text"
+      formControlName="displayName"
+      [id]="displayNameField.controlId"
+      [fzInvalid]="!!displayNameError()"
+      [attr.aria-describedby]="displayNameField.describedBy()"
+      [attr.aria-invalid]="displayNameField.ariaInvalid()"
+      autocomplete="nickname"
+    />
+  </fz-form-field>
+
+  <fz-form-field
+    label="Tên đăng nhập"
+    [required]="true"
+    hint="Chỉ dùng chữ thường, số, dấu chấm và gạch dưới."
+    [error]="usernameError()"
+    #usernameField
+  >
+    <input
+      fzInput
+      type="text"
+      formControlName="username"
+      [id]="usernameField.controlId"
+      [fzInvalid]="!!usernameError()"
+      [attr.aria-describedby]="usernameField.describedBy()"
+      [attr.aria-invalid]="usernameField.ariaInvalid()"
+      autocomplete="username"
+      autocapitalize="none"
+      spellcheck="false"
+    />
+  </fz-form-field>
+
+  <fz-form-field
+    label="Mật khẩu"
+    [required]="true"
+    hint="Ít nhất 8 ký tự, gồm chữ hoa, chữ thường và số."
+    [error]="passwordError()"
+    #passwordField
+  >
+    <input
+      fzInput
+      type="password"
+      formControlName="password"
+      [id]="passwordField.controlId"
+      [fzInvalid]="!!passwordError()"
+      [attr.aria-describedby]="passwordField.describedBy()"
+      [attr.aria-invalid]="passwordField.ariaInvalid()"
+      autocomplete="new-password"
+    />
+  </fz-form-field>
+
+  <fieldset class="register-form__birthdate">
+    <legend class="register-form__legend">
+      <span>Ngày sinh</span>
+      <span class="register-form__required" aria-hidden="true">*</span>
+      <span class="sr-only">(bắt buộc)</span>
+      @if (birthdateError(); as message) {
+        <span class="register-form__legend-error"> — {{ message }}</span>
+      }
+    </legend>
+
+    <div class="register-form__birthdate-grid">
+      <label class="sr-only" for="birth-day">Ngày</label>
+      <select
+        fzInput
+        id="birth-day"
+        formControlName="birthDay"
+        [fzInvalid]="!!birthdateError()"
+        [attr.aria-invalid]="birthdateError() ? 'true' : null"
+      >
+        <option value="" disabled>Ngày</option>
+        @for (day of days; track day) {
+          <option [value]="day">{{ day }}</option>
+        }
+      </select>
+
+      <label class="sr-only" for="birth-month">Tháng</label>
+      <select
+        fzInput
+        id="birth-month"
+        formControlName="birthMonth"
+        [fzInvalid]="!!birthdateError()"
+        [attr.aria-invalid]="birthdateError() ? 'true' : null"
+      >
+        <option value="" disabled>Tháng</option>
+        @for (month of months; track month) {
+          <option [value]="month">{{ month }}</option>
+        }
+      </select>
+
+      <label class="sr-only" for="birth-year">Năm</label>
+      <select
+        fzInput
+        id="birth-year"
+        formControlName="birthYear"
+        [fzInvalid]="!!birthdateError()"
+        [attr.aria-invalid]="birthdateError() ? 'true' : null"
+      >
+        <option value="" disabled>Năm</option>
+        @for (year of years; track year) {
+          <option [value]="year">{{ year }}</option>
+        }
+      </select>
+    </div>
+
+    @if (birthdateError(); as message) {
+      <p class="sr-only" role="alert">{{ message }}</p>
+    }
+  </fieldset>
+
+  <label class="fz-checkbox">
+    <input type="checkbox" formControlName="acceptsMarketingEmail" />
+    <span class="fz-checkbox__label">
+      (Không bắt buộc) Nhận email về tin tức, cập nhật và ưu đãi từ Fizzle. Bạn
+      có thể bỏ tuỳ chọn này bất cứ lúc nào.
+    </span>
+  </label>
+
+  <fz-button
+    type="submit"
+    variant="accent"
+    size="lg"
+    [block]="true"
+    [loading]="submitting()"
+  >
+    Tạo tài khoản
+  </fz-button>
+</form>

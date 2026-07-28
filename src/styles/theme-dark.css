@@ -1,0 +1,61 @@
+/* ============================================================================
+   Fizzle — Dark theme (default)
+   Colors are the DESIGN-mintlify.md palette. The doc's "Known Gaps" section
+   states dark-mode values for canvas/surface/ink/hairline are not published,
+   so the four `derived` values below fill that gap by interpolating between
+   the file's own `canvas-dark` (#0a0a0a) and `surface-code` (#1c1c1e).
+   Tune those four here; nothing else in the app hardcodes a color.
+   ========================================================================== */
+
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* --- Brand & accent (verbatim) ---------------------------------------- */
+  --color-accent: #00d4a4;         /* brand-green — CTAs, focus, active only */
+  --color-accent-deep: #00b48a;    /* brand-green-deep — pressed */
+  --color-accent-soft: #7cebcb;    /* brand-green-soft — success tint */
+  --color-tag: #3772cf;            /* brand-tag */
+  --color-warn: #c37d0d;           /* brand-warn */
+  --color-annotate: #1ba673;       /* brand-annotate */
+  --color-error: #d45656;          /* brand-error */
+  --color-highlight: #f55a3c;      /* testimonial-orange — LIVE badge */
+
+  /* --- Surfaces --------------------------------------------------------- */
+  --color-canvas: #0a0a0a;         /* canvas-dark (verbatim) */
+  --color-surface: #141416;        /* derived */
+  --color-surface-soft: #101012;   /* derived */
+  --color-elevated: #1c1c1e;       /* surface-code (verbatim) */
+  --color-raised: #232326;         /* derived */
+  --color-code: #1c1c1e;           /* surface-code (verbatim) */
+  --color-overlay: rgba(0, 0, 0, 0.72);
+
+  /* Atmospheric hero band — used behind the auth card (hero-band-dark) */
+  --color-hero-from: #1a3d4a;      /* hero-dark-from (verbatim) */
+  --color-hero-to: #2d5a4f;        /* hero-dark-to (verbatim) */
+
+  /* --- Hairlines -------------------------------------------------------- */
+  --color-hairline: #1f1f1f;       /* hairline-dark (verbatim) */
+  --color-hairline-soft: #171717;  /* derived */
+
+  /* --- Text ------------------------------------------------------------- */
+  --color-ink: #ffffff;            /* on-dark */
+  --color-body: #b3b3b3;           /* on-dark-muted */
+  --color-steel: #a8a8aa;          /* muted */
+  --color-stone: #888888;          /* stone */
+  --color-muted: #5a5a5c;          /* steel, de-emphasized on dark */
+
+  /* --- Inverted (light-on-dark controls) -------------------------------- */
+  --color-on-accent: #0a0a0a;      /* primary — text on the mint pill */
+  --color-inverse-surface: #ffffff;/* on-dark — the white pill button */
+  --color-on-inverse: #0a0a0a;     /* primary — text on the white pill */
+
+  /* --- Presence (mapped from the palette's semantic set) ---------------- */
+  --color-presence-online: #1ba673;  /* brand-annotate */
+  --color-presence-idle: #c37d0d;    /* brand-warn */
+  --color-presence-dnd: #d45656;     /* brand-error */
+  --color-presence-offline: #888888; /* stone */
+
+  /* --- Focus ring ------------------------------------------------------- */
+  --focus-ring: 0 0 0 2px var(--color-canvas), 0 0 0 4px var(--color-accent);
+}

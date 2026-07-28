@@ -1,0 +1,53 @@
+<form class="login-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  @if (formError(); as message) {
+    <fz-alert tone="error">{{ message }}</fz-alert>
+  }
+
+  <fz-form-field label="Email" [required]="true" [error]="emailError()" #emailField>
+    <input
+      fzInput
+      type="email"
+      formControlName="email"
+      [id]="emailField.controlId"
+      [fzInvalid]="!!emailError()"
+      [attr.aria-describedby]="emailField.describedBy()"
+      [attr.aria-invalid]="emailField.ariaInvalid()"
+      autocomplete="email"
+      inputmode="email"
+      autocapitalize="none"
+      spellcheck="false"
+    />
+  </fz-form-field>
+
+  <fz-form-field
+    label="Mật khẩu"
+    [required]="true"
+    [error]="passwordError()"
+    #passwordField
+  >
+    <input
+      fzInput
+      type="password"
+      formControlName="password"
+      [id]="passwordField.controlId"
+      [fzInvalid]="!!passwordError()"
+      [attr.aria-describedby]="passwordField.describedBy()"
+      [attr.aria-invalid]="passwordField.ariaInvalid()"
+      autocomplete="current-password"
+    />
+  </fz-form-field>
+
+  <a class="login-form__forgot" routerLink="/auth/forgot-password">
+    Quên mật khẩu?
+  </a>
+
+  <fz-button
+    type="submit"
+    variant="accent"
+    size="lg"
+    [block]="true"
+    [loading]="submitting()"
+  >
+    Đăng nhập
+  </fz-button>
+</form>

@@ -1,0 +1,17 @@
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.login-form__forgot {
+  margin-top: calc(var(--space-sm) * -1);
+  align-self: flex-start;
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-accent);
+}
+
+.login-form__forgot:hover {
+  text-decoration: underline;
+}

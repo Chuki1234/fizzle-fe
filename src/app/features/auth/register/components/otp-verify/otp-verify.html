@@ -1,0 +1,63 @@
+<form class="otp" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <p class="otp__intro">
+    Chúng tôi đã gửi mã xác thực gồm 6 chữ số tới
+    <strong class="otp__email">{{ email() }}</strong>. Nhập mã để hoàn tất đăng
+    ký.
+  </p>
+
+  @if (formError(); as message) {
+    <fz-alert tone="error">{{ message }}</fz-alert>
+  }
+
+  @if (notice(); as message) {
+    <fz-alert tone="success">{{ message }}</fz-alert>
+  }
+
+  <fz-form-field
+    label="Mã xác thực"
+    [required]="true"
+    [error]="codeError()"
+    #codeField
+  >
+    <input
+      fzInput
+      type="text"
+      formControlName="code"
+      [id]="codeField.controlId"
+      [fzInvalid]="!!codeError()"
+      [attr.aria-describedby]="codeField.describedBy()"
+      [attr.aria-invalid]="codeField.ariaInvalid()"
+      class="otp__code"
+      inputmode="numeric"
+      autocomplete="one-time-code"
+      maxlength="6"
+      spellcheck="false"
+    />
+  </fz-form-field>
+
+  <fz-button
+    type="submit"
+    variant="accent"
+    size="lg"
+    [block]="true"
+    [loading]="submitting()"
+  >
+    Xác thực
+  </fz-button>
+
+  <p class="otp__resend">
+    Chưa nhận được mã?
+    <fz-button
+      variant="link"
+      [disabled]="!canResend()"
+      [loading]="resending()"
+      (click)="resend()"
+    >
+      @if (cooldown() > 0) {
+        Gửi lại sau {{ cooldown() }}s
+      } @else {
+        Gửi lại mã
+      }
+    </fz-button>
+  </p>
+</form>

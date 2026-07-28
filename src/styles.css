@@ -1,3 +1,16 @@
-/* You can add global styles to this file, and also import other style files */
+/* ============================================================================
+   Fizzle — global stylesheet entry
+   Layer order matters: tokens -> themes -> tailwind -> base -> typography.
+   ========================================================================== */
 
-@import 'tailwindcss';
+@import './styles/tokens.css';
+@import './styles/theme-dark.css';
+@import './styles/theme-light.css';
+@import './styles/tailwind.css';
+@import './styles/base.css';
+@import './styles/typography.css';
+
+/* Global recipes for directives that style a host element in a consumer's
+   template, so component-scoped styles cannot reach them. */
+@import './app/shared/ui/input/input.css';
+@import './app/shared/ui/checkbox/checkbox.css';

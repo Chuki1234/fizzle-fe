@@ -1,0 +1,22 @@
+:host {
+  display: block;
+  min-height: 100dvh;
+}
+
+.skip-link {
+  position: absolute;
+  left: var(--space-md);
+  top: calc(var(--space-xxxl) * -2);
+  z-index: var(--z-tooltip);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-md);
+  background-color: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-medium);
+  transition: top var(--duration-fast) var(--ease-standard);
+}
+
+.skip-link:focus-visible {
+  top: var(--space-md);
+}

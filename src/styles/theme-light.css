@@ -1,0 +1,54 @@
+/* ============================================================================
+   Fizzle — Light theme (opt-in via <html data-theme="light">)
+   Straight from the DESIGN-mintlify.md published palette.
+   ========================================================================== */
+
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  /* --- Brand & accent --------------------------------------------------- */
+  --color-accent: #00d4a4;
+  --color-accent-deep: #00b48a;
+  --color-accent-soft: #7cebcb;
+  --color-tag: #3772cf;
+  --color-warn: #c37d0d;
+  --color-annotate: #1ba673;
+  --color-error: #d45656;
+  --color-highlight: #f55a3c;
+
+  /* --- Surfaces --------------------------------------------------------- */
+  --color-canvas: #ffffff;
+  --color-surface: #f7f7f7;
+  --color-surface-soft: #fafafa;
+  --color-elevated: #ffffff;
+  --color-raised: #ffffff;
+  --color-code: #1c1c1e;
+  --color-overlay: rgba(10, 10, 10, 0.48);
+
+  --color-hero-from: #87a8c8;      /* hero-sky-from */
+  --color-hero-to: #f5e9d8;        /* hero-sky-to */
+
+  /* --- Hairlines -------------------------------------------------------- */
+  --color-hairline: #e5e5e5;
+  --color-hairline-soft: #ededed;
+
+  /* --- Text ------------------------------------------------------------- */
+  --color-ink: #0a0a0a;
+  --color-body: #1c1c1e;
+  --color-steel: #5a5a5c;
+  --color-stone: #888888;
+  --color-muted: #a8a8aa;
+
+  /* --- Inverted --------------------------------------------------------- */
+  --color-on-accent: #0a0a0a;
+  --color-inverse-surface: #0a0a0a; /* black pill dominates on light */
+  --color-on-inverse: #ffffff;
+
+  /* --- Presence --------------------------------------------------------- */
+  --color-presence-online: #1ba673;
+  --color-presence-idle: #c37d0d;
+  --color-presence-dnd: #d45656;
+  --color-presence-offline: #888888;
+
+  --focus-ring: 0 0 0 2px var(--color-canvas), 0 0 0 4px var(--color-accent);
+}

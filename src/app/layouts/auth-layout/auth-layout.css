@@ -1,0 +1,108 @@
+:host {
+  display: block;
+}
+
+/*
+  The brand overlays the page, so the main area reserves clearance for it as
+  symmetric top AND bottom padding: equal padding keeps the card on the true
+  viewport centre while guaranteeing it can never slide under the logo.
+
+  The clearance is derived from the same tokens that size the header rather than
+  hardcoded — a literal value silently goes stale the moment the logo or its
+  padding changes, which is exactly how the card ended up overlapping it.
+*/
+.auth-shell {
+  --auth-brand-size: 32px;
+  --auth-header-pad: var(--space-xxl);
+  --auth-header-height: calc(
+    var(--auth-brand-size) + var(--auth-header-pad) * 2
+  );
+  --auth-header-clearance: calc(var(--auth-header-height) + var(--space-md));
+
+  position: relative;
+  min-height: 100dvh;
+  isolation: isolate;
+}
+
+/*
+  Background art. Drop a file at public/assets/images/auth-bg.png and it takes
+  over; until then the hero-band gradient from the palette carries the page, so
+  the layout never renders as a broken image.
+*/
+.auth-shell__backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-color: var(--color-canvas);
+  background-image:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-hero-from) 92%, transparent) 0%,
+      color-mix(in srgb, var(--color-hero-to) 92%, transparent) 100%
+    ),
+    url('/assets/images/auth-bg.png');
+  background-size: cover, cover;
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+}
+
+/*
+  The brand is taken out of flow on purpose. As a grid/flex row it stole height
+  from the main area, which pushed the centred card down by half the header —
+  visibly off-centre. Overlaying it lets `main` own the full viewport.
+*/
+.auth-shell__header {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  z-index: 1;
+  padding: var(--auth-header-pad);
+}
+
+/*
+  Block-level flex, not inline-flex: an inline box sits on a text baseline and
+  picks up the line-box leading, which made the header ~7px taller than the
+  tokens predict and broke the clearance maths above.
+*/
+.auth-shell__brand {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.auth-shell__mark {
+  width: var(--auth-brand-size);
+  height: var(--auth-brand-size);
+  flex: none;
+  border-radius: var(--radius-full);
+  background-color: var(--color-accent);
+  box-shadow: var(--elevation-4);
+}
+
+.auth-shell__wordmark {
+  font-size: var(--text-heading-4);
+  font-weight: var(--weight-semibold);
+  /* Pinned so the wordmark can never grow the header past --auth-brand-size. */
+  line-height: 1;
+  letter-spacing: -0.5px;
+  color: var(--color-ink);
+}
+
+.auth-shell__main {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  /* `safe` keeps a card taller than the viewport (register) reachable instead
+     of clipping its top edge out of the scroll range. */
+  justify-content: safe center;
+  align-items: center;
+  padding: var(--auth-header-clearance) var(--space-md);
+}
+
+@media (max-width: 767px) {
+  .auth-shell {
+    /* Only the padding changes; height and clearance follow automatically. */
+    --auth-header-pad: var(--space-md);
+  }
+}

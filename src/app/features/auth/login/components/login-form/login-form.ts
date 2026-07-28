@@ -1,0 +1,107 @@
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../../../../core/auth/auth.service';
+import { ApiError } from '../../../../../core/http/api-error.model';
+import { Alert } from '../../../../../shared/ui/alert/alert';
+import { Button } from '../../../../../shared/ui/button/button';
+import { FormField } from '../../../../../shared/ui/form-field/form-field';
+import { InputDirective } from '../../../../../shared/ui/input/input';
+import { loginSchema } from '../../../../../shared/validators/auth.schema';
+import {
+  errorMessageOf,
+  zodValidator,
+} from '../../../../../shared/validators/zod-form';
+
+@Component({
+  selector: 'fz-login-form',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    Button,
+    FormField,
+    InputDirective,
+    Alert,
+  ],
+  templateUrl: './login-form.html',
+  styleUrl: './login-form.css',
+})
+export class LoginForm {
+  private readonly fb = inject(FormBuilder);
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
+
+  protected readonly form = this.fb.nonNullable.group(
+    { email: '', password: '' },
+    { validators: zodValidator(loginSchema) },
+  );
+
+  protected readonly submitting = signal(false);
+  protected readonly formError = signal<string | null>(null);
+
+  /**
+   * Form state lives outside the signal graph, so mirror its event stream into
+   * a signal — the computed messages below depend on it and re-evaluate when
+   * a control is edited, blurred, or revalidated.
+   */
+  private readonly formEvents = toSignal(
+    this.form.events.pipe(takeUntilDestroyed()),
+    { initialValue: null },
+  );
+
+  protected readonly emailError = computed(() => {
+    this.formEvents();
+    return errorMessageOf(this.form.controls.email);
+  });
+
+  protected readonly passwordError = computed(() => {
+    this.formEvents();
+    return errorMessageOf(this.form.controls.password);
+  });
+
+  protected submit(): void {
+    if (this.submitting()) return;
+
+    this.form.markAllAsTouched();
+    this.formError.set(null);
+
+    if (this.form.invalid) return;
+
+    this.submitting.set(true);
+    this.auth.login(this.form.getRawValue()).subscribe({
+      next: () => {
+        this.submitting.set(false);
+        void this.router.navigateByUrl(this.redirectTarget());
+      },
+      error: (err: ApiError) => {
+        this.submitting.set(false);
+        this.formError.set(this.messageFor(err));
+      },
+    });
+  }
+
+  /**
+   * Credential failures are reported on the form, never on a single field —
+   * saying which half was wrong tells an attacker whether the email exists.
+   */
+  private messageFor(err: ApiError): string {
+    if (err.code === 'INVALID_CREDENTIALS') {
+      return 'Email hoặc mật khẩu không đúng.';
+    }
+    if (err.code === 'EMAIL_NOT_VERIFIED') {
+      return 'Tài khoản chưa được xác thực. Vui lòng kiểm tra email của bạn.';
+    }
+    return err.message;
+  }
+
+  private redirectTarget(): string {
+    const requested =
+      this.router.parseUrl(this.router.url).queryParams['redirectTo'];
+    // Only accept in-app paths — an absolute URL here would be an open redirect.
+    return typeof requested === 'string' && requested.startsWith('/')
+      ? requested
+      : '/app';
+  }
+}
