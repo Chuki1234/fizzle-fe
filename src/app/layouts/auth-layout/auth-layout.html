@@ -1,9 +1,36 @@
 <div class="auth-shell">
-  <div class="auth-shell__backdrop" aria-hidden="true"></div>
+  <div class="auth-shell__backdrop" aria-hidden="true">
+    <!--
+      Decorative, so alt is empty. `priority` preloads it: it is the largest
+      paint on the page, and a late-arriving backdrop makes the card visibly
+      jump from the fallback colour.
+    -->
+    <img
+      class="auth-shell__bg"
+      ngSrc="/assets/images/fizzle-bg.jpg"
+      fill
+      priority
+      sizes="100vw"
+      alt=""
+    />
+    <div class="auth-shell__scrim"></div>
+  </div>
 
   <header class="auth-shell__header">
+    <!--
+      alt is empty on purpose: the mark repeats what the wordmark beside it and
+      the link's own aria-label already say, so announcing it a third time is
+      noise to a screen reader.
+    -->
     <a class="auth-shell__brand" href="/" aria-label="Fizzle — trang chủ">
-      <span class="auth-shell__mark" aria-hidden="true"></span>
+      <img
+        class="auth-shell__mark"
+        ngSrc="/assets/images/fizzle-mark.png"
+        width="35"
+        height="32"
+        priority
+        alt=""
+      />
       <span class="auth-shell__wordmark">Fizzle</span>
     </a>
   </header>

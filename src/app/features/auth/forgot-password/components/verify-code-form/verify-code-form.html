@@ -1,8 +1,8 @@
-<form class="otp" [formGroup]="form" (ngSubmit)="submit()" novalidate>
-  <p class="otp__intro">
+<form class="verify-code" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <p class="verify-code__intro">
     Chúng tôi đã gửi mã xác thực tới
-    <strong class="otp__email">{{ email() }}</strong>. Nhập mã để hoàn tất đăng
-    ký.
+    <strong class="verify-code__email">{{ email() }}</strong>. Nhập mã để tiếp
+    tục.
   </p>
 
   @if (formError(); as message) {
@@ -27,7 +27,7 @@
       [fzInvalid]="!!codeError()"
       [attr.aria-describedby]="codeField.describedBy()"
       [attr.aria-invalid]="codeField.ariaInvalid()"
-      class="otp__code"
+      class="verify-code__code"
       inputmode="numeric"
       autocomplete="one-time-code"
       [attr.maxlength]="codeMaxLength"
@@ -45,7 +45,7 @@
     Xác thực
   </fz-button>
 
-  <p class="otp__resend">
+  <p class="verify-code__resend">
     Chưa nhận được mã?
     <fz-button
       variant="link"

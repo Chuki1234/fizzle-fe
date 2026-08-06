@@ -5,11 +5,11 @@ import {
   computed,
   inject,
   input,
+  output,
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
 import { AuthService } from '../../../../../core/auth/auth.service';
 import { ApiError } from '../../../../../core/http/api-error.model';
 import { Alert } from '../../../../../shared/ui/alert/alert';
@@ -18,7 +18,7 @@ import { FormField } from '../../../../../shared/ui/form-field/form-field';
 import { InputDirective } from '../../../../../shared/ui/input/input';
 import {
   OTP_MAX_LENGTH,
-  verifyOtpSchema,
+  verifyResetCodeSchema,
 } from '../../../../../shared/validators/auth.schema';
 import {
   errorMessageOf,
@@ -27,33 +27,35 @@ import {
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
+/**
+ * Step 1 of recovery: prove the code. Nothing about the password is asked
+ * here — a wrong code should be caught before the user has typed anything
+ * else.
+ */
 @Component({
-  selector: 'fz-otp-verify',
+  selector: 'fz-verify-code-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ReactiveFormsModule, Button, FormField, InputDirective, Alert],
-  templateUrl: './otp-verify.html',
-  styleUrl: './otp-verify.css',
+  templateUrl: './verify-code-form.html',
+  styleUrl: './verify-code-form.css',
 })
-export class OtpVerify {
+export class VerifyCodeForm {
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
-  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
-  /** The address the code was sent to. */
+  /** The address the recovery code was sent to. */
   readonly email = input.required<string>();
+
+  /** Emits the ticket the next step spends. */
+  readonly verified = output<string>();
 
   /** Caps the input at the longest code Supabase can issue, never at 6. */
   protected readonly codeMaxLength = OTP_MAX_LENGTH;
 
-  /**
-   * Only the code is editable — the address comes from the parent, so the form
-   * validates the `code` half of the schema and the email is attached at
-   * submit time.
-   */
   protected readonly form = this.fb.nonNullable.group(
     { code: '' },
-    { validators: zodValidator(verifyOtpSchema.pick({ code: true })) },
+    { validators: zodValidator(verifyResetCodeSchema.pick({ code: true })) },
   );
 
   protected readonly submitting = signal(false);
@@ -87,15 +89,18 @@ export class OtpVerify {
 
     this.submitting.set(true);
     this.auth
-      .verifyOtp({ email: this.email(), code: this.form.getRawValue().code })
+      .verifyResetCode({
+        email: this.email(),
+        code: this.form.getRawValue().code,
+      })
       .subscribe({
-        next: () => {
+        next: ({ resetToken }) => {
           this.submitting.set(false);
-          void this.router.navigateByUrl('/app');
+          this.verified.emit(resetToken);
         },
         error: (err: ApiError) => {
           this.submitting.set(false);
-          this.formError.set(this.messageFor(err));
+          this.applyError(err);
         },
       });
   }
@@ -106,10 +111,10 @@ export class OtpVerify {
     this.resending.set(true);
     this.formError.set(null);
 
-    this.auth.resendOtp(this.email()).subscribe({
+    this.auth.forgotPassword(this.email()).subscribe({
       next: () => {
         this.resending.set(false);
-        this.notice.set('Đã gửi lại mã xác thực. Vui lòng kiểm tra email.');
+        this.notice.set('Đã gửi lại mã. Vui lòng kiểm tra email.');
         this.startCooldown();
       },
       error: (err: ApiError) => {
@@ -130,16 +135,23 @@ export class OtpVerify {
     this.destroyRef.onDestroy(() => clearInterval(timer));
   }
 
-  private messageFor(err: ApiError): string {
-    switch (err.code) {
-      case 'OTP_INVALID':
-        // Supabase cannot tell a mistyped code from a stale one, so the
-        // message has to cover both and offer both remedies.
-        return 'Mã xác thực không đúng hoặc đã hết hạn. Kiểm tra lại hoặc bấm "Gửi lại mã".';
-      case 'OTP_EXPIRED':
-        return 'Mã xác thực đã hết hạn. Hãy bấm "Gửi lại mã".';
-      default:
-        return err.message;
+  /** A rejected code belongs on the code field, not in a banner. */
+  private applyError(err: ApiError): void {
+    const onCode: Record<string, string> = {
+      // Supabase cannot tell a mistyped code from a stale one, so the message
+      // has to cover both and offer both remedies.
+      OTP_INVALID:
+        'Mã xác thực không đúng hoặc đã hết hạn. Kiểm tra lại hoặc bấm "Gửi lại mã".',
+      OTP_EXPIRED: 'Mã xác thực đã hết hạn. Hãy bấm "Gửi lại mã".',
+    };
+
+    const message = onCode[err.code];
+    if (message) {
+      this.form.controls.code.setErrors({ server: message });
+      this.form.controls.code.markAsTouched();
+      return;
     }
+
+    this.formError.set(err.message);
   }
 }

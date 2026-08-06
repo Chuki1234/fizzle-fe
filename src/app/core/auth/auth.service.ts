@@ -5,7 +5,9 @@ import { User } from '../models/user.model';
 import {
   LoginPayload,
   RegisterPayload,
+  ResetPasswordPayload,
   VerifyOtpPayload,
+  VerifyResetCodePayload,
 } from '../../shared/validators/auth.schema';
 import { API_CONFIG } from '../http/api.config';
 import { AuthStore } from './auth.store';
@@ -60,6 +62,45 @@ export class AuthService {
           return throwError(() => err);
         }),
       );
+  }
+
+  /**
+   * Asks for a recovery code. Resolves even for an address that has no
+   * account — the backend refuses to say which is which.
+   */
+  forgotPassword(email: string): Observable<void> {
+    return this.http.post<void>(
+      `${this.baseUrl}/auth/forgot-password`,
+      { email },
+      { withCredentials: true },
+    );
+  }
+
+  /**
+   * Step 1 of recovery: trades the emailed code for a short-lived ticket. The
+   * ticket stays in memory on the page — it is as sensitive as the code.
+   */
+  verifyResetCode(
+    payload: VerifyResetCodePayload,
+  ): Observable<{ resetToken: string; expiresIn: number }> {
+    return this.http.post<{ resetToken: string; expiresIn: number }>(
+      `${this.baseUrl}/auth/verify-reset-code`,
+      payload,
+      { withCredentials: true },
+    );
+  }
+
+  /**
+   * Step 2 of recovery: spends the ticket on a new password. Returns no
+   * session on purpose — the reset revokes every existing one, so the user
+   * signs in again afterwards.
+   */
+  resetPassword(payload: ResetPasswordPayload): Observable<void> {
+    return this.http.post<void>(
+      `${this.baseUrl}/auth/reset-password`,
+      payload,
+      { withCredentials: true },
+    );
   }
 
   /** Exchanges the refresh cookie for a fresh access token. */

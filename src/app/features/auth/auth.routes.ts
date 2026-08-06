@@ -20,9 +20,14 @@ export const authRoutes: Routes = [
         loadComponent: () =>
           import('./register/register').then((m) => m.Register),
       },
-      // TODO(PLAN.md §2): forgot-password page. Routed now so the link on the
-      // login form is not dead; replace the redirect when the page lands.
-      { path: 'forgot-password', redirectTo: 'login' },
+      {
+        path: 'forgot-password',
+        title: 'Quên mật khẩu · Fizzle',
+        loadComponent: () =>
+          import('./forgot-password/forgot-password').then(
+            (m) => m.ForgotPassword,
+          ),
+      },
     ],
   },
 ];

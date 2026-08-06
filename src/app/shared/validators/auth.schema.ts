@@ -102,14 +102,70 @@ export function toRegisterPayload(v: RegisterFormValue): RegisterPayload {
   };
 }
 
+/**
+ * How long an emailed code is, is a *Supabase* setting, not ours — GoTrue
+ * allows 6 to 10 digits (Authentication → Emails → OTP length; `otp_length`
+ * in config.toml). Hard-coding 6 here silently breaks the whole flow on any
+ * project configured otherwise, because the input's `maxlength` truncates the
+ * code before validation ever sees it. So accept the range the server can
+ * actually produce and let the server judge the value.
+ */
+export const OTP_MIN_LENGTH = 6;
+export const OTP_MAX_LENGTH = 10;
+
+export const otpCodeField = z
+  .string()
+  .regex(new RegExp(`^[0-9]{${OTP_MIN_LENGTH},${OTP_MAX_LENGTH}}$`), {
+    error: `Mã xác thực chỉ gồm chữ số (${OTP_MIN_LENGTH}–${OTP_MAX_LENGTH} ký tự).`,
+  });
+
 /** POST /auth/verify-otp */
 export const verifyOtpSchema = z.object({
   email: emailField,
-  code: z
-    .string()
-    .regex(/^[0-9]{6}$/, { error: 'Mã xác thực gồm 6 chữ số.' }),
+  code: otpCodeField,
 });
 export type VerifyOtpPayload = z.infer<typeof verifyOtpSchema>;
+
+/** POST /auth/forgot-password */
+export const forgotPasswordSchema = z.object({
+  email: emailField,
+});
+export type ForgotPasswordPayload = z.infer<typeof forgotPasswordSchema>;
+
+/**
+ * POST /auth/verify-reset-code — step 1 of recovery.
+ *
+ * The email is carried by the page, so the form only edits `code`.
+ */
+export const verifyResetCodeSchema = z.object({
+  email: emailField,
+  code: otpCodeField,
+});
+export type VerifyResetCodePayload = z.infer<typeof verifyResetCodeSchema>;
+
+/**
+ * The new-password form — step 2 of recovery.
+ *
+ * Typing a password you cannot see is easy to get wrong and impossible to
+ * undo once every session is revoked, so this form asks twice. The match rule
+ * lives on the group because a per-control validator never sees both values.
+ */
+export const newPasswordSchema = z
+  .object({
+    password: passwordField,
+    confirmPassword: z.string().min(1, { error: 'Vui lòng nhập lại mật khẩu.' }),
+  })
+  .refine((v) => v.password === v.confirmPassword, {
+    error: 'Mật khẩu nhập lại không khớp.',
+    path: ['confirmPassword'],
+  });
+export type NewPasswordFormValue = z.infer<typeof newPasswordSchema>;
+
+/** POST /auth/reset-password — the ticket from step 1 plus the new password. */
+export interface ResetPasswordPayload {
+  resetToken: string;
+  password: string;
+}
 
 /* --- date helpers --------------------------------------------------------- */
 

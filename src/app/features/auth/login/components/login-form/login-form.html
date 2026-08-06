@@ -37,9 +37,24 @@
     />
   </fz-form-field>
 
-  <a class="login-form__forgot" routerLink="/auth/forgot-password">
-    Quên mật khẩu?
-  </a>
+  <!--
+    Not a link: the click sends the recovery email using the address typed
+    above, so it needs that address to be valid first. `title` explains the
+    disabled state, which a bare greyed-out control never does.
+  -->
+  <div class="login-form__forgot">
+    <fz-button
+      variant="link"
+      [disabled]="!canRequestReset()"
+      [loading]="sendingResetCode()"
+      (click)="requestReset()"
+    >
+      Quên mật khẩu?
+    </fz-button>
+    @if (!canRequestReset() && !sendingResetCode()) {
+      <span class="login-form__forgot-hint">Nhập email để nhận mã đặt lại.</span>
+    }
+  </div>
 
   <fz-button
     type="submit"

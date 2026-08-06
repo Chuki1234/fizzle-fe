@@ -1,0 +1,35 @@
+.verify-code {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.verify-code__intro {
+  font-size: var(--text-body-sm);
+  line-height: var(--leading-body);
+  color: var(--color-steel);
+}
+
+.verify-code__email {
+  color: var(--color-ink);
+  font-weight: var(--weight-medium);
+  word-break: break-all;
+}
+
+/* Matches the signup OTP field — a 6-digit code reads best spaced out. */
+.verify-code__code {
+  font-family: var(--font-mono);
+  font-size: var(--text-heading-4);
+  letter-spacing: 8px;
+  text-align: center;
+}
+
+.verify-code__resend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xxs);
+  flex-wrap: wrap;
+  font-size: var(--text-body-sm);
+  color: var(--color-steel);
+}

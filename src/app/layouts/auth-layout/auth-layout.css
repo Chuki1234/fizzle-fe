@@ -25,25 +25,45 @@
 }
 
 /*
-  Background art. Drop a file at public/assets/images/auth-bg.png and it takes
-  over; until then the hero-band gradient from the palette carries the page, so
-  the layout never renders as a broken image.
+  Brand backdrop. The gradient behind the image is a fallback only — it shows
+  while the JPEG decodes and if it ever fails to load, so the page never flashes
+  bare canvas. It must NOT be layered on top: an opaque wash over the artwork was
+  what previously hid it.
 */
 .auth-shell__backdrop {
   position: absolute;
   inset: 0;
   z-index: -1;
+  overflow: hidden;
   background-color: var(--color-canvas);
-  background-image:
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--color-hero-from) 92%, transparent) 0%,
-      color-mix(in srgb, var(--color-hero-to) 92%, transparent) 100%
-    ),
-    url('/assets/images/auth-bg.png');
-  background-size: cover, cover;
-  background-position: center, center;
-  background-repeat: no-repeat, no-repeat;
+  background-image: linear-gradient(
+    135deg,
+    var(--color-hero-from) 0%,
+    var(--color-hero-to) 100%
+  );
+}
+
+.auth-shell__bg {
+  object-fit: cover;
+  /* The artwork is a soft radial vignette with no subject, so biasing the crop
+     upward keeps its bright centre behind the card at tall viewports. */
+  object-position: center;
+}
+
+/*
+  Scrim. The artwork's centre is a light blue that the mint accent and the white
+  wordmark sit on poorly; darkening it restores AA contrast for the brand and
+  deepens the separation between the backdrop and the card.
+*/
+.auth-shell__scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      120% 90% at 50% 45%,
+      rgba(10, 10, 10, 0.32) 0%,
+      rgba(10, 10, 10, 0.58) 100%
+    );
 }
 
 /*
@@ -71,13 +91,14 @@
   gap: var(--space-sm);
 }
 
+/*
+  Height is pinned to --auth-brand-size because the header-height calculation
+  above depends on it; width follows the artwork's own ratio.
+*/
 .auth-shell__mark {
-  width: var(--auth-brand-size);
   height: var(--auth-brand-size);
+  width: auto;
   flex: none;
-  border-radius: var(--radius-full);
-  background-color: var(--color-accent);
-  box-shadow: var(--elevation-4);
 }
 
 .auth-shell__wordmark {

@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { authGuard } from './core/auth/auth-guard';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'auth/login' },
@@ -7,8 +8,12 @@ export const routes: Routes = [
     loadChildren: () =>
       import('./features/auth/auth.routes').then((m) => m.authRoutes),
   },
-  // TODO(PLAN.md §2): the /app shell (app-layout + authGuard) arrives with the
-  // dashboard work. Until then a successful login lands back here.
-  { path: 'app', redirectTo: 'auth/login' },
+  {
+    path: 'app',
+    title: 'Dashboard · Fizzle',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/dashboard/dashboard').then((m) => m.Dashboard),
+  },
   { path: '**', redirectTo: '' },
 ];
