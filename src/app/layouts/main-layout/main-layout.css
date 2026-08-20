@@ -216,16 +216,46 @@
     color: var(--color-on-accent);
 }
 
+.sidebar-left__user-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
 .sidebar-left__user-name {
     display: block;
     font-size: var(--text-body-sm);
     font-weight: var(--weight-semibold);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .sidebar-left__user-status {
     font-size: var(--text-micro);
     color: var(--color-presence-online);
     font-weight: var(--weight-medium);
+}
+
+.sidebar-left__logout-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-md);
+    background: transparent;
+    border: none;
+    color: var(--color-steel, #94a3b8);
+    cursor: pointer;
+    transition: all var(--duration-fast, 150ms) var(--ease-standard, ease);
+    flex-shrink: 0;
+}
+
+.sidebar-left__logout-btn:hover {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
 }
 
 /* --- VÙNG NỘI DUNG ĐỘNG --- */

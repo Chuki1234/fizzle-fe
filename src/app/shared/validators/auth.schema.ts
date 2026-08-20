@@ -120,6 +120,7 @@ export function toRegisterPayload(v: RegisterFormValue): RegisterPayload {
  * code before validation ever sees it. So accept the range the server can
  * actually produce and let the server judge the value.
  */
+export const OTP_DEFAULT_LENGTH = 8;
 export const OTP_MIN_LENGTH = 6;
 export const OTP_MAX_LENGTH = 10;
 

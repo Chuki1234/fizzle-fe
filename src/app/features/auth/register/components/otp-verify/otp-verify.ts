@@ -1,4 +1,4 @@
-﻿import {
+import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
@@ -13,7 +13,7 @@ import { ApiError } from '../../../../../core/http/api-error.model';
 import { Alert } from '../../../../../shared/ui/alert/alert';
 import { Button } from '../../../../../shared/ui/button/button';
 import { OtpInput } from '../../../../../shared/ui/otp-input/otp-input';
-import { OTP_MIN_LENGTH } from '../../../../../shared/validators/auth.schema';
+import { OTP_DEFAULT_LENGTH } from '../../../../../shared/validators/auth.schema';
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
@@ -32,11 +32,11 @@ export class OtpVerify {
   /** The address the code was sent to. */
   readonly email = input.required<string>();
 
-  /** The assembled OTP code from the 6-box input */
+  /** The assembled OTP code from the 8-box input */
   protected readonly otpCode = signal('');
 
   /** OTP length from schema constants */
-  protected readonly otpLength = OTP_MIN_LENGTH;
+  protected readonly otpLength = OTP_DEFAULT_LENGTH;
 
   protected readonly submitting = signal(false);
   protected readonly resending = signal(false);
@@ -53,7 +53,7 @@ export class OtpVerify {
 
     const code = this.otpCode();
     if (code.length < this.otpLength) {
-      this.formError.set('Vui lòng nhập đủ mã OTP 6 chữ số.');
+      this.formError.set(`Vui lòng nhập đủ mã OTP ${this.otpLength} chữ số.`);
       return;
     }
 

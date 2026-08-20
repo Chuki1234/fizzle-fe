@@ -24,11 +24,24 @@ export class MainLayout {
     public serverService = inject(ServerService);
     public friendService = inject(FriendService);
     public modalService = inject(ModalService);
+    public authService = inject(AuthService);
     public authStore = inject(AuthStore);
+    private router = inject(Router);
 
     public userInitial = computed(() => {
-        const user = this.authStore.user();
-        const name = user?.displayName || user?.username || 'F';
+        const name = this.authStore.user()?.displayName || this.authStore.user()?.username || 'U';
         return name.charAt(0).toUpperCase();
     });
+
+    public logout(): void {
+        this.authService.logout().subscribe({
+            next: () => {
+                void this.router.navigateByUrl('/auth/login');
+            },
+            error: () => {
+                this.authStore.clear();
+                void this.router.navigateByUrl('/auth/login');
+            }
+        });
+    }
 }
