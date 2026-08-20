@@ -57,9 +57,9 @@
   </div>
 }
 
-<div class="profile-wrapper">
-  <!-- Main Centered Profile View -->
-  <div class="profile-centered-container">
+<!-- Profile Overlay Backdrop — click bên ngoài thẻ để thoát -->
+<div class="profile-overlay-backdrop" (click)="closeProfile()">
+  <div class="profile-centered-container" (click)="$event.stopPropagation()">
     <div class="discord-card-outer">
       <!-- Banner -->
       <div class="discord-banner clickable" [style.background]="bannerGradient()" routerLink="/settings"></div>
@@ -73,7 +73,7 @@
               @if (avatarUrl()) {
                 <img [src]="avatarUrl()" class="avatar-img-render" alt="Avatar" />
               } @else {
-                FC
+                {{ userInitial() }}
               }
               <div class="avatar-hover-overlay">
                 <span class="camera-icon">📷</span>
@@ -249,4 +249,4 @@
       </div>
     </div>
   </div>
-</div>
+</div><!-- /profile-overlay-backdrop -->

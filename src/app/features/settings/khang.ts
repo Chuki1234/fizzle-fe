@@ -1,7 +1,9 @@
-import { Component, HostBinding, HostListener, signal, computed } from '@angular/core';
+import { Component, HostBinding, HostListener, signal, computed, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
+import { AuthStore } from '../../core/auth/auth.store';
+import { AuthService } from '../../core/auth/auth.service';
 
 export interface Badge {
   id: string;
@@ -49,8 +51,50 @@ export interface SettingFeatureItem {
   styleUrl: './khang.css',
 })
 export class Khang {
+  private authService = inject(AuthService);
+
+  // Signal điều khiển ẩn/hiện Modal đăng xuất
+  showLogoutConfirm = signal<boolean>(false);
+
+  /**
+   * Bước 1: Mở popup xác nhận đăng xuất
+   */
+  logout(): void {
+    this.showLogoutConfirm.set(true);
+  }
+
+  /**
+   * Bước 2: Đóng popup nếu người dùng chọn "Ở lại"
+   */
+  cancelLogout(): void {
+    this.showLogoutConfirm.set(false);
+  }
+
+  /**
+   * Bước 3: Xác nhận đăng xuất -> Xóa Token/Session -> Quay lại trang Login (/auth/login)
+   */
+  confirmLogout(): void {
+    // 1. Xóa Token hoặc dữ liệu phiên đăng nhập cục bộ
+    localStorage.removeItem('access_token');
+    sessionStorage.clear();
+    this.authStore.clear();
+
+    // 2. Đóng Modal
+    this.showLogoutConfirm.set(false);
+
+    // 3. Gọi API đăng xuất & chuyển hướng về /auth/login
+    this.authService.logout().subscribe({
+      next: () => {
+        void this.router.navigate(['/auth/login']);
+      },
+      error: () => {
+        void this.router.navigate(['/auth/login']);
+      },
+    });
+  }
+
   settingsForm: FormGroup;
-  
+
   // Section Navigation matching the sample image
   activeSection = signal<
     'account-info' | 'profiles' | 'badges-presence' | 'accessibility' | 'privacy' | 'messaging' | 'notifications'
@@ -62,7 +106,7 @@ export class Khang {
   highContrast = signal<boolean>(false);
 
   activeCardTab = signal<'user-info' | 'mutual-servers' | 'mutual-friends' | 'activity'>('user-info');
-  
+
   // Collapsible Account sub-menu state
   isAccountExpanded = signal<boolean>(true);
 
@@ -81,12 +125,12 @@ export class Khang {
     { id: 'sec-2fa', section: 'account-info', sectionName: 'Account Info', sectionIcon: '🛡️', title: 'Xác thực 2 yếu tố (2FA)', description: 'Thiết lập mã OTP Google Authenticator / Authy để tăng cường bảo mật', keywords: ['2fa', 'otp', 'xác thực', 'bảo mật', 'authenticator', 'security'] },
     { id: 'sec-login-alerts', section: 'account-info', sectionName: 'Account Info', sectionIcon: '🔔', title: 'Cảnh báo đăng nhập lạ & Sudo Mode', description: 'Nhận email cảnh báo khi có thiết bị lạ hoặc yêu cầu mã khi thao tác nhạy cảm', keywords: ['cảnh báo', 'alert', 'sudo', 'login', 'đăng nhập'] },
     { id: 'sec-devices', section: 'account-info', sectionName: 'Account Info', sectionIcon: '💻', title: 'Thiết bị đang hoạt động (Active Sessions)', description: 'Xem danh sách các trình duyệt/ứng dụng và đăng xuất từ xa', keywords: ['thiết bị', 'device', 'session', 'đăng xuất', 'session', 'chrome', 'iphone'] },
-    
+
     { id: 'sec-avatar', section: 'profiles', sectionName: 'Profiles & Appearance', sectionIcon: '🎨', title: 'Ảnh đại diện (Avatar)', description: 'Tải ảnh đại diện từ máy tính hoặc chọn các mẫu avatar có sẵn', keywords: ['avatar', 'ảnh đại diện', 'ảnh', 'hình', 'profile picture'] },
     { id: 'sec-decor', section: 'profiles', sectionName: 'Profiles & Appearance', sectionIcon: '🎨', title: 'Khung Avatar & Trang trí (Decoration)', description: 'Chọn hiệu ứng hào quang Cyber Glow, Nitro Boost, Vương miện', keywords: ['khung', 'decor', 'frame', 'hào quang', 'nitro', 'crown'] },
     { id: 'sec-banner', section: 'profiles', sectionName: 'Profiles & Appearance', sectionIcon: '🎨', title: 'Tông màu Banner (Profile Color)', description: 'Tùy chỉnh dải màu Gradient xám và phong cách thẻ cá nhân', keywords: ['banner', 'màu', 'color', 'gradient', 'theme'] },
     { id: 'sec-status', section: 'profiles', sectionName: 'Profiles & Appearance', sectionIcon: '🎨', title: 'Trạng thái tùy chỉnh (Custom Status)', description: 'Nhập emoji và dòng trạng thái suy nghĩ cá nhân', keywords: ['custom status', 'trạng thái', 'emoji', 'tiểu sử', 'about me'] },
-    
+
     { id: 'sec-badges', section: 'badges-presence', sectionName: 'Badges & Rich Presence', sectionIcon: '👾', title: 'Huy hiệu Discord (Badges)', description: 'Bật/tắt các huy hiệu Developer, HypeSquad, Supporter, Nitro Boost', keywords: ['badge', 'huy hiệu', 'hypesquad', 'developer', 'nitro'] },
     { id: 'sec-presence', section: 'badges-presence', sectionName: 'Badges & Rich Presence', sectionIcon: '🎮', title: 'Hoạt động Rich Presence (Playing Status)', description: 'Cấu hình hiển thị game đang chơi: VS Code, Spotify, League of Legends', keywords: ['presence', 'rich presence', 'game', 'playing', 'vs code', 'spotify', 'lol'] },
 
@@ -105,7 +149,7 @@ export class Khang {
   searchResults = computed(() => {
     const q = this.searchQuery().trim().toLowerCase();
     if (!q) return [];
-    
+
     return this.searchableFeatures.filter((item) => {
       const matchTitle = item.title.toLowerCase().includes(q);
       const matchDesc = item.description.toLowerCase().includes(q);
@@ -123,11 +167,20 @@ export class Khang {
   // Reveal state for sensitive data matching screenshot
   revealEmail = signal<boolean>(false);
   revealPhone = signal<boolean>(false);
-  maskedEmail = signal<string>('*************@gmail.com');
-  actualEmail = signal<string>('khang.nguyen.dev@gmail.com');
-  phoneNumber = signal<string>('0987654321');
-  maskedPhone = signal<string>('********2327');
-  actualPhone = signal<string>('+84 987 654 327');
+  actualEmail = signal<string>('');
+  maskedEmail = computed(() => {
+    const email = this.actualEmail();
+    if (!email || !email.includes('@')) return '*************@gmail.com';
+    const [name, domain] = email.split('@');
+    const visible = name.slice(0, 3);
+    return `${visible}${'*'.repeat(Math.max(1, name.length - 3))}@${domain}`;
+  });
+  actualPhone = signal<string>('');
+  maskedPhone = computed(() => {
+    const phone = this.actualPhone();
+    if (!phone) return 'Chưa thêm số điện thoại';
+    return '********' + phone.slice(-4);
+  });
 
   // Multi-Factor Auth & Devices
   mfaEnabled = signal<boolean>(true);
@@ -137,9 +190,10 @@ export class Khang {
   editingField = signal<'username' | 'email' | 'phone' | 'password' | null>(null);
 
   // Profile signals imported from k-profile
-  displayName = signal<string>('Flow Of Calamity');
-  username = signal<string>('enderman1154');
-  pronouns = signal<string>('he/him');
+  displayName = signal<string>('User');
+  username = signal<string>('user');
+  userInitial = computed(() => (this.displayName() || this.username() || 'U').charAt(0).toUpperCase());
+  pronouns = signal<string>('');
   customStatus = signal<string>('🚀 Mintlify Settings System');
   customStatusEmoji = signal<string>('⚡');
   aboutMe = signal<string>(
@@ -296,13 +350,30 @@ export class Khang {
     { id: 'f4', name: 'Thùy Dương', tag: 'duong_qa', avatarBg: '#6d6f78', avatarText: 'TD', status: 'offline', customStatus: '🌙 Trực tuyến sau 8h tối' },
   ];
 
-  constructor(private fb: FormBuilder, private router: Router) {
+  constructor(
+    private fb: FormBuilder,
+    private router: Router,
+    private authStore: AuthStore,
+  ) {
+    // Reactive sync: whenever AuthStore user changes, update local signals
+    effect(() => {
+      const user = this.authStore.user();
+      if (!user) return;
+      if (user.email) this.actualEmail.set(user.email);
+      if (user.username) this.username.set(user.username);
+      if (user.displayName) this.displayName.set(user.displayName);
+      if (user.avatarUrl != null) this.avatarUrl.set(user.avatarUrl);
+      if (typeof user.twoFactorEnabled === 'boolean') {
+        this.twoFactorEnabled.set(user.twoFactorEnabled);
+      }
+    });
+
     this.settingsForm = this.fb.group({
-      fullName: ['Flow Of Calamity', [Validators.required]],
+      fullName: [this.displayName(), [Validators.required]],
       email: [this.actualEmail(), [Validators.required, Validators.email]],
       phone: [this.actualPhone()],
       username: [this.username(), [Validators.required]],
-      twoFactor: [true],
+      twoFactor: [this.twoFactorEnabled()],
       loginAlerts: [true],
       emailNotifications: [false],
       currentPassword: [''],
@@ -313,7 +384,7 @@ export class Khang {
 
   @HostListener('window:keydown.escape')
   closeSettings() {
-    this.router.navigate(['/app']);
+    this.router.navigate(['..']);
   }
 
   openAvatarModal() {
@@ -326,6 +397,7 @@ export class Khang {
 
   selectPresetAvatar(url: string) {
     this.avatarUrl.set(url);
+    this.authStore.patchUser({ avatarUrl: url });
     this.showToast('Đã đổi Ảnh đại diện thành công!');
     this.closeAvatarModal();
   }
@@ -338,6 +410,7 @@ export class Khang {
         const result = e.target?.result as string;
         if (result) {
           this.avatarUrl.set(result);
+          this.authStore.patchUser({ avatarUrl: result });
           this.showToast('Đã tải lên Ảnh đại diện mới!');
           this.closeAvatarModal();
         }
@@ -348,7 +421,8 @@ export class Khang {
 
   removeAvatar() {
     this.avatarUrl.set(null);
-    this.showToast('Đã chuyển về tên viết tắt (FC)');
+    this.authStore.patchUser({ avatarUrl: null });
+    this.showToast('Đã chuyển về tên viết tắt');
     this.closeAvatarModal();
   }
 
@@ -467,15 +541,21 @@ export class Khang {
 
   saveFieldEdit() {
     if (this.editingField() === 'username') {
-      const val = this.settingsForm.get('username')?.value;
-      if (val) this.username.set(val);
+      const val = this.settingsForm.get('username')?.value?.trim();
+      if (val) {
+        this.username.set(val);
+        this.authStore.patchUser({ username: val });
+      }
       this.showToast('Đã cập nhật Username thành công!');
     } else if (this.editingField() === 'email') {
-      const val = this.settingsForm.get('email')?.value;
-      if (val) this.actualEmail.set(val);
+      const val = this.settingsForm.get('email')?.value?.trim();
+      if (val) {
+        this.actualEmail.set(val);
+        this.authStore.patchUser({ email: val });
+      }
       this.showToast('Đã cập nhật Email thành công!');
     } else if (this.editingField() === 'phone') {
-      const val = this.settingsForm.get('phone')?.value;
+      const val = this.settingsForm.get('phone')?.value?.trim();
       if (val) this.actualPhone.set(val);
       this.showToast('Đã cập nhật Số điện thoại thành công!');
     } else if (this.editingField() === 'password') {
@@ -530,8 +610,20 @@ export class Khang {
 
   saveProfileChanges() {
     if (this.settingsForm.valid) {
-      this.showToast('Tất cả thay đổi đã được lưu thành công! ✨');
+      // Sync form values → signals
+      const fullName = this.settingsForm.get('fullName')?.value?.trim();
+      const uname = this.settingsForm.get('username')?.value?.trim();
+      if (fullName) this.displayName.set(fullName);
+      if (uname) this.username.set(uname);
+
+      // Propagate to AuthStore so sidebar & profile see changes immediately
+      this.authStore.patchUser({
+        displayName: this.displayName(),
+        username: this.username(),
+      });
+
       this.settingsForm.markAsPristine();
+      this.showToast('Tất cả thay đổi đã được lưu thành công! ✨');
     } else {
       this.showToast('Vui lòng kiểm tra lại thông tin.');
       this.settingsForm.markAllAsTouched();
