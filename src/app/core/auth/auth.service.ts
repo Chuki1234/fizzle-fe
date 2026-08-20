@@ -149,4 +149,15 @@ export class AuthService {
       .post<void>(`${this.baseUrl}/auth/logout`, {}, { withCredentials: true })
       .pipe(tap(() => this.store.clear()));
   }
+
+  updateProfile(payload: Partial<User>): Observable<User> {
+    return this.http
+      .patch<{ user: User }>(`${this.baseUrl}/auth/me`, payload, {
+        withCredentials: true,
+      })
+      .pipe(
+        map((res) => res.user),
+        tap((updatedUser) => this.store.patchUser(updatedUser)),
+      );
+  }
 }

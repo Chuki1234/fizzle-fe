@@ -397,8 +397,10 @@ export class Khang {
 
   selectPresetAvatar(url: string) {
     this.avatarUrl.set(url);
-    this.authStore.patchUser({ avatarUrl: url });
-    this.showToast('Đã đổi Ảnh đại diện thành công!');
+    this.authService.updateProfile({ avatarUrl: url }).subscribe({
+      next: () => this.showToast('Đã đổi Ảnh đại diện thành công!'),
+      error: () => this.showToast('Lỗi khi lưu ảnh đại diện!'),
+    });
     this.closeAvatarModal();
   }
 
@@ -410,8 +412,10 @@ export class Khang {
         const result = e.target?.result as string;
         if (result) {
           this.avatarUrl.set(result);
-          this.authStore.patchUser({ avatarUrl: result });
-          this.showToast('Đã tải lên Ảnh đại diện mới!');
+          this.authService.updateProfile({ avatarUrl: result }).subscribe({
+            next: () => this.showToast('Đã tải lên Ảnh đại diện mới!'),
+            error: () => this.showToast('Lỗi khi tải ảnh đại diện!'),
+          });
           this.closeAvatarModal();
         }
       };
@@ -421,8 +425,10 @@ export class Khang {
 
   removeAvatar() {
     this.avatarUrl.set(null);
-    this.authStore.patchUser({ avatarUrl: null });
-    this.showToast('Đã chuyển về tên viết tắt');
+    this.authService.updateProfile({ avatarUrl: null }).subscribe({
+      next: () => this.showToast('Đã chuyển về tên viết tắt'),
+      error: () => this.showToast('Lỗi khi xoá ảnh đại diện!'),
+    });
     this.closeAvatarModal();
   }
 
@@ -430,6 +436,7 @@ export class Khang {
   toggle2FA() {
     if (this.twoFactorEnabled()) {
       this.twoFactorEnabled.set(false);
+      this.authService.updateProfile({ twoFactorEnabled: false }).subscribe();
     } else {
       this.open2FAModal();
     }
@@ -449,6 +456,7 @@ export class Khang {
     if (this.twoFAVerificationCode().length >= 4) {
       this.twoFAStep.set('success');
       this.twoFactorEnabled.set(true);
+      this.authService.updateProfile({ twoFactorEnabled: true }).subscribe();
     }
   }
 
@@ -544,16 +552,18 @@ export class Khang {
       const val = this.settingsForm.get('username')?.value?.trim();
       if (val) {
         this.username.set(val);
-        this.authStore.patchUser({ username: val });
+        this.authService.updateProfile({ username: val }).subscribe({
+          next: () => this.showToast('Đã cập nhật Username thành công!'),
+          error: (err) => this.showToast(err?.error?.message || 'Lỗi khi cập nhật Username!'),
+        });
       }
-      this.showToast('Đã cập nhật Username thành công!');
     } else if (this.editingField() === 'email') {
       const val = this.settingsForm.get('email')?.value?.trim();
       if (val) {
         this.actualEmail.set(val);
         this.authStore.patchUser({ email: val });
+        this.showToast('Đã cập nhật Email thành công!');
       }
-      this.showToast('Đã cập nhật Email thành công!');
     } else if (this.editingField() === 'phone') {
       const val = this.settingsForm.get('phone')?.value?.trim();
       if (val) this.actualPhone.set(val);
@@ -566,7 +576,10 @@ export class Khang {
 
   setStatus(newStatus: 'online' | 'idle' | 'dnd' | 'offline') {
     this.status.set(newStatus);
-    this.showToast(`Đã đổi trạng thái thành: ${this.getStatusLabel(newStatus)}`);
+    this.authService.updateProfile({ presence: newStatus }).subscribe({
+      next: () => this.showToast(`Đã đổi trạng thái thành: ${this.getStatusLabel(newStatus)}`),
+      error: () => this.showToast('Lỗi khi cập nhật trạng thái!'),
+    });
   }
 
   selectPresetColor(preset: { hex: string; gradient: string; name: string }) {
@@ -609,25 +622,35 @@ export class Khang {
   }
 
   saveProfileChanges() {
-    if (this.settingsForm.valid) {
-      // Sync form values → signals
-      const fullName = this.settingsForm.get('fullName')?.value?.trim();
-      const uname = this.settingsForm.get('username')?.value?.trim();
-      if (fullName) this.displayName.set(fullName);
-      if (uname) this.username.set(uname);
+    const nameToSave = this.displayName()?.trim();
+    const unameToSave = this.username()?.trim();
 
-      // Propagate to AuthStore so sidebar & profile see changes immediately
-      this.authStore.patchUser({
-        displayName: this.displayName(),
-        username: this.username(),
-      });
-
-      this.settingsForm.markAsPristine();
-      this.showToast('Tất cả thay đổi đã được lưu thành công! ✨');
-    } else {
-      this.showToast('Vui lòng kiểm tra lại thông tin.');
-      this.settingsForm.markAllAsTouched();
+    if (!nameToSave) {
+      this.showToast('Tên hiển thị không được để trống.');
+      return;
     }
+
+    this.settingsForm.patchValue({
+      fullName: nameToSave,
+      username: unameToSave,
+    });
+
+    this.authService.updateProfile({
+      displayName: nameToSave,
+      username: unameToSave || undefined,
+      avatarUrl: this.avatarUrl(),
+      presence: this.status(),
+    }).subscribe({
+      next: (updatedUser) => {
+        this.displayName.set(updatedUser.displayName);
+        if (updatedUser.username) this.username.set(updatedUser.username);
+        this.settingsForm.markAsPristine();
+        this.showToast('Tất cả thay đổi đã được lưu thành công! ✨');
+      },
+      error: (err) => {
+        this.showToast(err?.error?.message || 'Lỗi khi lưu thay đổi hồ sơ.');
+      },
+    });
   }
 
   resetDefault() {
