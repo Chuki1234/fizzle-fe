@@ -151,6 +151,6 @@ export class LoginForm {
     // Only accept in-app paths — an absolute URL here would be an open redirect.
     return typeof requested === 'string' && requested.startsWith('/')
       ? requested
-      : '/app';
+      : '/';
   }
 }

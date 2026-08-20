@@ -1,16 +1,12 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
-/**
- * Placeholder for the authenticated area.
- *
- * Blank on purpose: it exists so a successful login has somewhere to land.
- * The real shell — server rail, channel sidebar, members panel — arrives with
- * the dashboard work in PLAN.md §2.
- */
 @Component({
   selector: 'fz-dashboard',
+  standalone: true, // <-- 1. Thêm cái này để dùng loadComponent trong app.routes.ts
+  imports: [RouterLink], // <-- 2. Import RouterLink để routerLink trong dashboard.html hoạt động
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
-export class Dashboard {}
+export class Dashboard { }

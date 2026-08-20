@@ -1,0 +1,123 @@
+@if (modalService.activeModal()) {
+<!-- Overlay bao phủ toàn bộ Viewport -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+
+    <!-- Backdrop Click-outside -->
+    <div class="absolute inset-0" (click)="modalService.close()"></div>
+
+    <!-- Modal Box: Cố định min-w và max-w ở 440px để tránh vỡ UI -->
+    <div
+        class="relative z-10 w-full max-w-[440px] min-w-[320px] rounded-2xl bg-[#313338] p-6 text-white shadow-2xl border border-[#3f4147] transition-all">
+
+        <!-- Nút Đóng X -->
+        <button (click)="modalService.close()" type="button"
+            class="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 hover:bg-[#35373c] hover:text-white transition">
+            ✕
+        </button>
+
+        <!-- 1. MODAL TẠO SERVER -->
+        @if (modalService.activeModal() === 'CREATE_SERVER') {
+        <div class="text-center mb-6">
+            <h2 class="text-2xl font-bold text-white mb-1">Tạo máy chủ của bạn</h2>
+            <p class="text-xs text-zinc-400">
+                Máy chủ là nơi bạn và các chiến hữu dành thời gian cho nhau.
+            </p>
+        </div>
+
+        <div class="flex flex-col gap-4">
+            <div>
+                <label class="block text-[10px] font-bold text-zinc-300 uppercase tracking-wider mb-2">
+                    Biểu tượng (Emoji)
+                </label>
+                <input type="text" [ngModel]="serverIcon()" (ngModelChange)="serverIcon.set($event)" maxlength="2"
+                    class="w-full rounded-xl bg-[#1e1f22] p-3 text-sm text-white border border-[#2b2d31] outline-none focus:border-emerald-500 transition" />
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-bold text-zinc-300 uppercase tracking-wider mb-2">
+                    Tên máy chủ
+                </label>
+                <input type="text" [ngModel]="serverName()" (ngModelChange)="serverName.set($event)"
+                    placeholder="VD: Server Học Tập HSU"
+                    class="w-full rounded-xl bg-[#1e1f22] p-3 text-sm text-white border border-[#2b2d31] outline-none focus:border-emerald-500 placeholder-zinc-500 transition" />
+            </div>
+
+            <div class="flex items-center justify-between pt-4 mt-2 border-t border-[#3f4147]">
+                <button (click)="modalService.close()" type="button"
+                    class="text-xs font-medium text-zinc-400 hover:underline">
+                    Hủy
+                </button>
+                <button (click)="onCreateServer()" [disabled]="!serverName().trim()" type="button"
+                    class="rounded-xl bg-emerald-500 px-5 py-2.5 text-xs font-bold text-black transition hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Tạo máy chủ
+                </button>
+            </div>
+        </div>
+        }
+
+        <!-- 2. MODAL TẠO KÊNH -->
+        @if (modalService.activeModal() === 'CREATE_CHANNEL') {
+        <div class="mb-6">
+            <h2 class="text-2xl font-bold text-white mb-1">Tạo kênh</h2>
+            <p class="text-xs text-zinc-400">
+                Trong máy chủ <span class="font-semibold text-zinc-200">{{ serverService.activeServer()?.name }}</span>
+            </p>
+        </div>
+
+        <div class="flex flex-col gap-4">
+            <div>
+                <label class="block text-[10px] font-bold text-zinc-300 uppercase tracking-wider mb-2">
+                    Loại kênh
+                </label>
+                <div class="grid grid-cols-2 gap-3">
+                    <button (click)="channelType.set('text')" type="button"
+                        class="flex items-center gap-3 p-3 rounded-xl border transition text-left cursor-pointer"
+                        [class.border-emerald-500]="channelType() === 'text'"
+                        [class.bg-[#2b2d31]]="channelType() === 'text'"
+                        [class.border-[#3f4147]]="channelType() !== 'text'">
+                        <span class="text-lg">#</span>
+                        <div>
+                            <p class="text-xs font-bold text-white">Text</p>
+                            <p class="text-[10px] text-zinc-400">Gửi tin nhắn, ảnh</p>
+                        </div>
+                    </button>
+
+                    <button (click)="channelType.set('voice')" type="button"
+                        class="flex items-center gap-3 p-3 rounded-xl border transition text-left cursor-pointer"
+                        [class.border-emerald-500]="channelType() === 'voice'"
+                        [class.bg-[#2b2d31]]="channelType() === 'voice'"
+                        [class.border-[#3f4147]]="channelType() !== 'voice'">
+                        <span class="text-lg">🎙️</span>
+                        <div>
+                            <p class="text-xs font-bold text-white">Voice</p>
+                            <p class="text-[10px] text-zinc-400">Nói chuyện trực tiếp</p>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-bold text-zinc-300 uppercase tracking-wider mb-2">
+                    Tên kênh
+                </label>
+                <input type="text" [ngModel]="channelName()" (ngModelChange)="channelName.set($event)"
+                    placeholder="new-channel"
+                    class="w-full rounded-xl bg-[#1e1f22] p-3 text-sm text-white border border-[#2b2d31] outline-none focus:border-emerald-500 placeholder-zinc-500 transition" />
+            </div>
+
+            <div class="flex items-center justify-between pt-4 mt-2 border-t border-[#3f4147]">
+                <button (click)="modalService.close()" type="button"
+                    class="text-xs font-medium text-zinc-400 hover:underline">
+                    Hủy
+                </button>
+                <button (click)="onCreateChannel()" [disabled]="!channelName().trim()" type="button"
+                    class="rounded-xl bg-emerald-500 px-5 py-2.5 text-xs font-bold text-black transition hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Tạo kênh
+                </button>
+            </div>
+        </div>
+        }
+
+    </div>
+</div>
+}

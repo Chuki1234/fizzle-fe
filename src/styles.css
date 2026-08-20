@@ -1,6 +1,6 @@
 /* ============================================================================
    Fizzle — global stylesheet entry
-   Layer order matters: tokens -> themes -> tailwind -> base -> typography.
+   Layer order: tokens -> themes -> tailwind -> base -> typography.
    ========================================================================== */
 
 @import './styles/tokens.css';
@@ -10,7 +10,32 @@
 @import './styles/base.css';
 @import './styles/typography.css';
 
-/* Global recipes for directives that style a host element in a consumer's
-   template, so component-scoped styles cannot reach them. */
+/* Global recipes for directives/shared UI */
 @import './app/shared/ui/input/input.css';
 @import './app/shared/ui/checkbox/checkbox.css';
+
+/* ============================================================================
+   MINTLIFY SYSTEM MAPPING & GLOBAL RESETS
+   ========================================================================== */
+
+/* Reset toàn cục giúp Layout không bị méo/vỡ width */
+*,
+*::before,
+*::after {
+   box-sizing: border-box;
+}
+
+html,
+body {
+   width: 100%;
+   height: 100%;
+   margin: 0;
+   padding: 0;
+   overflow: hidden;
+   /* Dành cho App Desktop Single-Page */
+   background-color: var(--color-canvas);
+   color: var(--color-ink);
+   font-family: var(--font-sans);
+   -webkit-font-smoothing: antialiased;
+   -moz-osx-font-smoothing: grayscale;
+}
