@@ -17,6 +17,12 @@ export const routes: Routes = [
       { path: 'channels/:serverId/:channelId', loadComponent: () => import('./features/chat/chat').then(m => m.Chat) },
 
       { path: 'friends', loadComponent: () => import('./features/friends/friends').then(m => m.Friends) },
+
+      // Profile overlay
+      { path: 'profile', loadComponent: () => import('./features/profile/k-profile').then((m) => m.KProfile) },
+
+      // Settings overlay
+      { path: 'settings', loadComponent: () => import('./features/settings/khang').then((m) => m.Khang) },
     ]
   },
 
@@ -28,16 +34,6 @@ export const routes: Routes = [
       { path: 'login', loadComponent: () => import('./features/auth/login/login').then(m => m.Login) },
       { path: 'register', loadComponent: () => import('./features/auth/register/register').then(m => m.Register) },
     ]
-  },
-  {
-    path: 'settings',
-    title: 'Settings · Fizzle',
-    loadComponent: () => import('./khang/khang').then((m) => m.Khang),
-  },
-  {
-    path: 'profile',
-    title: 'Profile · Fizzle',
-    loadComponent: () => import('./k-profile/k-profile').then((m) => m.KProfile),
   },
   { path: '**', redirectTo: '' },
 ];

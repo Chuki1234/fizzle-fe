@@ -1,7 +1,8 @@
-import { Component, signal, computed } from '@angular/core';
+import { Component, signal, computed, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
+import { AuthStore } from '../../core/auth/auth.store';
 
 export interface Badge {
   id: string;
@@ -39,15 +40,32 @@ export interface MutualFriend {
   styleUrl: './k-profile.css',
 })
 export class KProfile {
+  private router = inject(Router);
+  private authStore = inject(AuthStore);
+
+  constructor() {
+    // Reactive sync: whenever AuthStore user changes, update local signals
+    effect(() => {
+      const user = this.authStore.user();
+      if (!user) return;
+      if (user.username) this.username.set(user.username);
+      if (user.displayName) this.displayName.set(user.displayName);
+      if (user.avatarUrl != null) this.avatarUrl.set(user.avatarUrl);
+    });
+  }
+
+  closeProfile() {
+    this.router.navigate(['..'], { skipLocationChange: false });
+  }
+
   // User Profile Signals
-  displayName = signal<string>('Nguyễn Văn Khang');
-  username = signal<string>('khang_discord');
-  pronouns = signal<string>('he/him');
-  customStatus = signal<string>('🚀 Đang xây dựng giao diện Discord Profile xám cực chất');
-  customStatusEmoji = signal<string>('⚡');
-  aboutMe = signal<string>(
-    'Full-stack Developer & UI/UX enthusiast. Đam mê tối ưu hóa trải nghiệm người dùng, hệ thống Angular v21 và Tailwind CSS.\n\n"Coding with passion, designing with precision."'
-  );
+  displayName = signal<string>('User');
+  username = signal<string>('user');
+  userInitial = computed(() => (this.displayName() || this.username() || 'U').charAt(0).toUpperCase());
+  pronouns = signal<string>('');
+  customStatus = signal<string>('');
+  customStatusEmoji = signal<string>('');
+  aboutMe = signal<string>('');
   joinedDiscord = signal<string>('12 Thg 5, 2020');
   joinedServer = signal<string>('01 Thg 3, 2023');
 
@@ -194,6 +212,12 @@ export class KProfile {
   }
 
   saveProfileChanges() {
+    // Propagate all changed fields to AuthStore so sidebar & settings sync immediately
+    this.authStore.patchUser({
+      displayName: this.displayName(),
+      username: this.username(),
+      avatarUrl: this.avatarUrl(),
+    });
     this.showToast('Đã lưu tất cả thay đổi hồ sơ cá nhân thành công!');
   }
 

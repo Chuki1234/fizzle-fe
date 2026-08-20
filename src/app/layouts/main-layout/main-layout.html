@@ -125,11 +125,20 @@
 
             <!-- USER PROFILE FOOTER -->
             <div class="sidebar-left__user-profile">
-                <div class="sidebar-left__avatar sidebar-left__avatar--user">P</div>
-                <div class="sidebar-left__user-info">
-                    <span class="sidebar-left__user-name">Thiện Phúc</span>
-                    <span class="sidebar-left__user-status">● Online</span>
-                </div>
+                <a routerLink="/profile" class="sidebar-left__user-profile-left" title="Trang cá nhân">
+                    @if (authStore.user()?.avatarUrl) {
+                        <img [src]="authStore.user()?.avatarUrl" class="sidebar-left__avatar sidebar-left__avatar--user" alt="Avatar" />
+                    } @else {
+                        <div class="sidebar-left__avatar sidebar-left__avatar--user">{{ userInitial() }}</div>
+                    }
+                    <div class="sidebar-left__user-info">
+                        <span class="sidebar-left__user-name">{{ authStore.user()?.displayName || authStore.user()?.username || 'User' }}</span>
+                        <span class="sidebar-left__user-status">● Online</span>
+                    </div>
+                </a>
+                <a routerLink="/settings" class="sidebar-left__settings-btn" title="Cài đặt">
+                    ⚙️
+                </a>
             </div>
         </div>
     </aside>

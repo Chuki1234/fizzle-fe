@@ -153,14 +153,20 @@
 </div>
 }
 
-<div class="settings-shell-discord">
-  <!-- Left Sidebar Layout (Matching Screenshot) -->
+<!-- Settings Overlay Backdrop — click outside to close -->
+<div class="settings-overlay-backdrop" (click)="closeSettings()">
+  <div class="settings-shell-discord" (click)="$event.stopPropagation()">
+    <!-- Left Sidebar Layout (Matching Screenshot) -->
   <aside class="sidebar-discord">
     <!-- Header: User Avatar + Name + Edit Profiles link -->
     <div class="user-header-card">
       <div class="user-avatar-wrap">
         <div class="user-avatar-circle">
-          FC
+          @if (avatarUrl()) {
+            <img [src]="avatarUrl()" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" alt="Avatar" />
+          } @else {
+            {{ userInitial() }}
+          }
         </div>
         <div class="user-status-dot" [style.background-color]="getStatusColor(status())"></div>
       </div>
@@ -236,6 +242,14 @@
         <button type="button" class="group-header-btn" [class.active]="activeSection() === 'notifications'"
           (click)="setSection('notifications')">
           🔔 Notifications
+        </button>
+      </div>
+
+      <div class="sidebar-divider margin-top-md margin-bottom-sm"></div>
+
+      <div class="nav-group">
+        <button type="button" class="group-header-btn btn-logout-danger" (click)="logout()">
+          🚪 Đăng xuất
         </button>
       </div>
     </nav>
@@ -1461,4 +1475,5 @@
       }
     </div>
   </main>
+</div>
 </div>
