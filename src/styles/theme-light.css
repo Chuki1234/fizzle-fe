@@ -1,54 +1,53 @@
 /* ============================================================================
-   Fizzle — Light theme (opt-in via <html data-theme="light">)
-   Straight from the DESIGN-mintlify.md published palette.
+   Fizzle — Mintlify Light Theme (White + Emerald)
    ========================================================================== */
 
 :root[data-theme='light'] {
   color-scheme: light;
 
-  /* --- Brand & accent --------------------------------------------------- */
-  --color-accent: #00d4a4;
-  --color-accent-deep: #00b48a;
-  --color-accent-soft: #7cebcb;
-  --color-tag: #3772cf;
-  --color-warn: #c37d0d;
-  --color-annotate: #1ba673;
-  --color-error: #d45656;
-  --color-highlight: #f55a3c;
+  /* --- Mintlify Brand & Accents ----------------------------------------- */
+  --color-accent: #0d9373;         /* Mintlify Emerald Brand */
+  --color-accent-deep: #0a7a61;    /* Pressed Deep Emerald */
+  --color-accent-soft: rgba(13, 147, 115, 0.10); /* Soft Emerald Tint */
+  --color-tag: #0284c7;            /* Sky Blue */
+  --color-warn: #d97706;           /* Amber Warning */
+  --color-annotate: #059669;       /* Pass Green */
+  --color-error: #dc2626;          /* Red Error */
+  --color-highlight: #7c3aed;      /* Violet Highlight */
 
   /* --- Surfaces --------------------------------------------------------- */
-  --color-canvas: #ffffff;
-  --color-surface: #f7f7f7;
-  --color-surface-soft: #fafafa;
-  --color-elevated: #ffffff;
-  --color-raised: #ffffff;
-  --color-code: #1c1c1e;
-  --color-overlay: rgba(10, 10, 10, 0.48);
+  --color-canvas: #f8fafc;         /* Slate 50 — Nearly White */
+  --color-surface: #ffffff;        /* Pure White Card */
+  --color-surface-soft: #f1f5f9;   /* Slate 100 — Subtle Panel */
+  --color-elevated: #ffffff;       /* Elevated Card Surface */
+  --color-raised: #e2e8f0;         /* Slate 200 — Raised Control */
+  --color-code: #0d1117;           /* Dark Code Block */
+  --color-overlay: rgba(15, 23, 42, 0.4);
 
-  --color-hero-from: #87a8c8;      /* hero-sky-from */
-  --color-hero-to: #f5e9d8;        /* hero-sky-to */
+  --color-hero-from: #f8fafc;      /* Slate 50 */
+  --color-hero-to: #f0fdf4;        /* Subtle Green Hint */
 
   /* --- Hairlines -------------------------------------------------------- */
-  --color-hairline: #e5e5e5;
-  --color-hairline-soft: #ededed;
+  --color-hairline: #e2e8f0;       /* Slate 200 — Clean Border */
+  --color-hairline-soft: #f1f5f9;  /* Slate 100 — Softer Border */
 
   /* --- Text ------------------------------------------------------------- */
-  --color-ink: #0a0a0a;
-  --color-body: #1c1c1e;
-  --color-steel: #5a5a5c;
-  --color-stone: #888888;
-  --color-muted: #a8a8aa;
+  --color-ink: #0f172a;            /* Slate 900 — Deep Ink */
+  --color-body: #334155;           /* Slate 700 — Body Text */
+  --color-steel: #475569;          /* Slate 600 — Subtitle */
+  --color-stone: #64748b;          /* Slate 500 — Secondary */
+  --color-muted: #94a3b8;          /* Slate 400 — Muted */
 
-  /* --- Inverted --------------------------------------------------------- */
-  --color-on-accent: #0a0a0a;
-  --color-inverse-surface: #0a0a0a; /* black pill dominates on light */
-  --color-on-inverse: #ffffff;
+  /* --- Inverted Controls ------------------------------------------------ */
+  --color-on-accent: #ffffff;      /* White Text on Emerald */
+  --color-inverse-surface: #0f172a;/* Slate Dark Pill */
+  --color-on-inverse: #ffffff;     /* White Text on Pill */
 
   /* --- Presence --------------------------------------------------------- */
-  --color-presence-online: #1ba673;
-  --color-presence-idle: #c37d0d;
-  --color-presence-dnd: #d45656;
-  --color-presence-offline: #888888;
+  --color-presence-online: #059669;
+  --color-presence-idle: #d97706;
+  --color-presence-dnd: #dc2626;
+  --color-presence-offline: #94a3b8;
 
   --focus-ring: 0 0 0 2px var(--color-canvas), 0 0 0 4px var(--color-accent);
 }

@@ -1,4 +1,4 @@
-import {
+﻿import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
@@ -8,22 +8,12 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../../../../../core/auth/auth.service';
 import { ApiError } from '../../../../../core/http/api-error.model';
 import { Alert } from '../../../../../shared/ui/alert/alert';
 import { Button } from '../../../../../shared/ui/button/button';
-import { FormField } from '../../../../../shared/ui/form-field/form-field';
-import { InputDirective } from '../../../../../shared/ui/input/input';
-import {
-  OTP_MAX_LENGTH,
-  verifyResetCodeSchema,
-} from '../../../../../shared/validators/auth.schema';
-import {
-  errorMessageOf,
-  zodValidator,
-} from '../../../../../shared/validators/zod-form';
+import { OtpInput } from '../../../../../shared/ui/otp-input/otp-input';
+import { OTP_MIN_LENGTH } from '../../../../../shared/validators/auth.schema';
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
@@ -35,12 +25,11 @@ const RESEND_COOLDOWN_SECONDS = 60;
 @Component({
   selector: 'fz-verify-code-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, Button, FormField, InputDirective, Alert],
+  imports: [Button, Alert, OtpInput],
   templateUrl: './verify-code-form.html',
   styleUrl: './verify-code-form.css',
 })
 export class VerifyCodeForm {
-  private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -50,13 +39,11 @@ export class VerifyCodeForm {
   /** Emits the ticket the next step spends. */
   readonly verified = output<string>();
 
-  /** Caps the input at the longest code Supabase can issue, never at 6. */
-  protected readonly codeMaxLength = OTP_MAX_LENGTH;
+  /** The assembled OTP code from the 6-box input */
+  protected readonly otpCode = signal('');
 
-  protected readonly form = this.fb.nonNullable.group(
-    { code: '' },
-    { validators: zodValidator(verifyResetCodeSchema.pick({ code: true })) },
-  );
+  /** OTP length from schema constants */
+  protected readonly otpLength = OTP_MIN_LENGTH;
 
   protected readonly submitting = signal(false);
   protected readonly resending = signal(false);
@@ -68,30 +55,23 @@ export class VerifyCodeForm {
     () => this.cooldown() === 0 && !this.resending(),
   );
 
-  private readonly formEvents = toSignal(
-    this.form.events.pipe(takeUntilDestroyed()),
-    { initialValue: null },
-  );
-
-  protected readonly codeError = computed(() => {
-    this.formEvents();
-    return errorMessageOf(this.form.controls.code);
-  });
-
   protected submit(): void {
     if (this.submitting()) return;
 
-    this.form.markAllAsTouched();
+    const code = this.otpCode();
+    if (code.length < this.otpLength) {
+      this.formError.set('Vui lòng nhập đủ mã OTP 6 chữ số.');
+      return;
+    }
+
     this.formError.set(null);
     this.notice.set(null);
-
-    if (this.form.invalid) return;
-
     this.submitting.set(true);
+
     this.auth
       .verifyResetCode({
         email: this.email(),
-        code: this.form.getRawValue().code,
+        code,
       })
       .subscribe({
         next: ({ resetToken }) => {
@@ -100,6 +80,7 @@ export class VerifyCodeForm {
         },
         error: (err: ApiError) => {
           this.submitting.set(false);
+          this.otpCode.set('');
           this.applyError(err);
         },
       });
@@ -120,7 +101,6 @@ export class VerifyCodeForm {
       error: (err: ApiError) => {
         this.resending.set(false);
         this.formError.set(err.message);
-        // A rate-limit rejection still means "wait" — hold the button.
         if (err.status === 429) this.startCooldown();
       },
     });
@@ -138,20 +118,17 @@ export class VerifyCodeForm {
   /** A rejected code belongs on the code field, not in a banner. */
   private applyError(err: ApiError): void {
     const onCode: Record<string, string> = {
-      // Supabase cannot tell a mistyped code from a stale one, so the message
-      // has to cover both and offer both remedies.
-      OTP_INVALID:
-        'Mã xác thực không đúng hoặc đã hết hạn. Kiểm tra lại hoặc bấm "Gửi lại mã".',
+      OTP_INVALID: 'Mã xác thực không đúng hoặc đã hết hạn. Kiểm tra lại hoặc bấm "Gửi lại mã".',
       OTP_EXPIRED: 'Mã xác thực đã hết hạn. Hãy bấm "Gửi lại mã".',
     };
 
     const message = onCode[err.code];
     if (message) {
-      this.form.controls.code.setErrors({ server: message });
-      this.form.controls.code.markAsTouched();
+      this.formError.set(message);
       return;
     }
 
     this.formError.set(err.message);
   }
 }
+

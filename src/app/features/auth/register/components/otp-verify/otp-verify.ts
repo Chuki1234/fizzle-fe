@@ -1,4 +1,4 @@
-import {
+﻿import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
@@ -7,35 +7,24 @@ import {
   input,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../../../core/auth/auth.service';
 import { ApiError } from '../../../../../core/http/api-error.model';
 import { Alert } from '../../../../../shared/ui/alert/alert';
 import { Button } from '../../../../../shared/ui/button/button';
-import { FormField } from '../../../../../shared/ui/form-field/form-field';
-import { InputDirective } from '../../../../../shared/ui/input/input';
-import {
-  OTP_MAX_LENGTH,
-  verifyOtpSchema,
-} from '../../../../../shared/validators/auth.schema';
-import {
-  errorMessageOf,
-  zodValidator,
-} from '../../../../../shared/validators/zod-form';
+import { OtpInput } from '../../../../../shared/ui/otp-input/otp-input';
+import { OTP_MIN_LENGTH } from '../../../../../shared/validators/auth.schema';
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
 @Component({
   selector: 'fz-otp-verify',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, Button, FormField, InputDirective, Alert],
+  imports: [Button, Alert, OtpInput],
   templateUrl: './otp-verify.html',
   styleUrl: './otp-verify.css',
 })
 export class OtpVerify {
-  private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -43,18 +32,11 @@ export class OtpVerify {
   /** The address the code was sent to. */
   readonly email = input.required<string>();
 
-  /** Caps the input at the longest code Supabase can issue, never at 6. */
-  protected readonly codeMaxLength = OTP_MAX_LENGTH;
+  /** The assembled OTP code from the 6-box input */
+  protected readonly otpCode = signal('');
 
-  /**
-   * Only the code is editable — the address comes from the parent, so the form
-   * validates the `code` half of the schema and the email is attached at
-   * submit time.
-   */
-  protected readonly form = this.fb.nonNullable.group(
-    { code: '' },
-    { validators: zodValidator(verifyOtpSchema.pick({ code: true })) },
-  );
+  /** OTP length from schema constants */
+  protected readonly otpLength = OTP_MIN_LENGTH;
 
   protected readonly submitting = signal(false);
   protected readonly resending = signal(false);
@@ -66,28 +48,21 @@ export class OtpVerify {
     () => this.cooldown() === 0 && !this.resending(),
   );
 
-  private readonly formEvents = toSignal(
-    this.form.events.pipe(takeUntilDestroyed()),
-    { initialValue: null },
-  );
-
-  protected readonly codeError = computed(() => {
-    this.formEvents();
-    return errorMessageOf(this.form.controls.code);
-  });
-
   protected submit(): void {
     if (this.submitting()) return;
 
-    this.form.markAllAsTouched();
+    const code = this.otpCode();
+    if (code.length < this.otpLength) {
+      this.formError.set('Vui lòng nhập đủ mã OTP 6 chữ số.');
+      return;
+    }
+
     this.formError.set(null);
     this.notice.set(null);
-
-    if (this.form.invalid) return;
-
     this.submitting.set(true);
+
     this.auth
-      .verifyOtp({ email: this.email(), code: this.form.getRawValue().code })
+      .verifyOtp({ email: this.email(), code })
       .subscribe({
         next: () => {
           this.submitting.set(false);
@@ -95,6 +70,7 @@ export class OtpVerify {
         },
         error: (err: ApiError) => {
           this.submitting.set(false);
+          this.otpCode.set('');
           this.formError.set(this.messageFor(err));
         },
       });
@@ -115,7 +91,6 @@ export class OtpVerify {
       error: (err: ApiError) => {
         this.resending.set(false);
         this.formError.set(err.message);
-        // A rate-limit rejection still means "wait" — hold the button.
         if (err.status === 429) this.startCooldown();
       },
     });
@@ -133,8 +108,6 @@ export class OtpVerify {
   private messageFor(err: ApiError): string {
     switch (err.code) {
       case 'OTP_INVALID':
-        // Supabase cannot tell a mistyped code from a stale one, so the
-        // message has to cover both and offer both remedies.
         return 'Mã xác thực không đúng hoặc đã hết hạn. Kiểm tra lại hoặc bấm "Gửi lại mã".';
       case 'OTP_EXPIRED':
         return 'Mã xác thực đã hết hạn. Hãy bấm "Gửi lại mã".';
@@ -143,3 +116,4 @@ export class OtpVerify {
     }
   }
 }
+

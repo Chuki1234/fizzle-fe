@@ -54,11 +54,45 @@ export class NewPasswordForm {
 
   protected readonly submitting = signal(false);
   protected readonly formError = signal<string | null>(null);
+  protected readonly showPassword = signal(false);
+
+  protected togglePassword(): void {
+    this.showPassword.update((show) => !show);
+  }
 
   private readonly formEvents = toSignal(
     this.form.events.pipe(takeUntilDestroyed()),
     { initialValue: null },
   );
+
+  protected readonly passwordStrength = computed(() => {
+    this.formEvents();
+    const val = this.form.controls.password.value || '';
+    if (!val) return { score: 0, label: '', percent: 0, tone: 'none' };
+    
+    let score = 0;
+    if (val.length >= 8) score++;
+    if (/[A-Z]/.test(val)) score++;
+    if (/[0-9]/.test(val)) score++;
+    if (/[^A-Za-z0-9]/.test(val)) score++;
+
+    const percent = Math.min(100, score * 25);
+    let label = 'Yếu';
+    let tone = 'error';
+
+    if (score === 2) {
+      label = 'Trung bình';
+      tone = 'warn';
+    } else if (score === 3) {
+      label = 'Khá';
+      tone = 'info';
+    } else if (score === 4) {
+      label = 'Mạnh';
+      tone = 'success';
+    }
+
+    return { score, label, percent, tone };
+  });
 
   protected readonly passwordError = computed(() => {
     this.formEvents();

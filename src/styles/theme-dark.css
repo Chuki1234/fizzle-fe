@@ -1,61 +1,56 @@
 /* ============================================================================
-   Fizzle — Dark theme (default)
-   Colors are the DESIGN-mintlify.md palette. The doc's "Known Gaps" section
-   states dark-mode values for canvas/surface/ink/hairline are not published,
-   so the four `derived` values below fill that gap by interpolating between
-   the file's own `canvas-dark` (#0a0a0a) and `surface-code` (#1c1c1e).
-   Tune those four here; nothing else in the app hardcodes a color.
+   Fizzle — Mintlify Dark Theme (Slate Dark + Emerald)
    ========================================================================== */
 
 :root,
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  /* --- Brand & accent (verbatim) ---------------------------------------- */
-  --color-accent: #00d4a4;         /* brand-green — CTAs, focus, active only */
-  --color-accent-deep: #00b48a;    /* brand-green-deep — pressed */
-  --color-accent-soft: #7cebcb;    /* brand-green-soft — success tint */
-  --color-tag: #3772cf;            /* brand-tag */
-  --color-warn: #c37d0d;           /* brand-warn */
-  --color-annotate: #1ba673;       /* brand-annotate */
-  --color-error: #d45656;          /* brand-error */
-  --color-highlight: #f55a3c;      /* testimonial-orange — LIVE badge */
+  /* --- Mintlify Brand & Accents ----------------------------------------- */
+  --color-accent: #10b981;         /* Mintlify Emerald */
+  --color-accent-deep: #059669;    /* Emerald Pressed */
+  --color-accent-soft: rgba(16, 185, 129, 0.12); /* Soft Emerald Tint */
+  --color-tag: #38bdf8;            /* Sky Blue Tag */
+  --color-warn: #f59e0b;           /* Amber Warning */
+  --color-annotate: #10b981;       /* Pass Green (same as accent) */
+  --color-error: #f43f5e;          /* Rose Red */
+  --color-highlight: #a78bfa;      /* Soft Violet Highlight */
 
   /* --- Surfaces --------------------------------------------------------- */
-  --color-canvas: #0a0a0a;         /* canvas-dark (verbatim) */
-  --color-surface: #141416;        /* derived */
-  --color-surface-soft: #101012;   /* derived */
-  --color-elevated: #1c1c1e;       /* surface-code (verbatim) */
-  --color-raised: #232326;         /* derived */
-  --color-code: #1c1c1e;           /* surface-code (verbatim) */
-  --color-overlay: rgba(0, 0, 0, 0.72);
+  --color-canvas: #0f172a;         /* Slate 900 — Mintlify dark bg */
+  --color-surface: #1e293b;        /* Slate 800 — Card Surface */
+  --color-surface-soft: #253347;   /* Slate 750 — Subtle Panel */
+  --color-elevated: #293548;       /* Slate 750 — Elevated Panel */
+  --color-raised: #334155;         /* Slate 700 — Raised Control */
+  --color-code: #0d1117;           /* GitHub-style Code Block */
+  --color-overlay: rgba(15, 23, 42, 0.85);
 
-  /* Atmospheric hero band — used behind the auth card (hero-band-dark) */
-  --color-hero-from: #1a3d4a;      /* hero-dark-from (verbatim) */
-  --color-hero-to: #2d5a4f;        /* hero-dark-to (verbatim) */
+  /* Mintlify Dark Hero Backdrop */
+  --color-hero-from: #0f172a;      /* Slate 900 */
+  --color-hero-to: #1e293b;        /* Slate 800 */
 
   /* --- Hairlines -------------------------------------------------------- */
-  --color-hairline: #1f1f1f;       /* hairline-dark (verbatim) */
-  --color-hairline-soft: #171717;  /* derived */
+  --color-hairline: rgba(255, 255, 255, 0.08);      /* Subtle White Border */
+  --color-hairline-soft: rgba(255, 255, 255, 0.05); /* Softer Border */
 
   /* --- Text ------------------------------------------------------------- */
-  --color-ink: #ffffff;            /* on-dark */
-  --color-body: #b3b3b3;           /* on-dark-muted */
-  --color-steel: #a8a8aa;          /* muted */
-  --color-stone: #888888;          /* stone */
-  --color-muted: #5a5a5c;          /* steel, de-emphasized on dark */
+  --color-ink: #f1f5f9;            /* Slate 100 — Crisp Header */
+  --color-body: #cbd5e1;           /* Slate 300 — Body Text */
+  --color-steel: #94a3b8;          /* Slate 400 — Subtitle */
+  --color-stone: #64748b;          /* Slate 500 — Captions */
+  --color-muted: #475569;          /* Slate 600 — De-emphasized */
 
-  /* --- Inverted (light-on-dark controls) -------------------------------- */
-  --color-on-accent: #0a0a0a;      /* primary — text on the mint pill */
-  --color-inverse-surface: #ffffff;/* on-dark — the white pill button */
-  --color-on-inverse: #0a0a0a;     /* primary — text on the white pill */
+  /* --- Inverted Controls ------------------------------------------------ */
+  --color-on-accent: #ffffff;      /* White text on Emerald */
+  --color-inverse-surface: #10b981;/* Emerald Pill Button */
+  --color-on-inverse: #ffffff;     /* White text on Pill Button */
 
-  /* --- Presence (mapped from the palette's semantic set) ---------------- */
-  --color-presence-online: #1ba673;  /* brand-annotate */
-  --color-presence-idle: #c37d0d;    /* brand-warn */
-  --color-presence-dnd: #d45656;     /* brand-error */
-  --color-presence-offline: #888888; /* stone */
+  /* --- Presence --------------------------------------------------------- */
+  --color-presence-online: #10b981;
+  --color-presence-idle: #f59e0b;
+  --color-presence-dnd: #f43f5e;
+  --color-presence-offline: #64748b;
 
-  /* --- Focus ring ------------------------------------------------------- */
+  /* --- Focus Ring ------------------------------------------------------- */
   --focus-ring: 0 0 0 2px var(--color-canvas), 0 0 0 4px var(--color-accent);
 }

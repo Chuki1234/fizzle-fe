@@ -1,9 +1,12 @@
 import { Routes } from '@angular/router';
+import { authGuard } from './core/auth/auth-guard';
+import { guestGuard } from './core/auth/guest-guard';
 
 export const routes: Routes = [
   // 1. Main Layout & Các trang chính
   {
     path: '',
+    canActivate: [authGuard],
     loadComponent: () => import('./layouts/main-layout/main-layout').then(m => m.MainLayout),
     children: [
       { path: '', redirectTo: 'friends', pathMatch: 'full' },
@@ -29,6 +32,7 @@ export const routes: Routes = [
   // 2. Luồng Auth
   {
     path: 'auth',
+    canActivate: [guestGuard],
     loadComponent: () => import('./layouts/auth-layout/auth-layout').then(m => m.AuthLayout),
     children: [
       { path: 'login', loadComponent: () => import('./features/auth/login/login').then(m => m.Login) },
