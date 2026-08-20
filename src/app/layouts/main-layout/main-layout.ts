@@ -1,9 +1,10 @@
 import { Component, computed, inject } from '@angular/core';
-import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { ServerService } from '../../core/services/server';
 import { FriendService } from '../../core/services/friend';
 import { ModalService } from '../../core/services/modal';
 import { AuthStore } from '../../core/auth/auth.store';
+import { AuthService } from '../../core/auth/auth.service';
 import { VoiceControlComponent } from '../../shared/ui/voice-control/voice-control';
 import { ModalComponent } from '../../shared/ui/modal/modal';
 
