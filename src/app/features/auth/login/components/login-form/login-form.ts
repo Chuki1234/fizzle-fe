@@ -37,6 +37,20 @@ export class LoginForm {
   protected readonly submitting = signal(false);
   protected readonly formError = signal<string | null>(null);
   protected readonly sendingResetCode = signal(false);
+  protected readonly showPassword = signal(false);
+
+  protected togglePassword(): void {
+    this.showPassword.update((show) => !show);
+  }
+
+  protected fillDemoCredentials(): void {
+    this.form.patchValue({
+      email: 'dev@fizzle.io',
+      password: 'Password123!',
+    });
+    this.form.controls.email.markAsTouched();
+    this.form.controls.password.markAsTouched();
+  }
 
   /**
    * Form state lives outside the signal graph, so mirror its event stream into

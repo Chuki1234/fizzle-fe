@@ -1,9 +1,100 @@
 .register-form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-lg);
+  gap: var(--space-md);
 }
 
+.register-form__password-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.register-form__password-wrap input {
+  padding-right: 44px;
+}
+
+/* Phone Number Field */
+.register-form__phone-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.register-form__phone-prefix {
+  position: absolute;
+  left: var(--space-sm);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-stone);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.register-form__phone-input {
+  padding-left: 36px !important;
+}
+
+.register-form__toggle-pw {
+  position: absolute;
+  right: var(--space-sm);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  background: transparent;
+  border: none;
+  color: var(--color-stone);
+  border-radius: var(--radius-xs);
+  transition: color var(--duration-fast) var(--ease-standard);
+  cursor: pointer;
+}
+
+.register-form__toggle-pw:hover {
+  color: var(--color-ink);
+}
+
+/* Password Strength Meter */
+.register-form__pw-meter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.register-form__pw-meter-bar {
+  height: 4px;
+  width: 100%;
+  background-color: var(--color-surface);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.register-form__pw-meter-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width var(--duration-base) var(--ease-standard), background-color var(--duration-base) var(--ease-standard);
+}
+
+.fill--error { background-color: var(--color-error); }
+.fill--warn { background-color: var(--color-warn); }
+.fill--info { background-color: var(--color-tag); }
+.fill--success { background-color: var(--color-accent); }
+
+.register-form__pw-meter-text {
+  font-size: var(--text-micro);
+  color: var(--color-stone);
+}
+
+.text--error { color: var(--color-error); }
+.text--warn { color: var(--color-warn); }
+.text--info { color: var(--color-tag); }
+.text--success { color: var(--color-accent); }
+
+/* Birthday Group */
 .register-form__birthdate {
   border: none;
   padding: 0;

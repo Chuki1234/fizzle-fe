@@ -96,6 +96,9 @@ export type ButtonSize = 'md' | 'lg';
       background-color: var(--color-accent);
       color: var(--color-on-accent);
     }
+    .fz-btn--accent:hover:not(:disabled) {
+      background-color: var(--color-accent-deep);
+    }
     .fz-btn--accent:active:not(:disabled) {
       background-color: var(--color-accent-deep);
     }
@@ -110,8 +113,12 @@ export type ButtonSize = 'md' | 'lg';
       color: var(--color-ink);
       border: 1px solid var(--color-hairline);
     }
+    .fz-btn--secondary:hover:not(:disabled) {
+      background-color: var(--color-surface-soft);
+      border-color: var(--color-stone);
+    }
     .fz-btn--secondary:active:not(:disabled) {
-      background-color: var(--color-surface);
+      background-color: var(--color-raised);
     }
     .fz-btn--secondary:disabled {
       color: var(--color-muted);

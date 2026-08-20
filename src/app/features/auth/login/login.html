@@ -1,15 +1,14 @@
 <section class="login-card" aria-labelledby="login-title">
   <header class="login-card__header">
-    <h1 class="login-card__title text-heading-3" id="login-title">
-      Chào mừng trở lại!
-    </h1>
-    <p class="login-card__subtitle">Rất vui được gặp lại bạn.</p>
+    <span class="login-card__badge">Đăng nhập</span>
+    <h1 class="login-card__title" id="login-title">Chào mừng trở lại</h1>
+    <p class="login-card__subtitle">Nhập thông tin đăng nhập để tiếp tục sử dụng Fizzle.</p>
   </header>
 
   <fz-login-form />
 
-  <p class="login-card__footer">
-    Chưa có tài khoản?
-    <a class="login-card__link" routerLink="/auth/register">Đăng ký</a>
-  </p>
+  <footer class="login-card__footer">
+    <span>Chưa có tài khoản?</span>
+    <a class="login-card__link" routerLink="/auth/register">Đăng ký tài khoản mới</a>
+  </footer>
 </section>
