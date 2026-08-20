@@ -153,6 +153,21 @@
 </div>
 }
 
+<!-- Logout Confirmation Modal -->
+@if (showLogoutConfirm()) {
+<div class="modal-overlay" (click)="showLogoutConfirm.set(false)">
+  <div class="modal-card logout-confirm-card" (click)="$event.stopPropagation()">
+    <div class="logout-confirm-icon">🚪</div>
+    <h3 class="modal-title">Đăng xuất khỏi Fizzle?</h3>
+    <p class="logout-confirm-desc">Bạn sẽ cần đăng nhập lại để tiếp tục sử dụng. Phiên hiện tại sẽ bị kết thúc.</p>
+    <div class="modal-actions">
+      <button type="button" class="btn-mint-secondary" (click)="showLogoutConfirm.set(false)">Ở lại</button>
+      <button type="button" class="btn-logout-confirm-ok" (click)="confirmLogout()">Đăng xuất</button>
+    </div>
+  </div>
+</div>
+}
+
 <!-- Settings Overlay Backdrop — click outside to close -->
 <div class="settings-overlay-backdrop" (click)="closeSettings()">
   <div class="settings-shell-discord" (click)="$event.stopPropagation()">
