@@ -1,8 +1,7 @@
-<form class="verify-code" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+<form class="verify-code" (ngSubmit)="submit()" novalidate>
   <p class="verify-code__intro">
-    Chúng tôi đã gửi mã xác thực tới
-    <strong class="verify-code__email">{{ email() }}</strong>. Nhập mã để tiếp
-    tục.
+    Mã xác thực đặt lại mật khẩu đã được gửi tới địa chỉ:
+    <strong class="verify-code__email">{{ email() }}</strong>
   </p>
 
   @if (formError(); as message) {
@@ -13,40 +12,30 @@
     <fz-alert tone="success">{{ message }}</fz-alert>
   }
 
-  <fz-form-field
-    label="Mã xác thực"
-    [required]="true"
-    [error]="codeError()"
-    #codeField
-  >
-    <input
-      fzInput
-      type="text"
-      formControlName="code"
-      [id]="codeField.controlId"
-      [fzInvalid]="!!codeError()"
-      [attr.aria-describedby]="codeField.describedBy()"
-      [attr.aria-invalid]="codeField.ariaInvalid()"
-      class="verify-code__code"
-      inputmode="numeric"
-      autocomplete="one-time-code"
-      [attr.maxlength]="codeMaxLength"
-      spellcheck="false"
+  <!-- 6-Box OTP Input -->
+  <div class="verify-code__input-wrapper">
+    <fz-otp-input
+      [(value)]="otpCode"
+      [length]="otpLength"
+      (completed)="submit()"
     />
-  </fz-form-field>
+  </div>
 
+  <!-- Submit Button -->
   <fz-button
     type="submit"
     variant="accent"
     size="lg"
     [block]="true"
     [loading]="submitting()"
+    [disabled]="otpCode().length < otpLength"
   >
-    Xác thực
+    Xác nhận mã & Tiếp tục
   </fz-button>
 
-  <p class="verify-code__resend">
-    Chưa nhận được mã?
+  <!-- Resend Action -->
+  <div class="verify-code__resend">
+    <span>Chưa nhận được mã?</span>
     <fz-button
       variant="link"
       [disabled]="!canResend()"
@@ -54,10 +43,10 @@
       (click)="resend()"
     >
       @if (cooldown() > 0) {
-        Gửi lại sau {{ cooldown() }}s
+        Gửi lại mã sau {{ cooldown() }}s
       } @else {
-        Gửi lại mã
+        Gửi lại mã ngay
       }
     </fz-button>
-  </p>
+  </div>
 </form>

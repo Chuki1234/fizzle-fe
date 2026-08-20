@@ -2,128 +2,375 @@
   display: block;
 }
 
-/*
-  The brand overlays the page, so the main area reserves clearance for it as
-  symmetric top AND bottom padding: equal padding keeps the card on the true
-  viewport centre while guaranteeing it can never slide under the logo.
-
-  The clearance is derived from the same tokens that size the header rather than
-  hardcoded — a literal value silently goes stale the moment the logo or its
-  padding changes, which is exactly how the card ended up overlapping it.
-*/
 .auth-shell {
-  --auth-brand-size: 32px;
-  --auth-header-pad: var(--space-xxl);
-  --auth-header-height: calc(
-    var(--auth-brand-size) + var(--auth-header-pad) * 2
-  );
-  --auth-header-clearance: calc(var(--auth-header-height) + var(--space-md));
-
   position: relative;
   min-height: 100dvh;
-  isolation: isolate;
-}
-
-/*
-  Brand backdrop. The gradient behind the image is a fallback only — it shows
-  while the JPEG decodes and if it ever fails to load, so the page never flashes
-  bare canvas. It must NOT be layered on top: an opaque wash over the artwork was
-  what previously hid it.
-*/
-.auth-shell__backdrop {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  overflow: hidden;
+  width: 100%;
+  overflow-x: hidden;
   background-color: var(--color-canvas);
-  background-image: linear-gradient(
-    135deg,
-    var(--color-hero-from) 0%,
-    var(--color-hero-to) 100%
-  );
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  transition: background-color var(--duration-base) var(--ease-standard);
 }
 
-.auth-shell__bg {
-  object-fit: cover;
-  /* The artwork is a soft radial vignette with no subject, so biasing the crop
-     upward keeps its bright centre behind the card at tall viewports. */
-  object-position: center;
+/* --- Mintlify Subtle Backdrop ------------------------------------------- */
+.auth-shell__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
 }
 
-/*
-  Scrim. The artwork's centre is a light blue that the mint accent and the white
-  wordmark sit on poorly; darkening it restores AA contrast for the brand and
-  deepens the separation between the backdrop and the card.
-*/
-.auth-shell__scrim {
+/* Light mode: clean white with faint emerald gradient at top */
+:root[data-theme='light'] .auth-shell__gradient {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(
-      120% 90% at 50% 45%,
-      rgba(10, 10, 10, 0.32) 0%,
-      rgba(10, 10, 10, 0.58) 100%
-    );
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(13, 147, 115, 0.07) 0%, transparent 70%),
+    linear-gradient(180deg, #f8fafc 0%, #f8fafc 100%);
+  opacity: 1;
 }
 
-/*
-  The brand is taken out of flow on purpose. As a grid/flex row it stole height
-  from the main area, which pushed the centred card down by half the header —
-  visibly off-centre. Overlaying it lets `main` own the full viewport.
-*/
-.auth-shell__header {
+/* Dark mode: slate with subtle emerald top glow */
+:root[data-theme='dark'] .auth-shell__gradient {
   position: absolute;
-  inset-block-start: 0;
-  inset-inline-start: 0;
-  z-index: 1;
-  padding: var(--auth-header-pad);
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -5%, rgba(16, 185, 129, 0.08) 0%, transparent 65%),
+    linear-gradient(180deg, #0f172a 0%, #0f172a 100%);
+  opacity: 1;
 }
 
-/*
-  Block-level flex, not inline-flex: an inline box sits on a text baseline and
-  picks up the line-box leading, which made the header ~7px taller than the
-  tokens predict and broke the clearance maths above.
-*/
+.auth-shell__gradient {
+  position: absolute;
+  inset: 0;
+}
+
+/* Mintlify dot grid — very subtle */
+.auth-shell__grid {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(
+    circle,
+    rgba(148, 163, 184, 0.18) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
+}
+
+:root[data-theme='light'] .auth-shell__grid {
+  background-image: radial-gradient(
+    circle,
+    rgba(100, 116, 139, 0.12) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
+}
+
+/* Replaced heavy glows with single very subtle emerald ambient */
+.auth-shell__glow-1 {
+  position: absolute;
+  top: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 700px;
+  height: 400px;
+  background: radial-gradient(ellipse, rgba(16, 185, 129, 0.06) 0%, transparent 70%);
+  filter: blur(60px);
+  border-radius: var(--radius-full);
+}
+
+.auth-shell__glow-2 {
+  display: none;
+}
+
+/* --- Header Bar ----------------------------------------------------------- */
+.auth-shell__header {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  padding: var(--space-md) var(--space-xl);
+  border-bottom: 1px solid var(--color-hairline-soft);
+  background-color: var(--color-canvas);
+  backdrop-filter: blur(8px);
+}
+
+.auth-shell__header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .auth-shell__brand {
   display: flex;
-  width: fit-content;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-xs);
+  text-decoration: none;
 }
 
-/*
-  Height is pinned to --auth-brand-size because the header-height calculation
-  above depends on it; width follows the artwork's own ratio.
-*/
 .auth-shell__mark {
-  height: var(--auth-brand-size);
-  width: auto;
-  flex: none;
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
 }
 
 .auth-shell__wordmark {
-  font-size: var(--text-heading-4);
-  font-weight: var(--weight-semibold);
-  /* Pinned so the wordmark can never grow the header past --auth-brand-size. */
-  line-height: 1;
-  letter-spacing: -0.5px;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
   color: var(--color-ink);
 }
 
-.auth-shell__main {
-  min-height: 100dvh;
-  display: flex;
-  flex-direction: column;
-  /* `safe` keeps a card taller than the viewport (register) reachable instead
-     of clipping its top edge out of the scroll range. */
-  justify-content: safe center;
-  align-items: center;
-  padding: var(--auth-header-clearance) var(--space-md);
+.auth-shell__badge {
+  font-family: var(--font-sans);
+  font-size: var(--text-micro);
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
+  border: 1px solid currentColor;
+  border-color: rgba(13, 147, 115, 0.25);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  margin-left: var(--space-xxs);
+  opacity: 0.9;
 }
 
-@media (max-width: 767px) {
-  .auth-shell {
-    /* Only the padding changes; height and clearance follow automatically. */
-    --auth-header-pad: var(--space-md);
+.auth-shell__theme-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-hairline);
+  color: var(--color-steel);
+  font-size: var(--text-body-sm);
+  font-weight: 500;
+  transition: all var(--duration-fast) var(--ease-standard);
+  box-shadow: var(--elevation-1);
+}
+
+.auth-shell__theme-btn:hover {
+  color: var(--color-ink);
+  border-color: var(--color-stone);
+  background-color: var(--color-raised);
+}
+
+.auth-shell__theme-icon {
+  color: var(--color-stone);
+  flex-shrink: 0;
+}
+
+.auth-shell__theme-btn:hover .auth-shell__theme-icon {
+  color: var(--color-accent);
+}
+
+/* --- Main Layout Container ------------------------------------------------ */
+.auth-shell__main {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl) var(--space-md) var(--space-xxxl);
+}
+
+.auth-shell__container {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-xxl);
+  align-items: center;
+}
+
+@media (min-width: 992px) {
+  .auth-shell__container {
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: var(--space-xxxl);
   }
+}
+
+/* --- Left Showcase Hero Panel --------------------------------------------- */
+.auth-shell__hero-panel {
+  display: none;
+}
+
+@media (min-width: 992px) {
+  .auth-shell__hero-panel {
+    display: block;
+    padding-right: var(--space-xl);
+  }
+}
+
+.auth-shell__hero-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* Mintlify-style eyebrow tag */
+.auth-shell__hero-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent-soft);
+  border: 1px solid rgba(13, 147, 115, 0.2);
+  color: var(--color-accent);
+  font-size: var(--text-caption);
+  font-weight: 500;
+}
+
+:root[data-theme='dark'] .auth-shell__hero-pill {
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.auth-shell__hero-pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.auth-shell__hero-title {
+  font-size: clamp(28px, 3vw, 38px);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.75px;
+  color: var(--color-ink);
+}
+
+.auth-shell__hero-desc {
+  font-size: var(--text-body-sm);
+  line-height: 1.6;
+  color: var(--color-steel);
+  max-width: 440px;
+}
+
+/* --- Mintlify-style Code Card (docs aesthetic) --------------------------- */
+.auth-shell__code-card {
+  background: var(--color-code);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-hairline);
+  box-shadow: var(--elevation-3);
+  overflow: hidden;
+  margin-top: var(--space-xs);
+}
+
+:root[data-theme='light'] .auth-shell__code-card {
+  border-color: #e2e8f0;
+}
+
+.auth-shell__code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.auth-shell__code-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+}
+.dot--red    { background-color: #ff5f57; }
+.dot--yellow { background-color: #febc2e; }
+.dot--green  { background-color: #28c840; }
+
+.auth-shell__code-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.auth-shell__shield-icon {
+  color: #94a3b8;
+}
+
+.auth-shell__code-filename {
+  font-family: var(--font-mono);
+  font-size: var(--text-code-sm);
+  color: #64748b;
+}
+
+.auth-shell__code-body {
+  padding: var(--space-md) var(--space-lg);
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.65;
+  color: #e2e8f0;
+  overflow-x: auto;
+}
+
+/* Mintlify code colors — cleaner, not neon */
+.auth-shell__code-body .prompt  { color: #10b981; font-weight: 600; }
+.auth-shell__code-body .cmd     { color: #7dd3fc; font-weight: 500; }
+.auth-shell__code-body .str     { color: #86efac; }
+.auth-shell__code-body .green   { color: #10b981; font-weight: 500; }
+.auth-shell__code-body .cyan    { color: #38bdf8; }
+.auth-shell__code-body .comment { color: #475569; font-style: italic; }
+.auth-shell__code-body .kw      { color: #c084fc; font-weight: 500; }
+.auth-shell__code-body .prop    { color: #93c5fd; }
+.auth-shell__code-body .bool    { color: #f472b6; }
+
+.tag {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  font-size: 11px;
+  font-weight: 600;
+}
+.tag--success { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+.tag--cyan    { background: rgba(56, 189, 248, 0.12);  color: #38bdf8; }
+.tag--info    { background: rgba(148, 163, 184, 0.12); color: #94a3b8; }
+
+/* Perks list — Mintlify feature bullets */
+.auth-shell__hero-perks {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-xs) 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.auth-shell__perk-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-body-sm);
+  color: var(--color-body);
+}
+
+.auth-shell__check-icon {
+  color: var(--color-accent);
+  flex-shrink: 0;
+}
+
+/* --- Right Form Wrapper --------------------------------------------------- */
+.auth-shell__form-wrapper {
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
 }

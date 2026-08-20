@@ -1,31 +1,46 @@
 <section class="register-card" aria-labelledby="register-title">
+  <!-- Multi-step Indicator Pills -->
+  <div class="register-card__steps" role="navigation" aria-label="Quy trình đăng ký">
+    <div class="register-card__step-item" [class.is-active]="step() === 'form'" [class.is-done]="step() === 'verify'">
+      <span class="step-num">1</span>
+      <span class="step-text">Thông tin cá nhân</span>
+    </div>
+    <div class="register-card__step-line"></div>
+    <div class="register-card__step-item" [class.is-active]="step() === 'verify'">
+      <span class="step-num">2</span>
+      <span class="step-text">Xác thực OTP</span>
+    </div>
+  </div>
+
   @if (step() === 'form') {
     <header class="register-card__header">
-      <h1 class="register-card__title text-heading-3" id="register-title">
-        Tạo tài khoản
-      </h1>
+      <span class="register-card__badge">Tạo tài khoản</span>
+      <h1 class="register-card__title" id="register-title">Bắt đầu với Fizzle</h1>
+      <p class="register-card__subtitle">Đăng ký để truy cập hệ thống tài liệu, quản lý API và các dịch vụ developer.</p>
     </header>
 
     <fz-register-form (registered)="onRegistered($event)" />
 
-    <p class="register-card__footer">
-      Đã có tài khoản?
-      <a class="register-card__link" routerLink="/auth/login">Đăng nhập</a>
-    </p>
+    <footer class="register-card__footer">
+      <span>Đã có tài khoản?</span>
+      <a class="register-card__link" routerLink="/auth/login">Đăng nhập ngay</a>
+    </footer>
   } @else {
     <header class="register-card__header">
-      <h1 class="register-card__title text-heading-3" id="register-title">
-        Xác thực email
-      </h1>
+      <span class="register-card__badge">Xác thực email</span>
+      <h1 class="register-card__title" id="register-title">Kiểm tra hộp thư của bạn</h1>
+      <p class="register-card__subtitle">
+        Chúng tôi đã gửi mã xác nhận 6 số đến <strong>{{ pendingEmail() }}</strong>.
+      </p>
     </header>
 
     <fz-otp-verify [email]="pendingEmail()" />
 
-    <p class="register-card__footer">
-      Nhập sai email?
+    <footer class="register-card__footer">
+      <span>Nhập sai địa chỉ email?</span>
       <button class="register-card__link" type="button" (click)="backToForm()">
-        Quay lại
+        Quay lại chỉnh sửa
       </button>
-    </p>
+    </footer>
   }
 </section>

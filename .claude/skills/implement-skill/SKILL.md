@@ -37,19 +37,21 @@ tập, không chỉ để có code chạy được.
 Mọi phase, mọi lần test, và bản tổng kết cuối trang đều phải đánh giá theo đúng 3 tiêu chí sau
 (mentor Luke đặt ra để member biết "làm xong" nghĩa là gì, không chỉ là "chạy được"):
 
-1. **UI/UX** — đạt mức tối thiểu là bám theo **file Design System có sẵn trong repo FE** (đây
-   là chuẩn cao nhất, luôn ưu tiên). Ngay từ đầu phiên FE, tìm và đọc file design system này
-   (thường ở `src/styles/`, `src/app/shared/`, hoặc file `DESIGN_SYSTEM.md`/`design-system.*`,
-   `styles.scss`, theme tokens) — nếu không tìm thấy, hỏi member đường dẫn, đừng tự bịa style.
+1. **UI/UX** — ưu tiên dùng **dữ liệu thiết kế hiện có trong repo FE** nếu đã có, nhưng khi
+   design system chưa được chốt hoặc đang thay đổi, agent không được tự động đóng băng một
+   “system” cứng nhắc làm chuẩn duy nhất. Thay vào đó, dựa trên các token/brand hiện có
+   trong repo, các file `src/styles/`, `src/app/shared/`, hoặc brief thiết kế được member/mentor
+   cung cấp. Nếu project chưa có design system chuẩn hoá, agent nên giữ giao diện nhất quán với
+   brand đang phát triển, tránh hardcode màu/spacing không cần thiết và luôn báo rõ nơi nào là
+   “style tạm thời” để dễ cập nhật sau.
    Trên nền đó:
-   - **Component chính dùng Angular Material** (`mat-button`, `mat-form-field`, `mat-dialog`,
-     `mat-menu`, `mat-tabs`...). Các component trong `shared/ui/` đóng vai trò **wrap lại
-     Material** để áp đúng token/design system và giữ nhất quán — ưu tiên gọi qua `shared/ui/`
-     nếu wrapper đã có, còn khi dựng UI mới thì dựa trên Material chứ không tự code control từ đầu.
-   - **Icon dùng Angular Material icon + Google Fonts** (`mat-icon` với Material Symbols/Icons
-     nạp qua Google Fonts) — không chèn SVG/PNG icon rời rạc tuỳ tiện.
-   - Theme nhất quán với layout Discord-clone đã có; đủ trạng thái loading/empty/error (không để
-     trắng trang khi đang tải hoặc lỗi); không hardcode màu/spacing ngoài token của design system.
+   - Ưu tiên dùng các wrapper có sẵn trong `shared/ui/` hoặc component chuẩn của Angular nếu
+     repo đã có; không bắt buộc phải ép luôn dùng Angular Material nếu dự án chưa quyết định.
+   - Icon và hình ảnh nên được chọn theo brand/product hiện tại, không chèn SVG/PNG rời rạc tùy
+     tiện nếu repo đã có pattern chuẩn.
+   - Theme phải nhất quán với layout hiện có; đủ trạng thái loading/empty/error; không để trắng
+     trang khi đang tải hoặc lỗi; nếu design system đang thay đổi, giữ cấu trúc và spacing tuyến
+     tính nhưng không cố định quá sâu vào một “token cuối cùng” chưa ký duyệt.
 2. **Feature** — đầy đủ theo đúng danh sách Feature của trang trong `reference/plan-nexus.md` /
    `reference/plan-fizzle.md`. Core stack (Socket.IO, Redis, WebRTC, CASL...) chỉ là **gợi ý**,
    không bắt buộc dùng đúng y chang — miễn feature hoạt động đúng hành vi mong đợi, dùng cách

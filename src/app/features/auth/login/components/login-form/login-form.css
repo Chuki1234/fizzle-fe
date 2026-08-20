@@ -1,19 +1,191 @@
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-lg);
+  gap: var(--space-md);
+}
+
+.login-form__password-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.login-form__password-wrap input {
+  padding-right: 44px;
+}
+
+.login-form__toggle-pw {
+  position: absolute;
+  right: var(--space-sm);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  background: transparent;
+  border: none;
+  color: var(--color-stone);
+  border-radius: var(--radius-xs);
+  transition: color var(--duration-fast) var(--ease-standard);
+  cursor: pointer;
+}
+
+.login-form__toggle-pw:hover {
+  color: var(--color-ink);
 }
 
 .login-form__forgot {
-  margin-top: calc(var(--space-sm) * -1);
   display: flex;
-  align-items: baseline;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--space-xs);
-  flex-wrap: wrap;
+  margin-top: -4px;
 }
 
 .login-form__forgot-hint {
   font-size: var(--text-caption);
-  line-height: var(--leading-caption);
+  color: var(--color-stone);
+}
+
+.login-form__divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin: var(--space-xs) 0;
+}
+
+.login-form__divider-line {
+  flex: 1;
+  height: 1px;
+  background-color: var(--color-hairline);
+}
+
+.login-form__divider-text {
+  font-size: var(--text-caption);
+  font-weight: 500;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.login-form__sso-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+}
+
+.login-form__sso-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  height: 40px;
+  padding: 0 var(--space-md);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-md);
+  color: var(--color-body);
+  font-family: var(--font-sans);
+  font-size: var(--text-body-sm);
+  font-weight: 500;
+  transition: all var(--duration-fast) var(--ease-standard);
+  cursor: pointer;
+}
+
+.login-form__sso-btn:hover {
+  border-color: var(--color-stone);
+  background-color: var(--color-surface-soft);
+}
+
+/* Demo Credentials Box — Mintlify callout style */
+.login-form__demo-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px var(--space-md);
+  border-radius: var(--radius-md);
+  background-color: var(--color-accent-soft);
+  border: 1px solid rgba(13, 147, 115, 0.2);
+  margin: var(--space-xxs) 0;
+}
+
+:root[data-theme='dark'] .login-form__demo-box {
+  border-color: rgba(16, 185, 129, 0.15);
+}
+
+.login-form__demo-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-caption);
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
+.login-form__demo-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.login-form__demo-btn {
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  border: none;
+  color: var(--color-on-accent);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.login-form__demo-btn:hover {
+  background-color: var(--color-accent-deep);
+}
+
+/* Security Compliance Widget — Mintlify note style */
+.login-form__security-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-soft);
+  border: 1px solid var(--color-hairline);
+  margin-top: var(--space-xs);
+}
+
+.login-form__security-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-caption);
+  font-weight: 500;
+  color: var(--color-steel);
+}
+
+.login-form__security-icon {
+  color: var(--color-stone);
+  flex-shrink: 0;
+}
+
+.login-form__security-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.sec-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-hairline);
   color: var(--color-stone);
 }

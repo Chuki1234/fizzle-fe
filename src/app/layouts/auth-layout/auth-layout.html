@@ -1,41 +1,142 @@
-<div class="auth-shell">
+<div class="auth-shell" [attr.data-current-theme]="currentTheme()">
+  <!-- Mintlify-style Subtle Backdrop -->
   <div class="auth-shell__backdrop" aria-hidden="true">
-    <!--
-      Decorative, so alt is empty. `priority` preloads it: it is the largest
-      paint on the page, and a late-arriving backdrop makes the card visibly
-      jump from the fallback colour.
-    -->
-    <img
-      class="auth-shell__bg"
-      ngSrc="/assets/images/fizzle-bg.jpg"
-      fill
-      priority
-      sizes="100vw"
-      alt=""
-    />
-    <div class="auth-shell__scrim"></div>
+    <div class="auth-shell__gradient"></div>
+    <div class="auth-shell__grid"></div>
+    <div class="auth-shell__glow-1"></div>
+    <div class="auth-shell__glow-2"></div>
   </div>
 
+  <!-- Top Header Navigation -->
   <header class="auth-shell__header">
-    <!--
-      alt is empty on purpose: the mark repeats what the wordmark beside it and
-      the link's own aria-label already say, so announcing it a third time is
-      noise to a screen reader.
-    -->
-    <a class="auth-shell__brand" href="/" aria-label="Fizzle — trang chủ">
-      <img
-        class="auth-shell__mark"
-        ngSrc="/assets/images/fizzle-mark.png"
-        width="35"
-        height="32"
-        priority
-        alt=""
-      />
-      <span class="auth-shell__wordmark">Fizzle</span>
-    </a>
+    <div class="auth-shell__header-inner">
+      <a class="auth-shell__brand" routerLink="/" aria-label="Fizzle — Trang chủ">
+        <img
+          class="auth-shell__mark"
+          ngSrc="/assets/images/fizzle-mark.png"
+          width="32"
+          height="32"
+          priority
+          alt="Fizzle logo"
+        />
+        <span class="auth-shell__wordmark">Fizzle</span>
+        <span class="auth-shell__badge">Beta</span>
+      </a>
+
+      <!-- Theme Switcher Toggle -->
+      <div class="auth-shell__actions">
+        <button
+          type="button"
+          class="auth-shell__theme-btn"
+          (click)="toggleTheme()"
+          [attr.aria-label]="currentTheme() === 'dark' ? 'Chuyển sang Giao diện Sáng' : 'Chuyển sang Giao diện Tối'"
+        >
+          @if (currentTheme() === 'dark') {
+            <!-- Sun Icon -->
+            <svg class="auth-shell__theme-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="4"></circle>
+              <path d="M12 2v2"></path>
+              <path d="M12 20v2"></path>
+              <path d="m4.93 4.93 1.41 1.41"></path>
+              <path d="m17.66 17.66 1.41 1.41"></path>
+              <path d="M2 12h2"></path>
+              <path d="M20 12h2"></path>
+              <path d="m6.34 17.66-1.41 1.41"></path>
+              <path d="m19.07 4.93-1.41 1.41"></path>
+            </svg>
+            <span>Light</span>
+          } @else {
+            <!-- Moon Icon -->
+            <svg class="auth-shell__theme-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+            </svg>
+            <span>Dark</span>
+          }
+        </button>
+      </div>
+    </div>
   </header>
 
+  <!-- Main Content Layout -->
   <main class="auth-shell__main" id="main-content">
-    <router-outlet />
+    <div class="auth-shell__container">
+      
+      <!-- Showcase Hero Panel (Desktop only) -->
+      <aside class="auth-shell__hero-panel">
+        <div class="auth-shell__hero-content">
+          <div class="auth-shell__hero-pill">
+            <span class="auth-shell__hero-pill-dot"></span>
+            Nền tảng API &amp; Tài liệu Developer
+          </div>
+
+          <h2 class="auth-shell__hero-title">
+            Xây dựng nhanh hơn với tài liệu &amp; API chuẩn hóa.
+          </h2>
+
+          <p class="auth-shell__hero-desc">
+            Fizzle cung cấp hệ thống quản lý API, tài liệu tích hợp và xác thực đa lớp — mọi thứ bạn cần để triển khai sản phẩm.
+          </p>
+
+          <!-- Mintlify-style Code Snippet Card -->
+          <div class="auth-shell__code-card">
+            <div class="auth-shell__code-header">
+              <div class="auth-shell__code-dots">
+                <span class="dot dot--red"></span>
+                <span class="dot dot--yellow"></span>
+                <span class="dot dot--green"></span>
+              </div>
+              <div class="auth-shell__code-title-wrapper">
+                <svg class="auth-shell__shield-icon" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                <span class="auth-shell__code-filename">fizzle.config.ts</span>
+              </div>
+            </div>
+            <pre class="auth-shell__code-body"><code><span class="kw">import</span> <span class="cyan">&#123; defineConfig &#125;</span> <span class="kw">from</span> <span class="str">'fizzle'</span>;
+
+<span class="kw">export default</span> <span class="cmd">defineConfig</span>(&#123;
+  <span class="prop">project</span>: <span class="str">'my-api'</span>,
+  <span class="prop">auth</span>: &#123;
+    <span class="prop">strategy</span>: <span class="str">'jwt'</span>,
+    <span class="prop">mfa</span>: <span class="bool">true</span>,
+  &#125;,
+  <span class="prop">docs</span>: &#123;
+    <span class="prop">openapi</span>: <span class="str">'./openapi.yaml'</span>,
+    <span class="prop">theme</span>: <span class="str">'mintlify'</span>,
+  &#125;,
+&#125;);</code></pre>
+          </div>
+
+          <!-- Feature Bullets -->
+          <ul class="auth-shell__hero-perks">
+            <li class="auth-shell__perk-item">
+              <svg class="auth-shell__check-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>Quản lý API key &amp; phân quyền chi tiết</span>
+            </li>
+            <li class="auth-shell__perk-item">
+              <svg class="auth-shell__check-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>Tài liệu OpenAPI tự động từ mã nguồn</span>
+            </li>
+            <li class="auth-shell__perk-item">
+              <svg class="auth-shell__check-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>Xác thực JWT &amp; OTP an toàn đa lớp</span>
+            </li>
+          </ul>
+        </div>
+      </aside>
+
+      <!-- Auth Page Form Slot -->
+      <section class="auth-shell__form-wrapper">
+        <router-outlet />
+      </section>
+
+    </div>
   </main>
 </div>

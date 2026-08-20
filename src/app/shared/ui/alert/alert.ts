@@ -31,19 +31,29 @@ export type AlertTone = 'error' | 'success' | 'info';
     }
 
     .fz-alert--error {
-      background-color: rgba(212, 86, 86, 0.12);
-      border-color: rgba(212, 86, 86, 0.32);
+      background-color: rgba(220, 38, 38, 0.08);
+      border-color: rgba(220, 38, 38, 0.25);
       color: var(--color-error);
     }
 
     .fz-alert--success {
-      background-color: rgba(0, 212, 164, 0.1);
-      border-color: rgba(0, 212, 164, 0.32);
+      background-color: rgba(13, 147, 115, 0.08);
+      border-color: rgba(13, 147, 115, 0.25);
       color: var(--color-accent);
     }
 
+    :root[data-theme='dark'] .fz-alert--success {
+      background-color: rgba(16, 185, 129, 0.08);
+      border-color: rgba(16, 185, 129, 0.2);
+    }
+
+    :root[data-theme='dark'] .fz-alert--error {
+      background-color: rgba(244, 63, 94, 0.08);
+      border-color: rgba(244, 63, 94, 0.2);
+    }
+
     .fz-alert--info {
-      background-color: var(--color-surface);
+      background-color: var(--color-surface-soft);
       border-color: var(--color-hairline);
       color: var(--color-body);
     }

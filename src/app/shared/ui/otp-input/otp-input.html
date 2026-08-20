@@ -1,0 +1,20 @@
+﻿<div class="otp-input" [class.otp-input--invalid]="invalid()" role="group" aria-label="Nhap ma OTP">
+  @for (cellVal of cells(); track $index) {
+    <input
+      #cell
+      type="text"
+      inputmode="numeric"
+      maxlength="1"
+      class="otp-input__cell"
+      [class.otp-input__cell--filled]="cellVal"
+      [value]="cellVal"
+      [attr.aria-label]="'Ky tu ' + ($index + 1)"
+      autocomplete="one-time-code"
+      spellcheck="false"
+      (input)="onInput($index, $event)"
+      (keydown)="onKeyDown($index, $event)"
+      (paste)="onPaste($event)"
+      (focus)="onFocus($index)"
+    />
+  }
+</div>

@@ -3,53 +3,89 @@
   width: 100%;
 }
 
-/* card-base recipe, sized for a single-column auth form. */
 .login-card {
   width: 100%;
-  max-width: 440px;
-  margin-inline: auto;
-  padding: var(--space-xxl);
-  background-color: var(--color-elevated);
+  padding: var(--space-xxl) var(--space-xl);
+  background-color: var(--color-surface);
   border: 1px solid var(--color-hairline);
   border-radius: var(--radius-lg);
-  box-shadow: var(--elevation-3);
+  box-shadow: var(--elevation-2);
   display: flex;
   flex-direction: column;
   gap: var(--space-xl);
+  transition: background-color var(--duration-base) var(--ease-standard),
+              border-color var(--duration-base) var(--ease-standard);
 }
 
 .login-card__header {
-  text-align: center;
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
 }
 
+/* Mintlify-style badge: small dot + label */
+.login-card__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  font-weight: 500;
+  color: var(--color-accent);
+  margin-bottom: 2px;
+}
+
+.login-card__badge::before {
+  content: '';
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-accent);
+  flex-shrink: 0;
+}
+
 .login-card__title {
   color: var(--color-ink);
+  font-size: var(--text-heading-4);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
 }
 
 .login-card__subtitle {
   font-size: var(--text-body-sm);
   color: var(--color-steel);
+  line-height: var(--leading-body);
+  margin-top: 2px;
 }
 
 .login-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
   font-size: var(--text-body-sm);
   color: var(--color-steel);
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--color-hairline-soft);
 }
 
 .login-card__link {
   color: var(--color-accent);
-  font-weight: var(--weight-medium);
+  font-weight: 500;
+  transition: color var(--duration-fast) var(--ease-standard);
 }
 
 .login-card__link:hover {
   text-decoration: underline;
+  color: var(--color-accent-deep);
 }
 
 @media (max-width: 479px) {
   .login-card {
-    padding: var(--space-xl);
+    padding: var(--space-xl) var(--space-md);
+    border-radius: var(--radius-md);
   }
 }

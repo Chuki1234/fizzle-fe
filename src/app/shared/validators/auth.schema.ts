@@ -32,6 +32,13 @@ export const displayNameField = z
   .string()
   .max(32, { error: 'Tên hiển thị không được vượt quá 32 ký tự.' });
 
+/** Optional Vietnamese phone: +84xxxxxxxxx or 0xxxxxxxxx */
+export const phoneField = z
+  .string()
+  .regex(/^(\+84|0)[3-9][0-9]{8}$/, { error: 'Số điện thoại không hợp lệ (VD: 0901234567).' })
+  .optional()
+  .or(z.literal(''));
+
 /** POST /auth/login */
 export const loginSchema = z.object({
   email: emailField,
@@ -52,6 +59,7 @@ export const registerSchema = z
     displayName: displayNameField,
     username: usernameField,
     password: passwordField,
+    phone: phoneField,
     // An unselected <select> holds "", which coerces to 0 — so the lower bound
     // is what reports "chưa chọn", and every bound needs its own message.
     birthDay: z.coerce
@@ -87,6 +95,7 @@ export interface RegisterPayload {
   displayName: string;
   username: string;
   password: string;
+  phone?: string;
   birthdate: string;
   acceptsMarketingEmail: boolean;
 }
@@ -97,6 +106,7 @@ export function toRegisterPayload(v: RegisterFormValue): RegisterPayload {
     displayName: v.displayName.trim() || v.username,
     username: v.username,
     password: v.password,
+    phone: v.phone || undefined,
     birthdate: toIsoDate(v.birthYear, v.birthMonth, v.birthDay),
     acceptsMarketingEmail: v.acceptsMarketingEmail,
   };
