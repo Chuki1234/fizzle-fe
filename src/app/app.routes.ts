@@ -15,5 +15,15 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/dashboard/dashboard').then((m) => m.Dashboard),
   },
+  {
+    path: 'settings',
+    title: 'Settings · Fizzle',
+    loadComponent: () => import('./khang/khang').then((m) => m.Khang),
+  },
+  {
+    path: 'profile',
+    title: 'Profile · Fizzle',
+    loadComponent: () => import('./k-profile/k-profile').then((m) => m.KProfile),
+  },
   { path: '**', redirectTo: '' },
 ];
