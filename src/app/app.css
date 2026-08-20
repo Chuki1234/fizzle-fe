@@ -1,10 +1,13 @@
 :host {
-  /* Layout full màn hình */
+  /* Layout full màn hình.
+     Dùng min-height (không phải height cố định) và KHÔNG khoá overflow ở đây:
+     các trang dài (auth/settings/profile) cần cuộn theo nội dung. Shell chat
+     (main-layout) tự đặt height:100vh + overflow:hidden trên chính nó nên vẫn
+     là màn hình cố định với vùng cuộn nội bộ. */
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
 
   /* Sử dụng trực tiếp Token Mintlify (Hỗ trợ tự động đổi Light/Dark Theme) */
   background-color: var(--color-canvas);
