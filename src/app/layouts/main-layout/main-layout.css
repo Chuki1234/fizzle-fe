@@ -35,25 +35,32 @@
     padding: var(--space-md) var(--space-sm);
 }
 
-/* Container bọc ngoài Brand Logo */
+/* Container bọc ngoài Brand Logo: mark PNG (nền trong suốt) + chữ "Fizzle" */
 .sidebar-left__brand {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--color-canvas-dark);
-    border-radius: var(--radius-lg);
+    gap: var(--space-xs);
     margin-bottom: var(--space-md);
     height: 48px;
     width: 100%;
-    overflow: hidden;
+    text-decoration: none;
 }
 
-/* Thẻ ảnh bên trong */
-.sidebar-left__logo-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transform: scale(1.08);
+/* Con robot — dùng PNG trong suốt (fizzle-mark.png), object-fit contain để không méo */
+.sidebar-left__logo-mark {
+    width: 34px;
+    height: 34px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+/* Chữ "Fizzle" dựng bằng text thay cho logo raster có nền */
+.sidebar-left__logo-word {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.4px;
+    color: var(--color-ink);
 }
 
 .sidebar-left__content {
