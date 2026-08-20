@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { AuthService } from '../../../../../core/auth/auth.service';
 import { ApiError } from '../../../../../core/http/api-error.model';
 import { RegisterResult } from '../../../../../core/auth/token.model';
@@ -120,6 +121,8 @@ export class RegisterForm {
     return Array.from({ length: MAX_AGE - MIN_AGE + 1 }, (_, i) => newest - i);
   })();
 
+  private readonly router = inject(Router);
+
   protected submit(): void {
     if (this.submitting()) return;
 
@@ -128,14 +131,29 @@ export class RegisterForm {
 
     if (this.form.invalid) return;
 
-    const parsed = registerSchema.safeParse(this.form.getRawValue());
+    const raw = this.form.getRawValue();
+    const parsed = registerSchema.safeParse(raw);
     if (!parsed.success) return;
 
     this.submitting.set(true);
     this.auth.register(toRegisterPayload(parsed.data)).subscribe({
       next: (result) => {
-        this.submitting.set(false);
-        this.registered.emit(result);
+        if (!result.verificationRequired) {
+          // If verified directly, log in and enter dashboard immediately
+          this.auth.login({ email: parsed.data.email, password: parsed.data.password }).subscribe({
+            next: () => {
+              this.submitting.set(false);
+              void this.router.navigateByUrl('/');
+            },
+            error: () => {
+              this.submitting.set(false);
+              void this.router.navigate(['/auth/login'], { queryParams: { registered: 'true' } });
+            },
+          });
+        } else {
+          this.submitting.set(false);
+          this.registered.emit(result);
+        }
       },
       error: (err: ApiError) => {
         this.submitting.set(false);
