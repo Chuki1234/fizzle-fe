@@ -3,6 +3,7 @@ import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { AuthStore } from '../../core/auth/auth.store';
+import { AuthService } from '../../core/auth/auth.service';
 
 export interface Badge {
   id: string;
@@ -43,6 +44,7 @@ export class KProfile {
   private router = inject(Router);
   private location = inject(Location);
   private authStore = inject(AuthStore);
+  private authService = inject(AuthService);
 
   constructor() {
     // Reactive sync: whenever AuthStore user changes, update local signals
@@ -166,7 +168,10 @@ export class KProfile {
 
   selectPresetAvatar(url: string) {
     this.avatarUrl.set(url);
-    this.showToast('Đã đổi Ảnh đại diện thành công!');
+    this.authService.updateProfile({ avatarUrl: url }).subscribe({
+      next: () => this.showToast('Đã đổi Ảnh đại diện thành công!'),
+      error: () => this.showToast('Lỗi khi lưu ảnh đại diện!'),
+    });
     this.closeAvatarModal();
   }
 
@@ -178,7 +183,10 @@ export class KProfile {
         const result = e.target?.result as string;
         if (result) {
           this.avatarUrl.set(result);
-          this.showToast('Đã tải lên Ảnh đại diện mới!');
+          this.authService.updateProfile({ avatarUrl: result }).subscribe({
+            next: () => this.showToast('Đã tải lên Ảnh đại diện mới!'),
+            error: () => this.showToast('Lỗi khi tải ảnh đại diện!'),
+          });
           this.closeAvatarModal();
         }
       };
@@ -188,13 +196,19 @@ export class KProfile {
 
   removeAvatar() {
     this.avatarUrl.set(null);
-    this.showToast('Đã chuyển về tên viết tắt (Default Initials)');
+    this.authService.updateProfile({ avatarUrl: null }).subscribe({
+      next: () => this.showToast('Đã chuyển về tên viết tắt (Default Initials)'),
+      error: () => this.showToast('Lỗi khi xoá ảnh đại diện!'),
+    });
     this.closeAvatarModal();
   }
 
   setStatus(newStatus: 'online' | 'idle' | 'dnd' | 'offline') {
     this.status.set(newStatus);
-    this.showToast(`Đã đổi trạng thái thành: ${this.getStatusLabel(newStatus)}`);
+    this.authService.updateProfile({ presence: newStatus }).subscribe({
+      next: () => this.showToast(`Đã đổi trạng thái thành: ${this.getStatusLabel(newStatus)}`),
+      error: () => this.showToast('Lỗi khi cập nhật trạng thái!'),
+    });
   }
 
   selectPresetColor(preset: { hex: string; gradient: string; name: string }) {
@@ -215,13 +229,29 @@ export class KProfile {
   }
 
   saveProfileChanges() {
-    // Propagate all changed fields to AuthStore so sidebar & settings sync immediately
-    this.authStore.patchUser({
-      displayName: this.displayName(),
-      username: this.username(),
-      avatarUrl: this.avatarUrl(),
-    });
-    this.showToast('Đã lưu tất cả thay đổi hồ sơ cá nhân thành công!');
+    const nameToSave = this.displayName()?.trim();
+    if (!nameToSave) {
+      this.showToast('Tên hiển thị không được để trống.');
+      return;
+    }
+
+    this.authService
+      .updateProfile({
+        displayName: nameToSave,
+        username: this.username()?.trim() || undefined,
+        avatarUrl: this.avatarUrl(),
+        presence: this.status(),
+      })
+      .subscribe({
+        next: (updatedUser) => {
+          this.displayName.set(updatedUser.displayName);
+          if (updatedUser.username) this.username.set(updatedUser.username);
+          this.showToast('Đã lưu tất cả thay đổi hồ sơ cá nhân thành công!');
+        },
+        error: (err) => {
+          this.showToast(err?.error?.message || 'Lỗi khi lưu thay đổi hồ sơ.');
+        },
+      });
   }
 
   resetDefault() {
