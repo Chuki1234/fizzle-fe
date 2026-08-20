@@ -59,10 +59,7 @@
 
 <!-- Profile Overlay Backdrop — click bên ngoài thẻ để thoát -->
 <div class="profile-overlay-backdrop" (click)="closeProfile()">
-
-<div class="profile-wrapper" (click)="$event.stopPropagation()">
-  <!-- Main Centered Profile View -->
-  <div class="profile-centered-container">
+  <div class="profile-centered-container" (click)="$event.stopPropagation()">
     <div class="discord-card-outer">
       <!-- Banner -->
       <div class="discord-banner clickable" [style.background]="bannerGradient()" routerLink="/settings"></div>
@@ -252,5 +249,4 @@
       </div>
     </div>
   </div>
-</div><!-- /profile-wrapper -->
 </div><!-- /profile-overlay-backdrop -->

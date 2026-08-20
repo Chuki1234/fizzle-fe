@@ -1,5 +1,5 @@
-import { Component, signal, computed, inject, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, signal, computed, inject, effect, HostListener } from '@angular/core';
+import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { AuthStore } from '../../core/auth/auth.store';
@@ -41,6 +41,7 @@ export interface MutualFriend {
 })
 export class KProfile {
   private router = inject(Router);
+  private location = inject(Location);
   private authStore = inject(AuthStore);
 
   constructor() {
@@ -54,8 +55,10 @@ export class KProfile {
     });
   }
 
+  @HostListener('window:keydown.escape')
+  @HostListener('document:keydown.escape')
   closeProfile() {
-    this.router.navigate(['..'], { skipLocationChange: false });
+    this.router.navigate(['..']);
   }
 
   // User Profile Signals

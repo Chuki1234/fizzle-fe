@@ -53,7 +53,36 @@ export interface SettingFeatureItem {
 export class Khang {
   private authService = inject(AuthService);
 
-  logout() {
+  // Signal điều khiển ẩn/hiện Modal đăng xuất
+  showLogoutConfirm = signal<boolean>(false);
+
+  /**
+   * Bước 1: Mở popup xác nhận đăng xuất
+   */
+  logout(): void {
+    this.showLogoutConfirm.set(true);
+  }
+
+  /**
+   * Bước 2: Đóng popup nếu người dùng chọn "Ở lại"
+   */
+  cancelLogout(): void {
+    this.showLogoutConfirm.set(false);
+  }
+
+  /**
+   * Bước 3: Xác nhận đăng xuất -> Xóa Token/Session -> Quay lại trang Login (/auth/login)
+   */
+  confirmLogout(): void {
+    // 1. Xóa Token hoặc dữ liệu phiên đăng nhập cục bộ
+    localStorage.removeItem('access_token');
+    sessionStorage.clear();
+    this.authStore.clear();
+
+    // 2. Đóng Modal
+    this.showLogoutConfirm.set(false);
+
+    // 3. Gọi API đăng xuất & chuyển hướng về /auth/login
     this.authService.logout().subscribe({
       next: () => {
         void this.router.navigate(['/auth/login']);
@@ -65,7 +94,7 @@ export class Khang {
   }
 
   settingsForm: FormGroup;
-  
+
   // Section Navigation matching the sample image
   activeSection = signal<
     'account-info' | 'profiles' | 'badges-presence' | 'accessibility' | 'privacy' | 'messaging' | 'notifications'
@@ -77,7 +106,7 @@ export class Khang {
   highContrast = signal<boolean>(false);
 
   activeCardTab = signal<'user-info' | 'mutual-servers' | 'mutual-friends' | 'activity'>('user-info');
-  
+
   // Collapsible Account sub-menu state
   isAccountExpanded = signal<boolean>(true);
 
@@ -96,12 +125,12 @@ export class Khang {
     { id: 'sec-2fa', section: 'account-info', sectionName: 'Account Info', sectionIcon: '🛡️', title: 'Xác thực 2 yếu tố (2FA)', description: 'Thiết lập mã OTP Google Authenticator / Authy để tăng cường bảo mật', keywords: ['2fa', 'otp', 'xác thực', 'bảo mật', 'authenticator', 'security'] },
     { id: 'sec-login-alerts', section: 'account-info', sectionName: 'Account Info', sectionIcon: '🔔', title: 'Cảnh báo đăng nhập lạ & Sudo Mode', description: 'Nhận email cảnh báo khi có thiết bị lạ hoặc yêu cầu mã khi thao tác nhạy cảm', keywords: ['cảnh báo', 'alert', 'sudo', 'login', 'đăng nhập'] },
     { id: 'sec-devices', section: 'account-info', sectionName: 'Account Info', sectionIcon: '💻', title: 'Thiết bị đang hoạt động (Active Sessions)', description: 'Xem danh sách các trình duyệt/ứng dụng và đăng xuất từ xa', keywords: ['thiết bị', 'device', 'session', 'đăng xuất', 'session', 'chrome', 'iphone'] },
-    
+
     { id: 'sec-avatar', section: 'profiles', sectionName: 'Profiles & Appearance', sectionIcon: '🎨', title: 'Ảnh đại diện (Avatar)', description: 'Tải ảnh đại diện từ máy tính hoặc chọn các mẫu avatar có sẵn', keywords: ['avatar', 'ảnh đại diện', 'ảnh', 'hình', 'profile picture'] },
     { id: 'sec-decor', section: 'profiles', sectionName: 'Profiles & Appearance', sectionIcon: '🎨', title: 'Khung Avatar & Trang trí (Decoration)', description: 'Chọn hiệu ứng hào quang Cyber Glow, Nitro Boost, Vương miện', keywords: ['khung', 'decor', 'frame', 'hào quang', 'nitro', 'crown'] },
     { id: 'sec-banner', section: 'profiles', sectionName: 'Profiles & Appearance', sectionIcon: '🎨', title: 'Tông màu Banner (Profile Color)', description: 'Tùy chỉnh dải màu Gradient xám và phong cách thẻ cá nhân', keywords: ['banner', 'màu', 'color', 'gradient', 'theme'] },
     { id: 'sec-status', section: 'profiles', sectionName: 'Profiles & Appearance', sectionIcon: '🎨', title: 'Trạng thái tùy chỉnh (Custom Status)', description: 'Nhập emoji và dòng trạng thái suy nghĩ cá nhân', keywords: ['custom status', 'trạng thái', 'emoji', 'tiểu sử', 'about me'] },
-    
+
     { id: 'sec-badges', section: 'badges-presence', sectionName: 'Badges & Rich Presence', sectionIcon: '👾', title: 'Huy hiệu Discord (Badges)', description: 'Bật/tắt các huy hiệu Developer, HypeSquad, Supporter, Nitro Boost', keywords: ['badge', 'huy hiệu', 'hypesquad', 'developer', 'nitro'] },
     { id: 'sec-presence', section: 'badges-presence', sectionName: 'Badges & Rich Presence', sectionIcon: '🎮', title: 'Hoạt động Rich Presence (Playing Status)', description: 'Cấu hình hiển thị game đang chơi: VS Code, Spotify, League of Legends', keywords: ['presence', 'rich presence', 'game', 'playing', 'vs code', 'spotify', 'lol'] },
 
@@ -120,7 +149,7 @@ export class Khang {
   searchResults = computed(() => {
     const q = this.searchQuery().trim().toLowerCase();
     if (!q) return [];
-    
+
     return this.searchableFeatures.filter((item) => {
       const matchTitle = item.title.toLowerCase().includes(q);
       const matchDesc = item.description.toLowerCase().includes(q);
