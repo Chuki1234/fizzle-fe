@@ -28,11 +28,12 @@
 html,
 body {
    width: 100%;
-   height: 100%;
    margin: 0;
    padding: 0;
-   overflow: hidden;
-   /* Dành cho App Desktop Single-Page */
+   /* Trang cuộn tự nhiên theo nội dung. KHÔNG khoá overflow ở đây —
+      shell chat (main-layout) tự đặt height:100vh + overflow:hidden trên
+      chính nó, nên các trang dài (auth/settings/profile) vẫn cuộn bình thường. */
+   overflow-x: hidden;
    background-color: var(--color-canvas);
    color: var(--color-ink);
    font-family: var(--font-sans);
