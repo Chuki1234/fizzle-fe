@@ -1,19 +1,34 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './core/auth/auth-guard';
 
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'auth/login' },
+  // 1. Main Layout & Các trang chính
+  {
+    path: '',
+    loadComponent: () => import('./layouts/main-layout/main-layout').then(m => m.MainLayout),
+    children: [
+      { path: '', redirectTo: 'friends', pathMatch: 'full' },
+      { path: 'dashboard', loadComponent: () => import('./features/dashboard/dashboard').then(m => m.Dashboard) },
+
+      // Chat Direct Messages (1-1 với Bạn Bè)
+      { path: 'chat', loadComponent: () => import('./features/chat/chat').then(m => m.Chat) },
+      { path: 'chat/:id', loadComponent: () => import('./features/chat/chat').then(m => m.Chat) },
+
+      // Chat Server / Kênh Discord
+      { path: 'channels/:serverId/:channelId', loadComponent: () => import('./features/chat/chat').then(m => m.Chat) },
+
+      { path: 'friends', loadComponent: () => import('./features/friends/friends').then(m => m.Friends) },
+    ]
+  },
+
+  // 2. Luồng Auth
   {
     path: 'auth',
-    loadChildren: () =>
-      import('./features/auth/auth.routes').then((m) => m.authRoutes),
+    loadComponent: () => import('./layouts/auth-layout/auth-layout').then(m => m.AuthLayout),
+    children: [
+      { path: 'login', loadComponent: () => import('./features/auth/login/login').then(m => m.Login) },
+      { path: 'register', loadComponent: () => import('./features/auth/register/register').then(m => m.Register) },
+    ]
   },
-  {
-    path: 'app',
-    title: 'Dashboard · Fizzle',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import('./features/dashboard/dashboard').then((m) => m.Dashboard),
-  },
-  { path: '**', redirectTo: '' },
+
+  { path: '**', redirectTo: 'friends' }
 ];

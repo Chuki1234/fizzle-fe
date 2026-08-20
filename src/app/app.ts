@@ -1,11 +1,11 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Component } from '@angular/core';
+import { RouterOutlet } from '@angular/router'; // 👈 1. Thêm dòng này
 
 @Component({
-  selector: 'app-root',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet],
+  selector: 'app-root', // hoặc fz-root tùy dự án
+  standalone: true,
+  imports: [RouterOutlet], // 👈 2. Thêm RouterOutlet vào đây
   templateUrl: './app.html',
-  styleUrl: './app.css',
+  styleUrl: './app.css'
 })
-export class App {}
+export class App { }

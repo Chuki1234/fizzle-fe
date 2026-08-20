@@ -1,0 +1,78 @@
+<div class="friends-container p-6">
+    <!-- THANH TAB TRÊN CÙNG -->
+    <div class="flex items-center gap-6 border-b border-[var(--color-hairline)] pb-3 mb-6">
+        <button (click)="friendService.activeTab.set('online')"
+            [class.text-white]="friendService.activeTab() === 'online'"
+            [class.font-bold]="friendService.activeTab() === 'online'"
+            class="text-sm text-[var(--color-steel)] hover:text-white transition cursor-pointer">
+            Trực tuyến ({{ friendService.onlineCount() }})
+        </button>
+
+        <button (click)="friendService.activeTab.set('all')" [class.text-white]="friendService.activeTab() === 'all'"
+            [class.font-bold]="friendService.activeTab() === 'all'"
+            class="text-sm text-[var(--color-steel)] hover:text-white transition cursor-pointer">
+            Tất cả
+        </button>
+
+        <button (click)="friendService.activeTab.set('pending')"
+            [class.text-white]="friendService.activeTab() === 'pending'"
+            [class.font-bold]="friendService.activeTab() === 'pending'"
+            class="text-sm text-[var(--color-steel)] hover:text-white transition flex items-center gap-2 cursor-pointer">
+            Đang chờ
+            @if (friendService.pendingCount() > 0) {
+            <span class="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+                {{ friendService.pendingCount() }}
+            </span>
+            }
+        </button>
+    </div>
+
+    <!-- DANH SÁCH BẠN BÈ -->
+    <div class="flex flex-col gap-2">
+        @for (friend of friendService.filteredFriends(); track friend.id) {
+        <div
+            class="friend-row flex items-center justify-between p-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-hairline)] hover:bg-[var(--color-surface-soft)] transition">
+
+            <div class="flex items-center gap-3">
+                <!-- Avatar + Chấm Status Discord -->
+                <div class="relative">
+                    <div
+                        class="w-10 h-10 rounded-full bg-[var(--color-surface-code)] text-white font-bold flex items-center justify-center">
+                        {{ friend.displayName.charAt(0) }}
+                    </div>
+
+                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[var(--color-surface)]"
+                        [class.bg-emerald-500]="friend.presence === 'online'"
+                        [class.bg-amber-500]="friend.presence === 'idle'"
+                        [class.bg-rose-500]="friend.presence === 'dnd'"
+                        [class.bg-gray-500]="friend.presence === 'offline'">
+                    </span>
+                </div>
+
+                <div>
+                    <h3 class="text-sm font-semibold text-[var(--color-ink)]">{{ friend.displayName }}</h3>
+                    <p class="text-xs text-[var(--color-steel)]">{{ friend.statusText }}</p>
+                </div>
+            </div>
+
+            <!-- Hành động -->
+            <div class="flex items-center gap-2">
+                @if (friend.relationshipStatus === 'pending') {
+                <button
+                    class="px-3 py-1 bg-[var(--color-accent)] text-black font-semibold text-xs rounded-lg hover:opacity-90 transition cursor-pointer">Chấp
+                    nhận</button>
+                <button
+                    class="px-3 py-1 bg-zinc-800 text-white text-xs rounded-lg hover:bg-zinc-700 transition cursor-pointer">Từ
+                    chối</button>
+                } @else {
+                <!-- Tìm đoạn nút Tin nhắn trong friends.html và đổi thành: -->
+                <a [routerLink]="['/chat', friend.id]"
+                    class="px-3 py-1 bg-[var(--color-surface-soft)] hover:bg-[var(--color-hairline)] text-white text-xs rounded-lg border border-[var(--color-hairline)] transition">
+                    Tin nhắn
+                </a>
+                }
+            </div>
+        </div>
+        }
+    </div>
+</div>

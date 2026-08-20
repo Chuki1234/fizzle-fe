@@ -1,0 +1,145 @@
+<div class="main-shell">
+
+    <!-- CỘT 1: BAR CHỌN SERVER DỌC (DISCORD STYLE) -->
+    <aside class="sidebar-servers">
+        <!-- Nút Trang Chủ / Direct Messages -->
+        <a routerLink="/friends" (click)="serverService.activeServerId.set('')" class="server-icon-btn"
+            [class.server-icon-btn--active]="!serverService.activeServerId()">
+            <span class="server-icon-text">⚡</span>
+            <span class="server-tooltip">Trang chủ & DMs</span>
+        </a>
+
+        <div class="server-divider"></div>
+
+        <!-- Vòng lặp các Server -->
+        @for (server of serverService.servers(); track server.id) {
+        <div (click)="serverService.selectServer(server.id)" class="server-icon-btn"
+            [class.server-icon-btn--active]="serverService.activeServerId() === server.id">
+            <span class="server-icon-text">{{ server.icon }}</span>
+            <span class="server-tooltip">{{ server.name }}</span>
+        </div>
+        }
+
+        <!-- Nút Thêm Server -> Gọi Modal CREATE_SERVER -->
+        <button (click)="modalService.open('CREATE_SERVER')" class="server-icon-btn server-icon-btn--add">
+            <span class="server-icon-text">+</span>
+            <span class="server-tooltip">Thêm máy chủ</span>
+        </button>
+    </aside>
+
+    <!-- CỘT 2: SIDEBAR CHI TIẾT -->
+    <aside class="sidebar-left">
+        <div class="sidebar-left__inner">
+
+            <!-- TRƯỜNG HỢP 1: ĐANG Ở TRONG SERVER -->
+            @if (serverService.activeServerId()) {
+
+            <div class="sidebar-left__server-header">
+                <span class="sidebar-left__server-title">{{ serverService.activeServer()?.name }}</span>
+                <span class="sidebar-left__dropdown-icon">▼</span>
+            </div>
+
+            <div class="sidebar-left__content">
+                <div class="sidebar-left__section">
+                    <div class="sidebar-left__section-header">
+                        <span>KÊNH TRÒ CHUYỆN</span>
+                        <!-- Nút Thêm Kênh -> Gọi Modal CREATE_CHANNEL -->
+                        <button (click)="modalService.open('CREATE_CHANNEL')" class="sidebar-left__add-btn">+</button>
+                    </div>
+
+                    @for (channel of serverService.activeServer()?.channels; track channel.id) {
+                    <button (click)="serverService.selectChannel(channel)" class="sidebar-left__channel-item"
+                        [class.sidebar-left__channel-item--active]="serverService.activeChannelId() === channel.id">
+                        <span class="sidebar-left__channel-prefix">{{ channel.type === 'text' ? '#' : '🎙️' }}</span>
+                        <span class="sidebar-left__channel-name">{{ channel.name }}</span>
+                    </button>
+                    }
+                </div>
+            </div>
+
+            }
+            <!-- TRƯỜNG HỢP 2: ĐANG Ở TRANG CHỦ ⚡ -->
+            @else {
+
+            <a routerLink="/dashboard" class="sidebar-left__brand">
+                <img src="assets/images/fizzle-logo.jpg" alt="Fizzle Logo" class="sidebar-left__logo-img" />
+            </a>
+
+            <div class="sidebar-left__content">
+                <div class="sidebar-left__search-box">
+                    <input type="text" placeholder="Tìm hoặc bắt đầu cuộc trò" class="sidebar-left__search-input" />
+                </div>
+
+                <a routerLink="/friends" routerLinkActive="sidebar-left__nav-item--active"
+                    class="sidebar-left__nav-item">
+                    <div class="sidebar-left__nav-link">
+                        <span class="sidebar-left__nav-icon">👤</span>
+                        <span class="sidebar-left__nav-text">Bạn bè</span>
+                    </div>
+
+                    @if (friendService.pendingCount() > 0) {
+                    <span class="sidebar-left__badge">{{ friendService.pendingCount() }}</span>
+                    }
+                </a>
+
+                <a routerLink="/requests" class="sidebar-left__nav-item">
+                    <div class="sidebar-left__nav-link">
+                        <span class="sidebar-left__nav-icon">✉️</span>
+                        <span class="sidebar-left__nav-text">Yêu cầu tin nhắn</span>
+                    </div>
+                </a>
+
+                <div class="sidebar-left__section">
+                    <div class="sidebar-left__section-header">
+                        <span>TIN NHẮN TRỰC TIẾP</span>
+                        <button class="sidebar-left__add-btn">+</button>
+                    </div>
+
+                    @for (friend of friendService.directMessages(); track friend.id) {
+                    <a [routerLink]="['/chat', friend.id]" routerLinkActive="sidebar-left__dm-item--active"
+                        class="sidebar-left__dm-item">
+
+                        <div class="sidebar-left__avatar-container">
+                            <div class="sidebar-left__avatar">
+                                {{ friend.displayName.charAt(0) }}
+                            </div>
+                            <span class="sidebar-left__status-dot" [class.bg-emerald-500]="friend.presence === 'online'"
+                                [class.bg-amber-500]="friend.presence === 'idle'"
+                                [class.bg-rose-500]="friend.presence === 'dnd'"
+                                [class.bg-zinc-500]="friend.presence === 'offline'"></span>
+                        </div>
+
+                        <div class="sidebar-left__dm-info">
+                            <span class="sidebar-left__dm-name">{{ friend.displayName }}</span>
+                            <span class="sidebar-left__dm-status">{{ friend.statusText }}</span>
+                        </div>
+                    </a>
+                    }
+                </div>
+            </div>
+
+            }
+
+            <!-- 🎙️ VOICE CONTROL -->
+            <app-voice-control></app-voice-control>
+
+            <!-- USER PROFILE FOOTER -->
+            <div class="sidebar-left__user-profile">
+                <div class="sidebar-left__avatar sidebar-left__avatar--user">P</div>
+                <div class="sidebar-left__user-info">
+                    <span class="sidebar-left__user-name">Thiện Phúc</span>
+                    <span class="sidebar-left__user-status">● Online</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- CỘT 3: NƠI CHỨA NỘI DUNG CHÍNH -->
+    <main class="main-shell__content">
+        <router-outlet></router-outlet>
+    </main>
+
+</div>
+
+<!-- COMPONENT MODAL DÙNG CHUNG -->
+<app-modal></app-modal>

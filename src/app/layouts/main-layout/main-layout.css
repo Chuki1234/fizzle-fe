@@ -1,0 +1,353 @@
+/* ==========================================================================
+   FIZZLE MAIN LAYOUT SHELL (MINTLIFY DESIGN SYSTEM)
+   ========================================================================== */
+
+/* Reset cơ bản cho layout */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+/* Khung tổng xếp hàng ngang giữa Sidebar và Nội dung động */
+.main-shell {
+    display: flex;
+    width: 100%;
+    height: 100vh;
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    overflow: hidden;
+}
+
+/* --- SIDEBAR TRÁI CỐ ĐỊNH --- */
+.sidebar-left {
+    width: 260px;
+    background-color: var(--color-surface);
+    border-right: 1px solid var(--color-hairline);
+    flex-shrink: 0;
+}
+
+.sidebar-left__inner {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: var(--space-md) var(--space-sm);
+}
+
+/* Container bọc ngoài Brand Logo */
+.sidebar-left__brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--color-canvas-dark);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-md);
+    height: 48px;
+    width: 100%;
+    overflow: hidden;
+}
+
+/* Thẻ ảnh bên trong */
+.sidebar-left__logo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scale(1.08);
+}
+
+.sidebar-left__content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.sidebar-left__search-box {
+    margin-bottom: var(--space-xs);
+}
+
+.sidebar-left__search-input {
+    width: 100%;
+    height: var(--control-height-sm);
+    padding: 0 var(--space-md);
+    background-color: var(--color-surface-soft);
+    border: 1px solid var(--color-hairline);
+    border-radius: var(--radius-full);
+    font-size: var(--text-body-sm);
+    color: var(--color-ink);
+    outline: none;
+    transition: border-color var(--duration-fast) var(--ease-standard);
+}
+
+.sidebar-left__search-input::placeholder {
+    color: var(--color-stone);
+}
+
+.sidebar-left__search-input:focus {
+    border-color: var(--color-accent);
+}
+
+.sidebar-left__nav-item,
+.sidebar-left__dm-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    color: var(--color-ink);
+    font-weight: var(--weight-medium);
+    font-size: var(--text-body-sm);
+    transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.sidebar-left__nav-item--active,
+.sidebar-left__nav-item:hover,
+.sidebar-left__dm-item:hover {
+    background-color: var(--color-surface-soft);
+}
+
+.sidebar-left__nav-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.sidebar-left__badge {
+    background-color: var(--color-highlight);
+    color: #fff;
+    font-size: var(--text-micro-uppercase);
+    font-weight: var(--weight-semibold);
+    padding: 2px 7px;
+    border-radius: var(--radius-full);
+}
+
+.sidebar-left__section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: var(--text-micro-uppercase);
+    font-weight: var(--weight-semibold);
+    color: var(--color-steel);
+    letter-spacing: var(--tracking-micro-uppercase);
+    text-transform: uppercase;
+    margin: var(--space-md) var(--space-xxs) var(--space-xxs) var(--space-xxs);
+}
+
+.sidebar-left__add-btn {
+    background: transparent;
+    border: none;
+    color: var(--color-steel);
+    font-size: var(--text-body-md);
+    cursor: pointer;
+}
+
+.sidebar-left__add-btn:hover {
+    color: var(--color-ink);
+}
+
+.sidebar-left__avatar-container {
+    position: relative;
+}
+
+.sidebar-left__avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-full);
+    background-color: var(--color-surface-code);
+    color: var(--color-on-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: var(--weight-semibold);
+    font-size: var(--text-caption);
+}
+
+.sidebar-left__status-dot {
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 8px;
+    height: 8px;
+    border-radius: var(--radius-full);
+    background-color: var(--color-presence-online);
+    border: 2px solid var(--color-surface);
+}
+
+.sidebar-left__dm-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    margin-left: var(--space-xs);
+}
+
+.sidebar-left__dm-name {
+    font-size: var(--text-body-sm);
+    font-weight: var(--weight-medium);
+}
+
+.sidebar-left__dm-status {
+    font-size: var(--text-micro);
+    color: var(--color-steel);
+}
+
+/* User Profile ở đáy Sidebar */
+.sidebar-left__user-profile {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-xs) var(--space-sm);
+    background-color: var(--color-surface-soft);
+    border-radius: var(--radius-lg);
+    margin-top: auto;
+    border: 1px solid var(--color-hairline);
+}
+
+.sidebar-left__avatar--user {
+    background-color: var(--color-accent);
+    color: var(--color-on-accent);
+}
+
+.sidebar-left__user-name {
+    display: block;
+    font-size: var(--text-body-sm);
+    font-weight: var(--weight-semibold);
+}
+
+.sidebar-left__user-status {
+    font-size: var(--text-micro);
+    color: var(--color-presence-online);
+    font-weight: var(--weight-medium);
+}
+
+/* --- VÙNG NỘI DUNG ĐỘNG --- */
+.main-shell__content {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    background-color: var(--color-canvas);
+}
+
+/* 1. Tắt thẻ router-outlet ảo để Flexbox bỏ qua nó */
+.main-shell__content>router-outlet {
+    display: none;
+}
+
+/* 2. Ép các Custom Component dãn full 100% */
+.main-shell__content> :not(router-outlet) {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+}
+
+/* Layout chính dạng 3 cột */
+.main-shell {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background-color: #0e0f12;
+}
+
+/* Cột Icon Server ngoài cùng */
+.sidebar-servers {
+    width: 72px;
+    height: 100%;
+    background-color: #08090a;
+    border-right: 1px solid #1e1f24;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 0;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.server-icon-btn {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    border-radius: 24px;
+    background-color: #16171c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #fff;
+    border: 1px solid #2a2c33;
+}
+
+.server-icon-btn:hover,
+.server-icon-btn--active {
+    border-radius: 16px;
+    background-color: #10b981;
+    color: #000;
+}
+
+.server-icon-btn--add {
+    color: #10b981;
+}
+
+.server-divider {
+    width: 32px;
+    height: 2px;
+    background-color: #1e1f24;
+    margin: 4px 0;
+}
+
+/* Tooltip hiển thị tên Server */
+.server-tooltip {
+    position: absolute;
+    left: 80px;
+    background-color: #18191e;
+    color: #fff;
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    white-space: nowrap;
+    border: 1px solid #2a2c33;
+    z-index: 100;
+}
+
+.server-icon-btn:hover .server-tooltip {
+    opacity: 1;
+}
+
+/* Style cho Kênh Server */
+.sidebar-left__server-header {
+    padding: 12px 16px;
+    font-weight: bold;
+    color: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #1e1f24;
+}
+
+.sidebar-left__channel-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: transparent;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    text-align: left;
+}
+
+.sidebar-left__channel-item:hover,
+.sidebar-left__channel-item--active {
+    background-color: #16171c;
+    color: #fff;
+}
