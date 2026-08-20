@@ -1,3 +1,57 @@
-<main class="dashboard" id="main-content">
-  <h1 class="dashboard__title">Dashboard</h1>
-</main>
+<div class="dashboard-layout">
+  <!-- CỘT GIỮA: Danh sách Server -->
+  <div class="dashboard-main">
+    <h1 class="dashboard-title">Các server bạn đang tham gia</h1>
+
+    <div class="server-cards-list">
+      <!-- Server 1: SE Hub -->
+      <a routerLink="/server/se-hub" class="server-card server-card--orange">
+        <div class="server-card__icon">SE</div>
+        <div class="server-card__info">
+          <h2 class="server-card__title">Software Engineering Hub</h2>
+          <p class="server-card__desc">Kênh trao đổi học tập & Code Debugging</p>
+        </div>
+      </a>
+
+      <!-- Server 2: MC Lounge -->
+      <a routerLink="/server/mc-lounge" class="server-card server-card--mint">
+        <div class="server-card__icon server-card__icon--pink">MC</div>
+        <div class="server-card__info">
+          <h2 class="server-card__title">Manchester City FC Lounge</h2>
+          <p class="server-card__desc">Cộng đồng Cổ động viên & Watchalong</p>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <!-- CỘT PHẢI: Livestream các Server -->
+  <aside class="sidebar-right">
+    <header class="sidebar-right__header">
+      <h2 class="sidebar-right__title">LIVESTREAM Ở CÁC SERVER 🔥</h2>
+    </header>
+
+    <div class="sidebar-right__stream-list">
+      <div class="stream-card">
+        <div class="stream-card__preview">
+          <span class="stream-card__live-badge">🔴 LIVE</span>
+          <p class="stream-card__preview-text">[ Trực Tiếp Trận Đấu ]</p>
+        </div>
+        <div class="stream-card__info">
+          <h3 class="stream-card__title">Chung Kết Cúp C1 / Watchalong</h3>
+          <p class="stream-card__subtitle">Manchester City FC Lounge</p>
+        </div>
+      </div>
+
+      <div class="stream-card">
+        <div class="stream-card__preview">
+          <span class="stream-card__live-badge">🔴 LIVE</span>
+          <p class="stream-card__preview-text">[ Code Debug Live Session ]</p>
+        </div>
+        <div class="stream-card__info">
+          <h3 class="stream-card__title">Giải Đồ Án Cuối Kỳ Java</h3>
+          <p class="stream-card__subtitle">Software Engineering Hub</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>

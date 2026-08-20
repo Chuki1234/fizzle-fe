@@ -1,0 +1,27 @@
+/* friends.component.css */
+:host {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+}
+
+/* ==========================================================================
+   TỰ OVERRIDE SẮC ĐỘ DARK MODE CHO MÀN HÌNH NÀY (KHÔNG SỬA CODE GỐC)
+   ========================================================================== */
+
+:host-context([data-theme="dark"]) {
+    /* Tự chỉnh các biến màu chỉ có hiệu lực TRONG COMPONENT NÀY */
+    --color-canvas: #090a0f;
+    /* Nền tổng thể tối sâu hơn */
+    --color-surface: #14171f;
+    /* Nền các khung/card nổi lên */
+    --color-surface-soft: #1e222d;
+    /* Nền hover, button, ô input */
+    --color-hairline: #2b3040;
+    /* Viền sáng rõ hơn để tách lớp */
+    --color-steel: #94a3b8;
+    /* Chữ phụ sáng rõ, không chìm */
+}
