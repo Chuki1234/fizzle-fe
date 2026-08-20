@@ -42,3 +42,11 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Local identity for implement-skill (không đẩy lên git)
+.claude/student-context.json
+/e2e/.auth/
+/playwright-report/
+/test-results/
+/blob-report/
+/playwright/.cache/
