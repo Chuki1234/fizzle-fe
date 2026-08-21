@@ -61,72 +61,59 @@
   <main class="auth-shell__main" id="main-content">
     <div class="auth-shell__container">
       
-      <!-- Showcase Hero Panel (Desktop only) -->
+      <!-- Live Community Showcase (Desktop only) — thế giới thật của Fizzle -->
       <aside class="auth-shell__hero-panel">
         <div class="auth-shell__hero-content">
           <div class="auth-shell__hero-pill">
             <span class="auth-shell__hero-pill-dot"></span>
-            Nền tảng API &amp; Tài liệu Developer
+            Nền tảng cộng đồng
           </div>
 
           <h2 class="auth-shell__hero-title">
-            Xây dựng nhanh hơn với tài liệu &amp; API chuẩn hóa.
+            Nơi cộng đồng của bạn tụ họp.
           </h2>
 
           <p class="auth-shell__hero-desc">
-            Fizzle cung cấp hệ thống quản lý API, tài liệu tích hợp và xác thực đa lớp — mọi thứ bạn cần để triển khai sản phẩm.
+            Lập server riêng, trò chuyện real-time và gọi voice cùng bạn bè —
+            tất cả trong một nơi, lấy cảm hứng từ Discord.
           </p>
 
-          <!-- Mintlify-style Code Snippet Card -->
-          <div class="auth-shell__code-card">
-            <div class="auth-shell__code-header">
-              <div class="auth-shell__code-dots">
-                <span class="dot dot--red"></span>
-                <span class="dot dot--yellow"></span>
-                <span class="dot dot--green"></span>
-              </div>
-              <div class="auth-shell__code-title-wrapper">
-                <svg class="auth-shell__shield-icon" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-                  <polyline points="14 2 14 8 20 8"/>
+          <!-- Feature highlights (marketing thật, không số liệu ảo) -->
+          <ul class="auth-shell__features">
+            <li class="auth-shell__feature">
+              <span class="auth-shell__feature-icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
-                <span class="auth-shell__code-filename">fizzle.config.ts</span>
+              </span>
+              <div class="auth-shell__feature-text">
+                <p class="auth-shell__feature-title">Cộng đồng &amp; Server</p>
+                <p class="auth-shell__feature-desc">Lập server cho nhóm bạn hoặc cộng đồng, chia thành nhiều kênh theo chủ đề.</p>
               </div>
-            </div>
-            <pre class="auth-shell__code-body"><code><span class="kw">import</span> <span class="cyan">&#123; defineConfig &#125;</span> <span class="kw">from</span> <span class="str">'fizzle'</span>;
-
-<span class="kw">export default</span> <span class="cmd">defineConfig</span>(&#123;
-  <span class="prop">project</span>: <span class="str">'my-api'</span>,
-  <span class="prop">auth</span>: &#123;
-    <span class="prop">strategy</span>: <span class="str">'jwt'</span>,
-    <span class="prop">mfa</span>: <span class="bool">true</span>,
-  &#125;,
-  <span class="prop">docs</span>: &#123;
-    <span class="prop">openapi</span>: <span class="str">'./openapi.yaml'</span>,
-    <span class="prop">theme</span>: <span class="str">'mintlify'</span>,
-  &#125;,
-&#125;);</code></pre>
-          </div>
-
-          <!-- Feature Bullets -->
-          <ul class="auth-shell__hero-perks">
-            <li class="auth-shell__perk-item">
-              <svg class="auth-shell__check-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-              <span>Quản lý API key &amp; phân quyền chi tiết</span>
             </li>
-            <li class="auth-shell__perk-item">
-              <svg class="auth-shell__check-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-              <span>Tài liệu OpenAPI tự động từ mã nguồn</span>
+
+            <li class="auth-shell__feature">
+              <span class="auth-shell__feature-icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+              </span>
+              <div class="auth-shell__feature-text">
+                <p class="auth-shell__feature-title">Chat real-time</p>
+                <p class="auth-shell__feature-desc">Nhắn tin tức thì, gửi ảnh, file &amp; sticker; chỉnh sửa hay thu hồi tin nhắn bất cứ lúc nào.</p>
+              </div>
             </li>
-            <li class="auth-shell__perk-item">
-              <svg class="auth-shell__check-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-              <span>Xác thực JWT &amp; OTP an toàn đa lớp</span>
+
+            <li class="auth-shell__feature">
+              <span class="auth-shell__feature-icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+              </span>
+              <div class="auth-shell__feature-text">
+                <p class="auth-shell__feature-title">Voice &amp; chia sẻ màn hình</p>
+                <p class="auth-shell__feature-desc">Gọi thoại/video trong kênh voice và chia sẻ màn hình khi chơi game cùng nhau.</p>
+              </div>
             </li>
           </ul>
         </div>

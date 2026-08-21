@@ -260,93 +260,8 @@
   max-width: 440px;
 }
 
-/* --- Mintlify-style Code Card (docs aesthetic) --------------------------- */
-.auth-shell__code-card {
-  background: var(--color-code);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-hairline);
-  box-shadow: var(--elevation-3);
-  overflow: hidden;
-  margin-top: var(--space-xs);
-}
-
-:root[data-theme='light'] .auth-shell__code-card {
-  border-color: #e2e8f0;
-}
-
-.auth-shell__code-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 16px;
-  background: rgba(255, 255, 255, 0.04);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-}
-
-.auth-shell__code-dots {
-  display: flex;
-  gap: 6px;
-}
-
-.dot {
-  width: 10px;
-  height: 10px;
-  border-radius: var(--radius-full);
-}
-.dot--red    { background-color: #ff5f57; }
-.dot--yellow { background-color: #febc2e; }
-.dot--green  { background-color: #28c840; }
-
-.auth-shell__code-title-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.auth-shell__shield-icon {
-  color: #94a3b8;
-}
-
-.auth-shell__code-filename {
-  font-family: var(--font-mono);
-  font-size: var(--text-code-sm);
-  color: #64748b;
-}
-
-.auth-shell__code-body {
-  padding: var(--space-md) var(--space-lg);
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 13px;
-  line-height: 1.65;
-  color: #e2e8f0;
-  overflow-x: auto;
-}
-
-/* Mintlify code colors — cleaner, not neon */
-.auth-shell__code-body .prompt  { color: #10b981; font-weight: 600; }
-.auth-shell__code-body .cmd     { color: #7dd3fc; font-weight: 500; }
-.auth-shell__code-body .str     { color: #86efac; }
-.auth-shell__code-body .green   { color: #10b981; font-weight: 500; }
-.auth-shell__code-body .cyan    { color: #38bdf8; }
-.auth-shell__code-body .comment { color: #475569; font-style: italic; }
-.auth-shell__code-body .kw      { color: #c084fc; font-weight: 500; }
-.auth-shell__code-body .prop    { color: #93c5fd; }
-.auth-shell__code-body .bool    { color: #f472b6; }
-
-.tag {
-  display: inline-block;
-  padding: 1px 6px;
-  border-radius: var(--radius-xs);
-  font-size: 11px;
-  font-weight: 600;
-}
-.tag--success { background: rgba(16, 185, 129, 0.15); color: #10b981; }
-.tag--cyan    { background: rgba(56, 189, 248, 0.12);  color: #38bdf8; }
-.tag--info    { background: rgba(148, 163, 184, 0.12); color: #94a3b8; }
-
-/* Perks list — Mintlify feature bullets */
-.auth-shell__hero-perks {
+/* --- Feature highlights (landing marketing) ------------------------------ */
+.auth-shell__features {
   list-style: none;
   padding: 0;
   margin: var(--space-xs) 0 0;
@@ -355,17 +270,48 @@
   gap: var(--space-sm);
 }
 
-.auth-shell__perk-item {
+.auth-shell__feature {
   display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  font-size: var(--text-body-sm);
-  color: var(--color-body);
+  align-items: flex-start;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--color-elevated);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--elevation-1);
+  transition:
+    border-color var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
 }
 
-.auth-shell__check-icon {
-  color: var(--color-accent);
+.auth-shell__feature:hover {
+  border-color: var(--color-accent);
+  transform: translateY(-1px);
+}
+
+.auth-shell__feature-icon {
   flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  color: var(--color-accent);
+}
+
+.auth-shell__feature-title {
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-ink);
+  line-height: 1.3;
+}
+
+.auth-shell__feature-desc {
+  font-size: var(--text-micro);
+  color: var(--color-steel);
+  line-height: 1.5;
+  margin-top: 2px;
 }
 
 /* --- Right Form Wrapper --------------------------------------------------- */
