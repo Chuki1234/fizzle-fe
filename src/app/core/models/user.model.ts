@@ -12,6 +12,12 @@ export interface User {
   avatarUrl: string | null;
   bannerUrl: string | null;
   statusMessage: string | null;
+  pronouns?: string | null;
+  customStatus?: string | null;
+  customStatusEmoji?: string | null;
+  aboutMe?: string | null;
+  bannerColor?: string | null;
+  avatarFrame?: string | null;
   presence: PresenceStatus;
   /** ISO date (YYYY-MM-DD). */
   birthdate: string | null;

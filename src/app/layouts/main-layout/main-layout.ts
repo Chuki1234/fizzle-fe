@@ -35,6 +35,34 @@ export class MainLayout {
         return name.charAt(0).toUpperCase();
     });
 
+    public userStatusText = computed(() => {
+        const user = this.authStore.user();
+        if (!user) return 'Online';
+        if (user.customStatus) {
+            return `${user.customStatusEmoji ? user.customStatusEmoji + ' ' : ''}${user.customStatus}`;
+        }
+        if (user.statusMessage) {
+            return user.statusMessage;
+        }
+        switch (user.presence) {
+            case 'online': return 'Online';
+            case 'idle': return 'Idle';
+            case 'dnd': return 'Do Not Disturb';
+            case 'offline': return 'Invisible';
+            default: return 'Online';
+        }
+    });
+
+    public userStatusColor = computed(() => {
+        switch (this.authStore.user()?.presence) {
+            case 'online': return '#00d4a4';
+            case 'idle': return '#f0b232';
+            case 'dnd': return '#f23f43';
+            case 'offline': return '#80848e';
+            default: return '#00d4a4';
+        }
+    });
+
     public logout(): void {
         this.authService.logout().subscribe({
             next: () => {

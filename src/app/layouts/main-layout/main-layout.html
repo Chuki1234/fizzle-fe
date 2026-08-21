@@ -143,7 +143,7 @@
                     }
                     <div class="sidebar-left__user-info">
                         <span class="sidebar-left__user-name">{{ authStore.user()?.displayName || authStore.user()?.username || 'Người dùng' }}</span>
-                        <span class="sidebar-left__user-status">● Online</span>
+                        <span class="sidebar-left__user-status" [style.color]="userStatusColor()">● {{ userStatusText() }}</span>
                     </div>
                 </a>
                 <a routerLink="/settings" class="sidebar-left__settings-btn" title="Cài đặt" aria-label="Cài đặt">

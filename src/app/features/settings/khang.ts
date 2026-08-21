@@ -188,6 +188,23 @@ export class Khang {
 
   // Edit Modal State
   editingField = signal<'username' | 'email' | 'phone' | 'password' | null>(null);
+  // Username change state
+  usernameChangePendingName = signal<string>('');
+  usernameChangePassword = signal<string>('');
+  usernameChangeLoading = signal<boolean>(false);
+  usernameChangeError = signal<string | null>(null);
+
+  // Email change OTP flow
+  emailChangeStep = signal<'input' | 'otp'>('input');
+  emailChangeOtp = signal<string>('');
+  emailChangePendingEmail = signal<string>('');
+  emailChangePassword = signal<string>('');
+  emailChangeLoading = signal<boolean>(false);
+  emailChangeError = signal<string | null>(null);
+  // Password change state
+  passwordChangeLoading = signal<boolean>(false);
+  passwordChangeError = signal<string | null>(null);
+  passwordChangeSuccess = signal<boolean>(false);
 
   // Profile signals imported from k-profile
   displayName = signal<string>('User');
@@ -362,7 +379,14 @@ export class Khang {
       if (user.email) this.actualEmail.set(user.email);
       if (user.username) this.username.set(user.username);
       if (user.displayName) this.displayName.set(user.displayName);
-      if (user.avatarUrl != null) this.avatarUrl.set(user.avatarUrl);
+      if (user.pronouns !== undefined && user.pronouns !== null) this.pronouns.set(user.pronouns);
+      if (user.customStatus !== undefined && user.customStatus !== null) this.customStatus.set(user.customStatus);
+      if (user.customStatusEmoji !== undefined && user.customStatusEmoji !== null) this.customStatusEmoji.set(user.customStatusEmoji);
+      if (user.aboutMe !== undefined && user.aboutMe !== null) this.aboutMe.set(user.aboutMe);
+      if (user.bannerColor !== undefined && user.bannerColor !== null) this.bannerColor.set(user.bannerColor);
+      if (user.avatarFrame !== undefined && user.avatarFrame !== null) this.avatarFrame.set(user.avatarFrame);
+      if (user.avatarUrl !== undefined) this.avatarUrl.set(user.avatarUrl);
+      if (user.presence) this.status.set(user.presence);
       if (typeof user.twoFactorEnabled === 'boolean') {
         this.twoFactorEnabled.set(user.twoFactorEnabled);
       }
@@ -541,10 +565,180 @@ export class Khang {
 
   openEditModal(field: 'username' | 'email' | 'phone' | 'password') {
     this.editingField.set(field);
+    if (field === 'username') {
+      this.usernameChangePendingName.set(this.username());
+      this.usernameChangePassword.set('');
+      this.usernameChangeError.set(null);
+      this.usernameChangeLoading.set(false);
+    }
+    // Reset OTP flow state when opening email modal
+    if (field === 'email') {
+      this.emailChangeStep.set('input');
+      this.emailChangeOtp.set('');
+      this.emailChangePendingEmail.set('');
+      this.emailChangePassword.set('');
+      this.emailChangeError.set(null);
+      this.emailChangeLoading.set(false);
+    }
+    if (field === 'password') {
+      this.passwordChangeError.set(null);
+      this.passwordChangeSuccess.set(false);
+      this.settingsForm.patchValue({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    }
   }
 
   closeEditModal() {
     this.editingField.set(null);
+    this.usernameChangePassword.set('');
+    this.usernameChangeError.set(null);
+    this.emailChangeStep.set('input');
+    this.emailChangeOtp.set('');
+    this.emailChangePassword.set('');
+    this.emailChangeError.set(null);
+    this.passwordChangeError.set(null);
+    this.passwordChangeSuccess.set(false);
+  }
+
+  /** Change Username via BE with password verification */
+  saveUsernameChange() {
+    const newUsername = this.usernameChangePendingName().trim();
+    const password = this.usernameChangePassword().trim();
+
+    if (!newUsername) {
+      this.usernameChangeError.set('Vui lòng nhập Username mới.');
+      return;
+    }
+    if (!password) {
+      this.usernameChangeError.set('Vui lòng nhập mật khẩu xác nhận.');
+      return;
+    }
+
+    this.usernameChangeLoading.set(true);
+    this.usernameChangeError.set(null);
+    this.authService.changeUsername(newUsername, password).subscribe({
+      next: (updatedUser) => {
+        this.usernameChangeLoading.set(false);
+        this.username.set(updatedUser.username);
+        this.showToast('Username đã được thay đổi thành công! ✨');
+        this.closeEditModal();
+      },
+      error: (err) => {
+        this.usernameChangeLoading.set(false);
+        const errData = err?.error;
+        const msg =
+          typeof errData === 'string'
+            ? errData
+            : Array.isArray(errData?.message)
+              ? errData.message[0]
+              : errData?.message || err?.message || 'Không thể đổi Username. Vui lòng thử lại.';
+        this.usernameChangeError.set(msg);
+      },
+    });
+  }
+
+  /** Step 1 — request OTP for email change with password verification */
+  requestEmailChangeOtp() {
+    const newEmail = this.emailChangePendingEmail().trim();
+    const password = this.emailChangePassword().trim();
+
+    if (!newEmail || !newEmail.includes('@')) {
+      this.emailChangeError.set('Vui lòng nhập địa chỉ email hợp lệ.');
+      return;
+    }
+    if (newEmail.toLowerCase() === this.actualEmail().trim().toLowerCase()) {
+      this.emailChangeError.set('Email mới phải khác với email hiện tại của tài khoản.');
+      return;
+    }
+    if (!password) {
+      this.emailChangeError.set('Vui lòng nhập mật khẩu xác nhận.');
+      return;
+    }
+
+    this.emailChangeLoading.set(true);
+    this.emailChangeError.set(null);
+    this.authService.requestEmailChange(newEmail, password).subscribe({
+      next: () => {
+        this.emailChangeLoading.set(false);
+        this.emailChangeStep.set('otp');
+      },
+      error: (err) => {
+        this.emailChangeLoading.set(false);
+        const errData = err?.error;
+        const msg =
+          typeof errData === 'string'
+            ? errData
+            : Array.isArray(errData?.message)
+              ? errData.message[0]
+              : errData?.message || err?.message || 'Không thể gửi yêu cầu đổi email.';
+        this.emailChangeError.set(msg);
+      },
+    });
+  }
+
+  /** Step 2 — verify OTP and confirm email change */
+  confirmEmailChange() {
+    const code = this.emailChangeOtp().trim();
+    const newEmail = this.emailChangePendingEmail().trim();
+    if (!code) {
+      this.emailChangeError.set('Vui lòng nhập mã OTP.');
+      return;
+    }
+    this.emailChangeLoading.set(true);
+    this.emailChangeError.set(null);
+    this.authService.verifyEmailChange(newEmail, code).subscribe({
+      next: (updatedUser) => {
+        this.emailChangeLoading.set(false);
+        this.actualEmail.set(updatedUser.email);
+        this.showToast('Email đã được cập nhật thành công! ✅');
+        this.closeEditModal();
+      },
+      error: (err) => {
+        this.emailChangeLoading.set(false);
+        const errData = err?.error;
+        const msg =
+          typeof errData === 'string'
+            ? errData
+            : Array.isArray(errData?.message)
+              ? errData.message[0]
+              : errData?.message || err?.message || 'Mã OTP không đúng hoặc đã hết hạn.';
+        this.emailChangeError.set(msg);
+      },
+    });
+  }
+
+  /** Change password via BE */
+  savePasswordChange() {
+    const currentPassword = this.settingsForm.get('currentPassword')?.value;
+    const newPassword = this.settingsForm.get('newPassword')?.value;
+    const confirmPassword = this.settingsForm.get('confirmPassword')?.value;
+
+    if (!currentPassword || !newPassword) {
+      this.passwordChangeError.set('Vui lòng nhập đầy đủ thông tin.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      this.passwordChangeError.set('Mật khẩu xác nhận không khớp.');
+      return;
+    }
+    if (newPassword.length < 8) {
+      this.passwordChangeError.set('Mật khẩu phải có ít nhất 8 ký tự.');
+      return;
+    }
+
+    this.passwordChangeLoading.set(true);
+    this.passwordChangeError.set(null);
+    this.authService.changePassword(currentPassword, newPassword).subscribe({
+      next: () => {
+        this.passwordChangeLoading.set(false);
+        this.passwordChangeSuccess.set(true);
+        this.showToast('Đã thay đổi mật khẩu thành công! 🔑');
+        setTimeout(() => this.closeEditModal(), 1500);
+      },
+      error: (err) => {
+        this.passwordChangeLoading.set(false);
+        this.passwordChangeError.set(err?.error?.message || 'Không thể đổi mật khẩu.');
+      },
+    });
   }
 
   saveFieldEdit() {
@@ -557,19 +751,10 @@ export class Khang {
           error: (err) => this.showToast(err?.error?.message || 'Lỗi khi cập nhật Username!'),
         });
       }
-    } else if (this.editingField() === 'email') {
-      const val = this.settingsForm.get('email')?.value?.trim();
-      if (val) {
-        this.actualEmail.set(val);
-        this.authStore.patchUser({ email: val });
-        this.showToast('Đã cập nhật Email thành công!');
-      }
     } else if (this.editingField() === 'phone') {
       const val = this.settingsForm.get('phone')?.value?.trim();
       if (val) this.actualPhone.set(val);
       this.showToast('Đã cập nhật Số điện thoại thành công!');
-    } else if (this.editingField() === 'password') {
-      this.showToast('Đã thay đổi Mật khẩu thành công!');
     }
     this.closeEditModal();
   }
@@ -640,10 +825,22 @@ export class Khang {
       username: unameToSave || undefined,
       avatarUrl: this.avatarUrl(),
       presence: this.status(),
+      pronouns: this.pronouns() || null,
+      customStatus: this.customStatus() || null,
+      customStatusEmoji: this.customStatusEmoji() || null,
+      aboutMe: this.aboutMe() || null,
+      bannerColor: this.bannerColor() || null,
+      avatarFrame: this.avatarFrame() || null,
     }).subscribe({
       next: (updatedUser) => {
         this.displayName.set(updatedUser.displayName);
         if (updatedUser.username) this.username.set(updatedUser.username);
+        if (updatedUser.pronouns !== undefined && updatedUser.pronouns !== null) this.pronouns.set(updatedUser.pronouns);
+        if (updatedUser.customStatus !== undefined && updatedUser.customStatus !== null) this.customStatus.set(updatedUser.customStatus);
+        if (updatedUser.customStatusEmoji !== undefined && updatedUser.customStatusEmoji !== null) this.customStatusEmoji.set(updatedUser.customStatusEmoji);
+        if (updatedUser.aboutMe !== undefined && updatedUser.aboutMe !== null) this.aboutMe.set(updatedUser.aboutMe);
+        if (updatedUser.bannerColor !== undefined && updatedUser.bannerColor !== null) this.bannerColor.set(updatedUser.bannerColor);
+        if (updatedUser.avatarFrame !== undefined && updatedUser.avatarFrame !== null) this.avatarFrame.set(updatedUser.avatarFrame);
         this.settingsForm.markAsPristine();
         this.showToast('Tất cả thay đổi đã được lưu thành công! ✨');
       },
@@ -671,8 +868,10 @@ export class Khang {
     this.showToast('Đã khôi phục cài đặt mặc định!');
   }
 
-  showToast(_msg: string) {
-    // Notifications disabled per user request
+  showToast(msg: string) {
+    // Show a quick in-page toast notification
+    this.toastMessage.set(msg);
+    setTimeout(() => this.toastMessage.set(null), 3000);
   }
 
   getStatusLabel(statusKey: string): string {
