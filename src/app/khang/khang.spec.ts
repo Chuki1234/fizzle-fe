@@ -19,14 +19,4 @@ describe('Khang', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
-
-  it('should toggle the theme between dark and light', () => {
-    component.toggleTheme();
-    expect(component.isDarkMode).toBeFalse();
-    expect(component.feedback).toContain('sáng');
-
-    component.toggleTheme();
-    expect(component.isDarkMode).toBeTrue();
-    expect(component.feedback).toContain('tối');
-  });
 });

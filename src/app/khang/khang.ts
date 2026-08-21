@@ -90,7 +90,6 @@ export class Khang {
     { id: 'sec-badges', section: 'badges-presence', sectionName: 'Badges & Rich Presence', sectionIcon: '👾', title: 'Huy hiệu Discord (Badges)', description: 'Bật/tắt các huy hiệu Developer, HypeSquad, Supporter, Nitro Boost', keywords: ['badge', 'huy hiệu', 'hypesquad', 'developer', 'nitro'] },
     { id: 'sec-presence', section: 'badges-presence', sectionName: 'Badges & Rich Presence', sectionIcon: '🎮', title: 'Hoạt động Rich Presence (Playing Status)', description: 'Cấu hình hiển thị game đang chơi: VS Code, Spotify, League of Legends', keywords: ['presence', 'rich presence', 'game', 'playing', 'vs code', 'spotify', 'lol'] },
 
-    { id: 'sec-theme-mode', section: 'accessibility', sectionName: 'Accessibility & Theme', sectionIcon: '♿', title: 'Chế độ Tối / Sáng (Dark & Light Mode)', description: 'Chuyển đổi giao diện Dark Mode và Light Mode mượt mà', keywords: ['dark mode', 'light mode', 'giao diện', 'tối', 'sáng', 'theme'] },
     { id: 'sec-font-scale', section: 'accessibility', sectionName: 'Accessibility & Theme', sectionIcon: '♿', title: 'Kích thước chữ (Font Scaling)', description: 'Tùy chỉnh phông chữ theo các cấp độ Compact, Standard, Large', keywords: ['font', 'chữ', 'scale', 'kích thước', 'compact', 'large'] },
 
     { id: 'sec-dms', section: 'messaging', sectionName: 'Messaging Permissions', sectionIcon: '💬', title: 'Quyền nhắn tin từ người lạ (Direct Messages)', description: 'Bật/tắt nhận tin nhắn từ thành viên cùng máy chủ hoặc người lạ', keywords: ['dm', 'tin nhắn', 'người lạ', 'stranger', 'nhắn tin', 'message'] },
@@ -516,11 +515,6 @@ export class Khang {
     this.activityDetails.set(preset.details);
     this.activityState.set(preset.state);
     this.showToast(`Đã chọn mẫu Rich Presence: ${preset.title}`);
-  }
-
-  toggleTheme() {
-    this.isDarkMode = !this.isDarkMode;
-    this.showToast(this.isDarkMode ? 'Chế độ tối đang được sử dụng.' : 'Chế độ sáng đang được sử dụng.');
   }
 
   copyProfileLink() {

@@ -938,33 +938,6 @@
         <h2 class="block-title">Accessibility & Theme</h2>
         <p class="body-sm text-steel">Tùy chỉnh chế độ giao diện tối/sáng, kích thước phông chữ và tùy chọn hỗ trợ tiếp cận.</p>
 
-        <!-- Theme Mode Cards -->
-        <div class="form-field">
-          <label class="field-label">Giao diện ứng dụng (Theme Mode)</label>
-          <div class="theme-mode-grid">
-            <button type="button" class="theme-mode-card" [class.active]="isDarkMode" (click)="toggleTheme()">
-              <div class="theme-preview-box dark-preview">
-                <span class="theme-icon">🌙</span>
-                <span class="theme-badge">Dark</span>
-              </div>
-              <div class="theme-info-row">
-                <span class="theme-title">Chế độ Tối (Dark Mode)</span>
-                <span class="theme-dot" [class.active]="isDarkMode"></span>
-              </div>
-            </button>
-
-            <button type="button" class="theme-mode-card" [class.active]="!isDarkMode" (click)="toggleTheme()">
-              <div class="theme-preview-box light-preview">
-                <span class="theme-icon">☀️</span>
-                <span class="theme-badge">Light</span>
-              </div>
-              <div class="theme-info-row">
-                <span class="theme-title">Chế độ Sáng (Light Mode)</span>
-                <span class="theme-dot" [class.active]="!isDarkMode"></span>
-              </div>
-            </button>
-          </div>
-        </div>
 
         <div class="block-divider"></div>
 
