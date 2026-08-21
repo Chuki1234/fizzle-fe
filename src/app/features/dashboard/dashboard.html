@@ -1,57 +1,106 @@
-<div class="dashboard-layout">
-  <!-- CỘT GIỮA: Danh sách Server -->
-  <div class="dashboard-main">
-    <h1 class="dashboard-title">Các server bạn đang tham gia</h1>
-
-    <div class="server-cards-list">
-      <!-- Server 1: SE Hub -->
-      <a routerLink="/server/se-hub" class="server-card server-card--orange">
-        <div class="server-card__icon">SE</div>
-        <div class="server-card__info">
-          <h2 class="server-card__title">Software Engineering Hub</h2>
-          <p class="server-card__desc">Kênh trao đổi học tập & Code Debugging</p>
-        </div>
-      </a>
-
-      <!-- Server 2: MC Lounge -->
-      <a routerLink="/server/mc-lounge" class="server-card server-card--mint">
-        <div class="server-card__icon server-card__icon--pink">MC</div>
-        <div class="server-card__info">
-          <h2 class="server-card__title">Manchester City FC Lounge</h2>
-          <p class="server-card__desc">Cộng đồng Cổ động viên & Watchalong</p>
-        </div>
-      </a>
-    </div>
-  </div>
-
-  <!-- CỘT PHẢI: Livestream các Server -->
-  <aside class="sidebar-right">
-    <header class="sidebar-right__header">
-      <h2 class="sidebar-right__title">LIVESTREAM Ở CÁC SERVER 🔥</h2>
+<div class="dash">
+  <div class="dash__inner">
+    <!-- Welcome -->
+    <header class="dash__welcome">
+      <h1 class="dash__greeting">
+        Chào mừng trở lại, <span class="dash__name">{{ displayName() || 'bạn' }}</span> 👋
+      </h1>
+      <p class="dash__subtitle">
+        Vào máy chủ, nhắn tin với bạn bè, hoặc lập một cộng đồng mới.
+      </p>
     </header>
 
-    <div class="sidebar-right__stream-list">
-      <div class="stream-card">
-        <div class="stream-card__preview">
-          <span class="stream-card__live-badge">🔴 LIVE</span>
-          <p class="stream-card__preview-text">[ Trực Tiếp Trận Đấu ]</p>
-        </div>
-        <div class="stream-card__info">
-          <h3 class="stream-card__title">Chung Kết Cúp C1 / Watchalong</h3>
-          <p class="stream-card__subtitle">Manchester City FC Lounge</p>
-        </div>
+    <!-- Quick actions -->
+    <div class="dash__actions">
+      <button type="button" class="dash__action" (click)="createServer()">
+        <span class="dash__action-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </span>
+        <span class="dash__action-text">
+          <span class="dash__action-title">Tạo máy chủ</span>
+          <span class="dash__action-desc">Lập cộng đồng của riêng bạn</span>
+        </span>
+      </button>
+
+      <a class="dash__action" routerLink="/friends">
+        <span class="dash__action-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+        </span>
+        <span class="dash__action-text">
+          <span class="dash__action-title">Thêm bạn</span>
+          <span class="dash__action-desc">Kết nối với bạn bè</span>
+        </span>
+      </a>
+
+      <a class="dash__action" routerLink="/chat">
+        <span class="dash__action-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </span>
+        <span class="dash__action-text">
+          <span class="dash__action-title">Nhắn tin</span>
+          <span class="dash__action-desc">Mở tin nhắn trực tiếp</span>
+        </span>
+      </a>
+    </div>
+
+    <!-- Your servers -->
+    <section class="dash__section">
+      <div class="dash__section-head">
+        <h2 class="dash__section-title">Máy chủ của bạn</h2>
+        <span class="dash__section-count">{{ servers().length }}</span>
       </div>
 
-      <div class="stream-card">
-        <div class="stream-card__preview">
-          <span class="stream-card__live-badge">🔴 LIVE</span>
-          <p class="stream-card__preview-text">[ Code Debug Live Session ]</p>
-        </div>
-        <div class="stream-card__info">
-          <h3 class="stream-card__title">Giải Đồ Án Cuối Kỳ Java</h3>
-          <p class="stream-card__subtitle">Software Engineering Hub</p>
-        </div>
+      <div class="dash__servers">
+        @for (s of servers(); track s.id) {
+          <button type="button" class="dash__server" (click)="openServer(s)">
+            <span class="dash__server-icon">{{ s.icon }}</span>
+            <span class="dash__server-body">
+              <span class="dash__server-name">{{ s.name }}</span>
+              <span class="dash__server-meta">{{ s.channels.length }} kênh</span>
+            </span>
+          </button>
+        }
+
+        <button type="button" class="dash__server dash__server--add" (click)="createServer()">
+          <span class="dash__server-icon dash__server-icon--add">+</span>
+          <span class="dash__server-body">
+            <span class="dash__server-name">Thêm máy chủ</span>
+            <span class="dash__server-meta">Tạo hoặc tham gia</span>
+          </span>
+        </button>
       </div>
-    </div>
-  </aside>
+    </section>
+
+    <!-- Active now -->
+    <section class="dash__section">
+      <div class="dash__section-head">
+        <h2 class="dash__section-title">Đang hoạt động</h2>
+        <a class="dash__section-link" routerLink="/friends">Xem tất cả bạn bè</a>
+      </div>
+
+      @if (onlineFriends().length) {
+        <ul class="dash__friends">
+          @for (f of onlineFriends(); track f.id) {
+            <li class="dash__friend">
+              <span class="dash__friend-avatar">
+                {{ f.displayName.charAt(0) }}
+                <span class="dash__presence" [class]="'dash__presence--' + f.presence"></span>
+              </span>
+              <span class="dash__friend-text">
+                <span class="dash__friend-name">{{ f.displayName }}</span>
+                <span class="dash__friend-status">{{ f.statusText || 'Đang hoạt động' }}</span>
+              </span>
+              <a class="dash__friend-btn" [routerLink]="['/chat', f.id]">Nhắn tin</a>
+            </li>
+          }
+        </ul>
+      } @else {
+        <div class="dash__empty">
+          <p class="dash__empty-title">Chưa có ai đang hoạt động</p>
+          <p class="dash__empty-desc">Thêm bạn bè để thấy họ ở đây và bắt đầu trò chuyện.</p>
+          <a class="dash__empty-btn" routerLink="/friends">Thêm bạn</a>
+        </div>
+      }
+    </section>
+  </div>
 </div>
