@@ -2597,3 +2597,52 @@
   border-color: #e3e5e8;
   color: #313338;
 }
+
+/* -----------------------------------------------------------------------
+   Modal Error Message & Toast Notification
+   ----------------------------------------------------------------------- */
+
+.modal-error-msg {
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: rgba(242, 63, 67, 0.12);
+  border: 1px solid rgba(242, 63, 67, 0.35);
+  border-radius: 8px;
+  color: #f23f43;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.toast-notification {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  background: linear-gradient(135deg, #1e1f22, #2b2d31);
+  border: 1px solid var(--mint-brand, #00d4a4);
+  border-radius: 24px;
+  padding: 12px 28px;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 500;
+  box-shadow: 0 8px 32px rgba(0, 212, 164, 0.2);
+  white-space: nowrap;
+  animation: toastSlideUp 0.3s ease;
+  pointer-events: none;
+}
+
+@keyframes toastSlideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.center-text {
+  text-align: center;
+}

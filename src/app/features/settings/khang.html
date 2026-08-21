@@ -103,58 +103,164 @@
     <div class="modal-header">
       <h3>
         @switch (editingField()) {
-        @case ('username') { Thay đổi Username }
-        @case ('email') { Thay đổi Email }
-        @case ('phone') { Thay đổi Số điện thoại }
-        @case ('password') { Thay đổi Mật khẩu }
+        @case ('username') { ✏️ Thay đổi Username }
+        @case ('email') { 📧 Thay đổi Email }
+        @case ('phone') { 📱 Thay đổi Số điện thoại }
+        @case ('password') { 🔑 Thay đổi Mật khẩu }
         }
       </h3>
       <button type="button" class="btn-icon-close" (click)="closeEditModal()">✕</button>
     </div>
 
-    <form [formGroup]="settingsForm" (ngSubmit)="saveFieldEdit()">
-      <div class="modal-body">
-        @if (editingField() === 'username') {
-        <label class="modal-field">
-          <span>Username mới</span>
-          <input formControlName="username" type="text" class="text-input code-font" placeholder="enderman1154" />
-        </label>
-        }
+    <div class="modal-body">
+      <!-- USERNAME FIELD — Requires password confirmation & calls BE -->
+      @if (editingField() === 'username') {
+      <label class="modal-field">
+        <span>Username mới</span>
+        <input type="text" class="text-input code-font" placeholder="username_moi"
+          [value]="usernameChangePendingName()"
+          (input)="usernameChangePendingName.set($any($event.target).value)" />
+      </label>
+      <label class="modal-field" style="margin-top:12px;">
+        <span>Mật khẩu hiện tại (để xác nhận)</span>
+        <input type="password" class="text-input" placeholder="Nhập mật khẩu của bạn"
+          [value]="usernameChangePassword()"
+          (input)="usernameChangePassword.set($any($event.target).value)"
+          (keydown.enter)="saveUsernameChange()" />
+      </label>
+      @if (usernameChangeError()) {
+      <div class="modal-error-msg">⚠️ {{ usernameChangeError() }}</div>
+      }
+      <div class="modal-actions" style="margin-top:20px;">
+        <button type="button" class="btn-mint-secondary" (click)="closeEditModal()">Hủy</button>
+        <button type="button" class="btn-mint-primary"
+          [disabled]="usernameChangeLoading() || !usernameChangePendingName() || !usernameChangePassword()"
+          (click)="saveUsernameChange()">
+          {{ usernameChangeLoading() ? 'Đang cập nhật...' : '✅ Lưu Username' }}
+        </button>
+      </div>
+      }
 
-        @if (editingField() === 'email') {
+      <!-- EMAIL FIELD — 2-step OTP flow with password confirmation -->
+      @if (editingField() === 'email') {
+        @if (emailChangeStep() === 'input') {
+        <p class="body-sm text-steel" style="margin-bottom:12px;">Nhập email mới và mật khẩu hiện tại để nhận mã xác thực OTP.</p>
         <label class="modal-field">
           <span>Email mới</span>
-          <input formControlName="email" type="email" class="text-input" placeholder="name@example.com" />
+          <input type="email" class="text-input" placeholder="email_moi@example.com"
+            [value]="emailChangePendingEmail()"
+            (input)="emailChangePendingEmail.set($any($event.target).value)" />
         </label>
+        <label class="modal-field" style="margin-top:12px;">
+          <span>Mật khẩu hiện tại (để xác nhận)</span>
+          <input type="password" class="text-input" placeholder="Nhập mật khẩu của bạn"
+            [value]="emailChangePassword()"
+            (input)="emailChangePassword.set($any($event.target).value)"
+            (keydown.enter)="requestEmailChangeOtp()" />
+        </label>
+        @if (emailChangeError()) {
+        <div class="modal-error-msg">⚠️ {{ emailChangeError() }}</div>
         }
-
-        @if (editingField() === 'phone') {
+        <div class="modal-actions" style="margin-top:20px;">
+          <button type="button" class="btn-mint-secondary" (click)="closeEditModal()">Hủy</button>
+          <button type="button" class="btn-mint-primary"
+            [disabled]="emailChangeLoading() || !emailChangePendingEmail() || !emailChangePassword()"
+            (click)="requestEmailChangeOtp()">
+            {{ emailChangeLoading() ? 'Đang xử lý...' : 'Tiếp theo →' }}
+          </button>
+        </div>
+        } @else {
+        <div class="otp-step-info" style="text-align:center; margin-bottom:16px;">
+          <div style="font-size:2.5rem; margin-bottom:8px;">📬</div>
+          <p class="body-sm text-steel">Nhập mã OTP để xác nhận đổi email thành</p>
+          <strong style="color:var(--text-primary)">{{ emailChangePendingEmail() }}</strong>
+          <p class="body-sm text-steel" style="margin-top:8px; font-size:0.75rem;">
+            Mã OTP có sẵn trong cấu hình server (<code>.env → EMAIL_CHANGE_OTP</code>)
+          </p>
+        </div>
         <label class="modal-field">
-          <span>Số điện thoại mới</span>
-          <input formControlName="phone" type="text" class="text-input" placeholder="+84 987 654 327" />
+          <span>Mã OTP xác thực</span>
+          <input type="text" class="text-input code-font center-text" placeholder="123456" maxlength="10"
+            style="letter-spacing:0.4em; font-size:1.4rem; text-align:center;"
+            [value]="emailChangeOtp()"
+            (input)="emailChangeOtp.set($any($event.target).value)"
+            (keydown.enter)="confirmEmailChange()" />
         </label>
+        @if (emailChangeError()) {
+        <div class="modal-error-msg">⚠️ {{ emailChangeError() }}</div>
         }
+        <div class="modal-actions" style="margin-top:20px;">
+          <button type="button" class="btn-mint-secondary" (click)="emailChangeStep.set('input')">← Quay lại</button>
+          <button type="button" class="btn-mint-primary"
+            [disabled]="emailChangeLoading() || !emailChangeOtp()"
+            (click)="confirmEmailChange()">
+            {{ emailChangeLoading() ? 'Đang xác thực...' : '✅ Xác nhận đổi Email' }}
+          </button>
+        </div>
+        }
+      }
 
-        @if (editingField() === 'password') {
+      <!-- PHONE FIELD -->
+      @if (editingField() === 'phone') {
+      <label class="modal-field">
+        <span>Số điện thoại mới</span>
+        <input [formControl]="$any(settingsForm.get('phone'))" type="text" class="text-input" placeholder="+84 987 654 327" />
+      </label>
+      <div class="modal-actions" style="margin-top:20px;">
+        <button type="button" class="btn-mint-secondary" (click)="closeEditModal()">Hủy</button>
+        <button type="button" class="btn-mint-primary" (click)="saveFieldEdit()">Lưu thay đổi</button>
+      </div>
+      }
+
+      <!-- PASSWORD CHANGE — via BE with currentPassword check -->
+      @if (editingField() === 'password') {
+        @if (passwordChangeSuccess()) {
+        <div style="text-align:center; padding:24px 0;">
+          <div style="font-size:3rem;">✅</div>
+          <h4 style="margin:12px 0 8px; color:var(--text-primary)">Mật khẩu đã được thay đổi!</h4>
+          <p class="body-sm text-steel">Phiên đang tự đóng...</p>
+        </div>
+        } @else {
         <label class="modal-field">
           <span>Mật khẩu hiện tại</span>
-          <input formControlName="currentPassword" type="password" class="text-input" placeholder="••••••••" />
+          <input [formControl]="$any(settingsForm.get('currentPassword'))" type="password" class="text-input"
+            placeholder="Nhập mật khẩu hiện tại" />
         </label>
-        <label class="modal-field" style="margin-top: 12px;">
+        <label class="modal-field" style="margin-top:12px;">
           <span>Mật khẩu mới</span>
-          <input formControlName="newPassword" type="password" class="text-input" placeholder="••••••••" />
+          <input [formControl]="$any(settingsForm.get('newPassword'))" type="password" class="text-input"
+            placeholder="Ít nhất 8 ký tự, có chữ hoa, chữ thường và số" />
         </label>
+        <label class="modal-field" style="margin-top:12px;">
+          <span>Xác nhận mật khẩu mới</span>
+          <input [formControl]="$any(settingsForm.get('confirmPassword'))" type="password" class="text-input"
+            placeholder="Nhập lại mật khẩu mới" />
+        </label>
+        @if (passwordChangeError()) {
+        <div class="modal-error-msg">⚠️ {{ passwordChangeError() }}</div>
         }
-      </div>
-
-      <div class="modal-actions">
-        <button type="button" class="btn-mint-secondary" (click)="closeEditModal()">Hủy</button>
-        <button type="submit" class="btn-mint-primary">Lưu thay đổi</button>
-      </div>
-    </form>
+        <div class="modal-actions" style="margin-top:20px;">
+          <button type="button" class="btn-mint-secondary" (click)="closeEditModal()">Hủy</button>
+          <button type="button" class="btn-mint-primary"
+            [disabled]="passwordChangeLoading()"
+            (click)="savePasswordChange()">
+            {{ passwordChangeLoading() ? 'Đang xử lý...' : '🔑 Đổi Mật khẩu' }}
+          </button>
+        </div>
+        }
+      }
+    </div>
   </div>
 </div>
 }
+
+<!-- Toast Notification -->
+@if (toastMessage()) {
+<div class="toast-notification">
+  {{ toastMessage() }}
+</div>
+}
+
 
 <!-- Logout Confirmation Modal -->
 @if (showLogoutConfirm()) {
