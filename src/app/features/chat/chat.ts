@@ -11,6 +11,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { FriendService } from '../../core/services/friend';
 import { ServerService } from '../../core/services/server';
+import { AuthStore } from '../../core/auth/auth.store';
 
 @Component({
     selector: 'fz-chat',
@@ -23,6 +24,7 @@ import { ServerService } from '../../core/services/server';
 export class Chat implements OnInit {
     public friendService = inject(FriendService);
     public serverService = inject(ServerService);
+    public authStore = inject(AuthStore);
     private route = inject(ActivatedRoute);
 
     @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
@@ -49,6 +51,7 @@ export class Chat implements OnInit {
             if (serverId && channelId) {
                 this.serverService.activeServerId.set(serverId);
                 this.serverService.activeChannelId.set(channelId);
+                this.serverService.loadChannelMessages(channelId);
             }
             // 2. Chat Trực Tiếp 1-1 Bạn bè
             else if (friendId) {
@@ -61,10 +64,14 @@ export class Chat implements OnInit {
     onSendMessage(text: string) {
         if (!text.trim()) return;
 
+        const user = this.authStore.user();
+        const senderName = user?.displayName || user?.username || 'Thiện Phúc';
+        const senderId = user?.id || 'user';
+
         if (this.serverService.activeServerId()) {
-            this.serverService.sendMessage(text);
+            this.serverService.sendMessage(text, senderName, senderId);
         } else {
-            this.friendService.sendMessage(text);
+            this.friendService.sendMessage(text, senderName, senderId);
         }
     }
 

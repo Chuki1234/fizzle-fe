@@ -1,13 +1,17 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 import { Server, Channel } from '../models/server.model';
 import { ChatMessage } from '../models/friend.model';
+import { API_CONFIG } from '../http/api.config';
 
 @Injectable({
     providedIn: 'root'
 })
 export class ServerService {
     private router = inject(Router);
+    private http = inject(HttpClient);
+    private apiConfig = inject(API_CONFIG);
 
     // --- STATE QUẢN LÝ VOICE CHANNEL ---
     activeVoiceChannel = signal<{ serverId: string; channelId: string; channelName: string } | null>(null);
@@ -57,6 +61,48 @@ export class ServerService {
         return this.channelMessages()[channelId] || [];
     });
 
+    constructor() {
+        this.loadServers();
+        if (this.activeChannelId()) {
+            this.loadChannelMessages(this.activeChannelId());
+        }
+    }
+
+    // --- LOAD DỮ LIỆU TỪ BACKEND ---
+    loadServers() {
+        this.http.get<Server[]>(`${this.apiConfig.baseUrl}/servers`).subscribe({
+            next: (data) => {
+                if (data && data.length > 0) {
+                    this.servers.set(data);
+                    // Cập nhật lại active channel nếu cần
+                    const currentServer = data.find(s => s.id === this.activeServerId()) || data[0];
+                    if (currentServer) {
+                        this.activeServerId.set(currentServer.id);
+                        const hasChannel = currentServer.channels.some(c => c.id === this.activeChannelId());
+                        if (!hasChannel && currentServer.channels.length > 0) {
+                            const firstText = currentServer.channels.find(c => c.type === 'text') || currentServer.channels[0];
+                            this.activeChannelId.set(firstText.id);
+                        }
+                    }
+                }
+            },
+            error: (err) => console.warn('Could not load servers from backend, using default fallback:', err)
+        });
+    }
+
+    loadChannelMessages(channelId: string) {
+        if (!channelId) return;
+        this.http.get<ChatMessage[]>(`${this.apiConfig.baseUrl}/messages/channel/${channelId}`).subscribe({
+            next: (msgs) => {
+                this.channelMessages.update(store => ({
+                    ...store,
+                    [channelId]: msgs
+                }));
+            },
+            error: (err) => console.warn(`Could not load messages for channel ${channelId}:`, err)
+        });
+    }
+
     // --- HÀM XỬ LÝ CHUYỂN KÊNH & SERVER ---
     selectServer(serverId: string) {
         if (!serverId) {
@@ -67,9 +113,11 @@ export class ServerService {
         }
 
         this.activeServerId.set(serverId);
-        const firstTextChannel = this.servers().find(s => s.id === serverId)?.channels.find(c => c.type === 'text');
+        const server = this.servers().find(s => s.id === serverId);
+        const firstTextChannel = server?.channels.find(c => c.type === 'text');
         if (firstTextChannel) {
             this.activeChannelId.set(firstTextChannel.id);
+            this.loadChannelMessages(firstTextChannel.id);
             this.router.navigate(['/channels', serverId, firstTextChannel.id]);
         }
     }
@@ -90,6 +138,7 @@ export class ServerService {
             this.joinVoiceChannel(targetChannel);
         } else {
             this.activeChannelId.set(targetChannel.id);
+            this.loadChannelMessages(targetChannel.id);
             const serverId = this.activeServerId();
             this.router.navigate(['/channels', serverId, targetChannel.id]);
         }
@@ -120,22 +169,34 @@ export class ServerService {
     addServer(name: string, icon: string) {
         if (!name.trim()) return;
 
-        const newServerId = 'server-' + Date.now();
-        const defaultTextChannelId = 'c-' + Date.now() + '-1';
-        const defaultVoiceChannelId = 'c-' + Date.now() + '-2';
-
-        const newServer: Server = {
-            id: newServerId,
+        const payload = {
             name: name.trim(),
-            icon: icon.trim() || '🔥',
-            channels: [
-                { id: defaultTextChannelId, name: 'thảo-luận-chung', type: 'text' },
-                { id: defaultVoiceChannelId, name: 'Phòng Chờ 🎙️', type: 'voice' }
-            ]
+            icon: icon.trim() || '🔥'
         };
 
-        this.servers.update(list => [...list, newServer]);
-        this.selectServer(newServerId);
+        this.http.post<Server>(`${this.apiConfig.baseUrl}/servers`, payload).subscribe({
+            next: (newServer) => {
+                this.servers.update(list => [...list, newServer]);
+                this.selectServer(newServer.id);
+            },
+            error: () => {
+                // Fallback offline
+                const newServerId = 'server-' + Date.now();
+                const defaultTextChannelId = 'c-' + Date.now() + '-1';
+                const defaultVoiceChannelId = 'c-' + Date.now() + '-2';
+                const fallbackServer: Server = {
+                    id: newServerId,
+                    name: payload.name,
+                    icon: payload.icon,
+                    channels: [
+                        { id: defaultTextChannelId, name: 'thảo-luận-chung', type: 'text' },
+                        { id: defaultVoiceChannelId, name: 'Phòng Chờ 🎙️', type: 'voice' }
+                    ]
+                };
+                this.servers.update(list => [...list, fallbackServer]);
+                this.selectServer(newServerId);
+            }
+        });
     }
 
     // --- HÀM TẠO KÊNH VÀ GỬI TIN NHẮN ---
@@ -143,39 +204,110 @@ export class ServerService {
         const serverId = this.activeServerId();
         if (!serverId || !name.trim()) return;
 
-        const newChannel: Channel = {
-            id: 'c-' + Date.now(),
+        const payload = {
             name: name.toLowerCase().replace(/\s+/g, '-'),
             type: type
         };
 
+        this.http.post<Channel>(`${this.apiConfig.baseUrl}/servers/${serverId}/channels`, payload).subscribe({
+            next: (newChannel) => {
+                this.servers.update(list => list.map(s => {
+                    if (s.id === serverId) {
+                        return { ...s, channels: [...s.channels, newChannel] };
+                    }
+                    return s;
+                }));
+
+                if (type === 'text') {
+                    this.selectChannel(newChannel);
+                }
+            },
+            error: () => {
+                // Fallback offline
+                const fallbackChannel: Channel = {
+                    id: 'c-' + Date.now(),
+                    name: payload.name,
+                    type: type
+                };
+                this.servers.update(list => list.map(s => {
+                    if (s.id === serverId) {
+                        return { ...s, channels: [...s.channels, fallbackChannel] };
+                    }
+                    return s;
+                }));
+                if (type === 'text') {
+                    this.selectChannel(fallbackChannel);
+                }
+            }
+        });
+    }
+
+    // --- HÀM XÓA KÊNH ---
+    deleteChannel(channelId: string) {
+        const serverId = this.activeServerId();
+        if (!serverId || !channelId) return;
+
+        this.http.delete(`${this.apiConfig.baseUrl}/servers/${serverId}/channels/${channelId}`).subscribe({
+            next: () => {
+                this.handleChannelDeletedLocally(serverId, channelId);
+            },
+            error: (err) => {
+                console.warn('Could not delete channel on backend, deleting locally:', err);
+                this.handleChannelDeletedLocally(serverId, channelId);
+            }
+        });
+    }
+
+    private handleChannelDeletedLocally(serverId: string, channelId: string) {
         this.servers.update(list => list.map(s => {
             if (s.id === serverId) {
-                return { ...s, channels: [...s.channels, newChannel] };
+                return { ...s, channels: s.channels.filter(c => c.id !== channelId) };
             }
             return s;
         }));
 
-        if (type === 'text') {
-            this.selectChannel(newChannel);
+        // Nếu kênh vừa xóa là voice channel đang kết nối thì rời voice
+        if (this.activeVoiceChannel()?.channelId === channelId) {
+            this.leaveVoiceChannel();
+        }
+
+        // Nếu kênh vừa xóa là text channel đang mở thì chuyển sang kênh khác
+        if (this.activeChannelId() === channelId) {
+            const currentServer = this.servers().find(s => s.id === serverId);
+            const nextTextChannel = currentServer?.channels.find(c => c.type === 'text');
+            if (nextTextChannel) {
+                this.selectChannel(nextTextChannel);
+            } else {
+                this.activeChannelId.set('');
+            }
         }
     }
 
-    sendMessage(text: string) {
+    sendMessage(text: string, senderName: string = 'Thiện Phúc', senderId: string = 'user') {
         if (!text.trim()) return;
 
         const channelId = this.activeChannelId();
         const userMsg: ChatMessage = {
             id: Date.now().toString(),
-            senderId: 'user',
-            senderName: 'Thiện Phúc',
+            senderId: senderId,
+            senderName: senderName,
             text: text,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
 
+        // Optimistic update
         this.channelMessages.update(store => ({
             ...store,
             [channelId]: [...(store[channelId] || []), userMsg]
         }));
+
+        // Gửi lên backend để lưu vĩnh viễn
+        this.http.post<ChatMessage>(`${this.apiConfig.baseUrl}/messages/channel/${channelId}`, {
+            text: text,
+            senderId: senderId,
+            senderName: senderName
+        }).subscribe({
+            error: (err) => console.warn('Could not persist channel message to backend:', err)
+        });
     }
 }
