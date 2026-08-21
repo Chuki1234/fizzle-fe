@@ -144,6 +144,29 @@ export class AuthService {
     );
   }
 
+  /**
+   * Bắt đầu đăng nhập OAuth: chuyển CẢ trang sang endpoint NestJS, endpoint đó
+   * redirect tiếp sang Supabase → GitHub/Google. Dùng full-page redirect (không
+   * phải HttpClient) vì đây là luồng chuyển trang của trình duyệt.
+   */
+  oauthLogin(provider: 'github' | 'google'): void {
+    window.location.href = `${this.baseUrl}/auth/oauth/${provider}`;
+  }
+
+  /**
+   * Đổi refresh-token nhận từ luồng OAuth (ở fragment URL) lấy phiên Fizzle.
+   * Backend tạo profile nếu lần đầu + phát refresh-cookie; ta lưu session vào store.
+   */
+  adoptOAuth(refreshToken: string): Observable<AuthSession> {
+    return this.http
+      .post<AuthSession>(
+        `${this.baseUrl}/auth/oauth/adopt`,
+        { refreshToken },
+        { withCredentials: true },
+      )
+      .pipe(tap((session) => this.store.setSession(session)));
+  }
+
   logout(): Observable<void> {
     return this.http
       .post<void>(`${this.baseUrl}/auth/logout`, {}, { withCredentials: true })

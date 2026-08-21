@@ -1,7 +1,7 @@
 <section class="register-card" aria-labelledby="register-title">
   <!-- Multi-step Indicator Pills -->
   <div class="register-card__steps" role="navigation" aria-label="Quy trình đăng ký">
-    <div class="register-card__step-item" [class.is-active]="step() === 'form'" [class.is-done]="step() === 'verify'">
+    <div class="register-card__step-item" [class.is-active]="step() === 'form'" [class.is-done]="step() !== 'form'">
       <span class="step-num">1</span>
       <span class="step-text">Thông tin cá nhân</span>
     </div>
@@ -12,20 +12,7 @@
     </div>
   </div>
 
-  @if (step() === 'form') {
-    <header class="register-card__header">
-      <span class="register-card__badge">Tạo tài khoản</span>
-      <h1 class="register-card__title" id="register-title">Bắt đầu với Fizzle</h1>
-      <p class="register-card__subtitle">Đăng ký để truy cập hệ thống tài liệu, quản lý API và các dịch vụ developer.</p>
-    </header>
-
-    <fz-register-form (registered)="onRegistered($event)" />
-
-    <footer class="register-card__footer">
-      <span>Đã có tài khoản?</span>
-      <a class="register-card__link" routerLink="/auth/login">Đăng nhập ngay</a>
-    </footer>
-  } @else {
+  @if (step() === 'verify') {
     <header class="register-card__header">
       <span class="register-card__badge">Xác thực email</span>
       <h1 class="register-card__title" id="register-title">Kiểm tra hộp thư của bạn</h1>
@@ -42,5 +29,40 @@
         Quay lại chỉnh sửa
       </button>
     </footer>
+  } @else {
+    <header class="register-card__header">
+      <span class="register-card__badge">Tạo tài khoản</span>
+      <h1 class="register-card__title" id="register-title">Bắt đầu với Fizzle</h1>
+      <p class="register-card__subtitle">Đăng ký để truy cập hệ thống tài liệu, quản lý API và các dịch vụ developer.</p>
+    </header>
+
+    <fz-register-form (registered)="onRegistered($event)" />
+
+    <footer class="register-card__footer">
+      <span>Đã có tài khoản?</span>
+      <a class="register-card__link" routerLink="/auth/login">Đăng nhập ngay</a>
+    </footer>
   }
 </section>
+
+<!-- Popup thông báo đăng ký thành công (hiện đè lên, tự chuyển về login) -->
+@if (step() === 'success') {
+  <div class="register-success" role="dialog" aria-modal="true" aria-labelledby="success-title">
+    <div class="register-success__scrim"></div>
+    <div class="register-success__dialog">
+      <div class="register-success__check" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 6 9 17l-5-5" />
+        </svg>
+      </div>
+      <h2 class="register-success__title" id="success-title">Đăng ký thành công!</h2>
+      <p class="register-success__message">
+        Tài khoản của bạn đã được tạo. Đang chuyển tới trang đăng nhập để bạn
+        đăng nhập bằng tài khoản vừa tạo…
+      </p>
+      <button class="register-success__btn" type="button" (click)="goToLogin()">
+        Đến trang đăng nhập ngay
+      </button>
+    </div>
+  </div>
+}

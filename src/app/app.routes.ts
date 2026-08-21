@@ -23,6 +23,15 @@ export const routes: Routes = [
     ]
   },
 
+  // OAuth callback: Supabase redirect về đây kèm token ở fragment. Đứng riêng,
+  // không dùng auth-layout (component tự có màn hình "đang đăng nhập" toàn trang).
+  {
+    path: 'auth/callback',
+    title: 'Đang đăng nhập · Fizzle',
+    loadComponent: () =>
+      import('./features/auth/oauth-callback/oauth-callback').then((m) => m.OauthCallback),
+  },
+
   // 2. Luồng Auth
   {
     path: 'auth',

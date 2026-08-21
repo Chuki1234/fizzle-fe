@@ -1,0 +1,14 @@
+<section class="oauth-callback" aria-live="polite">
+  @if (error(); as message) {
+    <div class="oauth-callback__error">
+      <h1 class="oauth-callback__title">Đăng nhập không thành công</h1>
+      <p class="oauth-callback__message">{{ message }}</p>
+      <a class="oauth-callback__link" routerLink="/auth/login">Quay lại đăng nhập</a>
+    </div>
+  } @else {
+    <div class="oauth-callback__loading">
+      <span class="oauth-callback__spinner" aria-hidden="true"></span>
+      <p class="oauth-callback__message">Đang hoàn tất đăng nhập…</p>
+    </div>
+  }
+</section>

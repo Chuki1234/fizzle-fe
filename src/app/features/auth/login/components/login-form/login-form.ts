@@ -38,6 +38,26 @@ export class LoginForm {
   protected readonly formError = signal<string | null>(null);
   protected readonly sendingResetCode = signal(false);
   protected readonly showPassword = signal(false);
+  /** Banner xanh khi vừa đăng ký xong và được đưa về đây để đăng nhập. */
+  protected readonly notice = signal<string | null>(null);
+
+  constructor() {
+    // Trang đăng ký gửi kèm state (không nằm trên URL) khi chuyển về đây.
+    const nav = this.router.getCurrentNavigation()?.extras.state as
+      | { registered?: boolean; email?: string }
+      | undefined;
+    if (nav?.registered) {
+      this.notice.set(
+        'Đăng ký thành công! Vui lòng đăng nhập bằng tài khoản vừa tạo.',
+      );
+      if (nav.email) this.form.controls.email.setValue(nav.email);
+    }
+  }
+
+  /** Đăng nhập qua GitHub/Google — chuyển trang sang luồng OAuth của backend. */
+  protected oauthLogin(provider: 'github' | 'google'): void {
+    this.auth.oauthLogin(provider);
+  }
 
   protected togglePassword(): void {
     this.showPassword.update((show) => !show);
