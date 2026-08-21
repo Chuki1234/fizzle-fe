@@ -1,10 +1,15 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Friend, ChatMessage } from '../models/friend.model';
+import { API_CONFIG } from '../http/api.config';
 
 @Injectable({
     providedIn: 'root'
 })
 export class FriendService {
+    private http = inject(HttpClient);
+    private apiConfig = inject(API_CONFIG);
+
     // 1. Danh sách bạn bè gốc
     friends = signal<Friend[]>([
         {
@@ -132,7 +137,27 @@ export class FriendService {
         return this.messagesByFriend()[activeId] || [];
     });
 
+    constructor() {
+        if (this.activeChatId()) {
+            this.loadDirectMessages(this.activeChatId());
+        }
+    }
+
     // --- ACTIONS / METHODS ---
+
+    // Load tin nhắn từ backend
+    loadDirectMessages(friendId: string) {
+        if (!friendId) return;
+        this.http.get<ChatMessage[]>(`${this.apiConfig.baseUrl}/messages/direct/${friendId}`).subscribe({
+            next: (msgs) => {
+                this.messagesByFriend.update(store => ({
+                    ...store,
+                    [friendId]: msgs
+                }));
+            },
+            error: (err) => console.warn(`Could not load direct messages for friend ${friendId}:`, err)
+        });
+    }
 
     // Đổi người dùng đang chat & Tự động thêm vào danh sách DM
     setActiveChat(id: string) {
@@ -142,25 +167,27 @@ export class FriendService {
         if (!this.directMessageIds().includes(id)) {
             this.directMessageIds.update(ids => [...ids, id]);
         }
+
+        this.loadDirectMessages(id);
     }
 
     // Gửi tin nhắn đến người đang Active Chat
-    sendMessage(text: string) {
+    sendMessage(text: string, senderName: string = 'Thiện Phúc', senderId: string = 'user') {
         if (!text.trim()) return;
 
         const currentChatId = this.activeChatId();
         const currentFriend = this.activeFriend();
 
-        // 1. Tạo tin nhắn từ Thiện Phúc
+        // 1. Tạo tin nhắn từ người dùng
         const userMsg: ChatMessage = {
             id: Date.now().toString(),
-            senderId: 'user',
-            senderName: 'Thiện Phúc',
+            senderId: senderId,
+            senderName: senderName,
             text: text,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
 
-        // 2. Thêm vào kho tin nhắn của người dùng hiện tại
+        // 2. Thêm vào kho tin nhắn của người dùng hiện tại (Optimistic update)
         this.messagesByFriend.update(store => {
             const currentList = store[currentChatId] || [];
             return {
@@ -169,7 +196,16 @@ export class FriendService {
             };
         });
 
-        // 3. Tự động phản hồi (Auto Reply) từ đúng bạn bè đó sau 1.5s
+        // 3. Gửi lên backend để lưu vĩnh viễn
+        this.http.post<ChatMessage>(`${this.apiConfig.baseUrl}/messages/direct/${currentChatId}`, {
+            text: text,
+            senderId: senderId,
+            senderName: senderName
+        }).subscribe({
+            error: (err) => console.warn('Could not persist direct message to backend:', err)
+        });
+
+        // 4. Tự động phản hồi (Auto Reply) từ đúng bạn bè đó sau 1.5s và lưu luôn vào backend
         setTimeout(() => {
             const replies = [
                 "Oke Phúc ơi, chút nữa tớ qua!",
@@ -193,6 +229,15 @@ export class FriendService {
                     ...store,
                     [currentChatId]: [...currentList, botMsg]
                 };
+            });
+
+            // Lưu bot reply vào backend
+            this.http.post<ChatMessage>(`${this.apiConfig.baseUrl}/messages/direct/${currentChatId}`, {
+                text: randomReply,
+                senderId: currentFriend.id,
+                senderName: currentFriend.displayName
+            }).subscribe({
+                error: (err) => console.warn('Could not persist bot direct message to backend:', err)
             });
         }, 1500);
     }

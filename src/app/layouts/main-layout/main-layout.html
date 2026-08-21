@@ -48,11 +48,20 @@
                     </div>
 
                     @for (channel of serverService.activeServer()?.channels; track channel.id) {
-                    <button (click)="serverService.selectChannel(channel)" class="sidebar-left__channel-item"
-                        [class.sidebar-left__channel-item--active]="serverService.activeChannelId() === channel.id">
-                        <span class="sidebar-left__channel-prefix">{{ channel.type === 'text' ? '#' : '🎙️' }}</span>
-                        <span class="sidebar-left__channel-name">{{ channel.name }}</span>
-                    </button>
+                    <div class="sidebar-left__channel-wrapper">
+                        <button (click)="serverService.selectChannel(channel)" class="sidebar-left__channel-item"
+                            [class.sidebar-left__channel-item--active]="serverService.activeChannelId() === channel.id">
+                            <span class="sidebar-left__channel-prefix">{{ channel.type === 'text' ? '#' : '🎙️' }}</span>
+                            <span class="sidebar-left__channel-name">{{ channel.name }}</span>
+                        </button>
+                        <button (click)="serverService.deleteChannel(channel.id); $event.stopPropagation()"
+                            class="sidebar-left__channel-delete-btn" title="Xóa kênh" aria-label="Xóa kênh">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 6h18"></path>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                        </button>
+                    </div>
                     }
                 </div>
             </div>
