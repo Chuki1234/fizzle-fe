@@ -1,0 +1,13 @@
+{
+  "project": "fizzle",
+  "class": "357",
+  "role": "mentor",
+  "name": "Luke",
+  "gitAuthor": "Chuki1234 / Luke_Nguyen <ntloc124@gmail.com>",
+  "note": "Mentor sở hữu repo và merge PR của member. Không bị ràng buộc luật ownership ở Bước 3 mục (a) — luật đó dành cho member.",
+  "members": {
+    "thien-phuc": ["dashboard"],
+    "hoang-khang": ["profile", "settings"],
+    "khanh-hung": ["auth", "livestream"]
+  }
+}
