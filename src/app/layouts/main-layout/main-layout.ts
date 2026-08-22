@@ -1,8 +1,9 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, effect } from '@angular/core';
 import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { ServerService } from '../../core/services/server';
 import { FriendService } from '../../core/services/friend';
 import { ModalService } from '../../core/services/modal';
+import { SocketService } from '../../core/services/socket';
 import { AuthService } from '../../core/auth/auth.service';
 import { AuthStore } from '../../core/auth/auth.store';
 import { VoiceControlComponent } from '../../shared/ui/voice-control/voice-control';
@@ -27,6 +28,7 @@ export class MainLayout {
     public modalService = inject(ModalService);
     public authService = inject(AuthService);
     public authStore = inject(AuthStore);
+    private socketService = inject(SocketService);
     private router = inject(Router);
 
     public userInitial = computed(() => {
@@ -63,7 +65,20 @@ export class MainLayout {
         }
     });
 
+    constructor() {
+        // Connect socket whenever user becomes authenticated
+        effect(() => {
+            const user = this.authStore.user();
+            if (user?.id) {
+                this.socketService.connect(user.id);
+                // Also reload friends when user is known
+                this.friendService.loadFriendsFromBackend();
+            }
+        });
+    }
+
     public logout(): void {
+        this.socketService.disconnect();
         this.authService.logout().subscribe({
             next: () => {
                 void this.router.navigateByUrl('/auth/login');

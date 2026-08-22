@@ -13,4 +13,9 @@ import { FriendService } from '../../core/services/friend';
 })
 export class Friends {
     public friendService = inject(FriendService);
+
+    onSearch(event: Event) {
+        const value = (event.target as HTMLInputElement).value;
+        this.friendService.searchUsers(value);
+    }
 }

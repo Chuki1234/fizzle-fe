@@ -520,3 +520,28 @@
     background-color: rgba(255, 255, 255, 0.08);
     color: #fff;
 }
+
+/* Nút Mời bạn bè trong server sidebar */
+.sidebar-left__invite-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: calc(100% - 16px);
+    margin: 4px 8px 8px 8px;
+    padding: 8px 10px;
+    background-color: rgba(35, 165, 90, 0.12);
+    border: 1px solid rgba(35, 165, 90, 0.3);
+    border-radius: 8px;
+    color: #23a55a;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: left;
+}
+
+.sidebar-left__invite-btn:hover {
+    background-color: rgba(35, 165, 90, 0.2);
+    border-color: rgba(35, 165, 90, 0.5);
+    color: #2dc76d;
+}

@@ -4,6 +4,8 @@ import { HttpClient } from '@angular/common/http';
 import { Server, Channel } from '../models/server.model';
 import { ChatMessage } from '../models/friend.model';
 import { API_CONFIG } from '../http/api.config';
+import { SocketService } from './socket';
+import { AuthStore } from '../auth/auth.store';
 
 @Injectable({
     providedIn: 'root'
@@ -12,6 +14,8 @@ export class ServerService {
     private router = inject(Router);
     private http = inject(HttpClient);
     private apiConfig = inject(API_CONFIG);
+    private socketService = inject(SocketService);
+    private authStore = inject(AuthStore);
 
     // --- STATE QUẢN LÝ VOICE CHANNEL ---
     activeVoiceChannel = signal<{ serverId: string; channelId: string; channelName: string } | null>(null);
@@ -66,15 +70,77 @@ export class ServerService {
         if (this.activeChannelId()) {
             this.loadChannelMessages(this.activeChannelId());
         }
+
+        // Register socket handlers
+        this.socketService.registerChannelMessageHandler((channelId, message) => {
+            const currentUserId = this.authStore.user()?.id || 'user';
+            // Don't add if it came from current user (already added optimistically)
+            if (message?.senderId === currentUserId) return;
+
+            this.channelMessages.update(store => {
+                const current = store[channelId] || [];
+                // Avoid duplicates
+                if (current.some((m: ChatMessage) => m.id === message.id)) return store;
+                return { ...store, [channelId]: [...current, message] };
+            });
+        });
+
+        this.socketService.registerServerUpdatedHandler((data) => {
+            if (!data) return;
+
+            if (data.type === 'CHANNEL_ADDED' && data.serverId && data.channel) {
+                this.servers.update(list => list.map(s => {
+                    if (s.id === data.serverId) {
+                        const already = s.channels.some(c => c.id === data.channel.id);
+                        if (!already) {
+                            return { ...s, channels: [...s.channels, data.channel] };
+                        }
+                    }
+                    return s;
+                }));
+            }
+
+            if (data.type === 'CHANNEL_DELETED' && data.serverId && data.channelId) {
+                this.servers.update(list => list.map(s => {
+                    if (s.id === data.serverId) {
+                        return { ...s, channels: s.channels.filter(c => c.id !== data.channelId) };
+                    }
+                    return s;
+                }));
+            }
+
+            if (data.type === 'SERVER_CREATED' && data.server) {
+                const exists = this.servers().some(s => s.id === data.server.id);
+                if (!exists) {
+                    this.servers.update(list => [...list, data.server]);
+                }
+            }
+
+            if (data.type === 'MEMBER_ADDED' && data.server) {
+                const exists = this.servers().some(s => s.id === data.server.id);
+                if (!exists) {
+                    this.servers.update(list => [...list, data.server]);
+                }
+            }
+        });
+
+        this.socketService.registerServerInviteHandler((data) => {
+            if (!data || !data.server) return;
+            const exists = this.servers().some(s => s.id === data.server.id);
+            if (!exists) {
+                this.servers.update(list => [...list, data.server]);
+            }
+        });
     }
 
     // --- LOAD DỮ LIỆU TỪ BACKEND ---
     loadServers() {
-        this.http.get<Server[]>(`${this.apiConfig.baseUrl}/servers`).subscribe({
+        const userId = this.authStore.user()?.id;
+        const params = userId ? `?userId=${userId}` : '';
+        this.http.get<Server[]>(`${this.apiConfig.baseUrl}/servers${params}`).subscribe({
             next: (data) => {
                 if (data && data.length > 0) {
                     this.servers.set(data);
-                    // Cập nhật lại active channel nếu cần
                     const currentServer = data.find(s => s.id === this.activeServerId()) || data[0];
                     if (currentServer) {
                         this.activeServerId.set(currentServer.id);
@@ -98,6 +164,8 @@ export class ServerService {
                     ...store,
                     [channelId]: msgs
                 }));
+                // Join socket room for this channel
+                this.socketService.joinRoom(channelId);
             },
             error: (err) => console.warn(`Could not load messages for channel ${channelId}:`, err)
         });
@@ -122,7 +190,6 @@ export class ServerService {
         }
     }
 
-    // Nhận cả object Channel lẫn string ID
     selectChannel(channelOrId: Channel | string) {
         let targetChannel: Channel | undefined;
 
@@ -169,9 +236,11 @@ export class ServerService {
     addServer(name: string, icon: string) {
         if (!name.trim()) return;
 
+        const userId = this.authStore.user()?.id;
         const payload = {
             name: name.trim(),
-            icon: icon.trim() || '🔥'
+            icon: icon.trim() || '🔥',
+            creatorId: userId || 'user'
         };
 
         this.http.post<Server>(`${this.apiConfig.baseUrl}/servers`, payload).subscribe({
@@ -180,7 +249,6 @@ export class ServerService {
                 this.selectServer(newServer.id);
             },
             error: () => {
-                // Fallback offline
                 const newServerId = 'server-' + Date.now();
                 const defaultTextChannelId = 'c-' + Date.now() + '-1';
                 const defaultVoiceChannelId = 'c-' + Date.now() + '-2';
@@ -199,7 +267,7 @@ export class ServerService {
         });
     }
 
-    // --- HÀM TẠO KÊNH VÀ GỬI TIN NHẮN ---
+    // --- HÀM TẠO KÊNH ---
     addChannel(name: string, type: 'text' | 'voice') {
         const serverId = this.activeServerId();
         if (!serverId || !name.trim()) return;
@@ -223,7 +291,6 @@ export class ServerService {
                 }
             },
             error: () => {
-                // Fallback offline
                 const fallbackChannel: Channel = {
                     id: 'c-' + Date.now(),
                     name: payload.name,
@@ -266,12 +333,10 @@ export class ServerService {
             return s;
         }));
 
-        // Nếu kênh vừa xóa là voice channel đang kết nối thì rời voice
         if (this.activeVoiceChannel()?.channelId === channelId) {
             this.leaveVoiceChannel();
         }
 
-        // Nếu kênh vừa xóa là text channel đang mở thì chuyển sang kênh khác
         if (this.activeChannelId() === channelId) {
             const currentServer = this.servers().find(s => s.id === serverId);
             const nextTextChannel = currentServer?.channels.find(c => c.type === 'text');
@@ -283,6 +348,7 @@ export class ServerService {
         }
     }
 
+    // --- GỬI TIN NHẮN ---
     sendMessage(text: string, senderName: string = 'Thiện Phúc', senderId: string = 'user') {
         if (!text.trim()) return;
 
@@ -301,7 +367,7 @@ export class ServerService {
             [channelId]: [...(store[channelId] || []), userMsg]
         }));
 
-        // Gửi lên backend để lưu vĩnh viễn
+        // Send to backend (will broadcast via socket to all in the channel)
         this.http.post<ChatMessage>(`${this.apiConfig.baseUrl}/messages/channel/${channelId}`, {
             text: text,
             senderId: senderId,
@@ -309,5 +375,20 @@ export class ServerService {
         }).subscribe({
             error: (err) => console.warn('Could not persist channel message to backend:', err)
         });
+    }
+
+    // --- Tạo mã mời và mời bạn vào server ---
+    generateInviteCode(serverId: string): Promise<{ code: string; serverId: string; serverName: string }> {
+        return this.http.get<{ code: string; serverId: string; serverName: string }>(
+            `${this.apiConfig.baseUrl}/servers/${serverId}/invite`
+        ).toPromise() as any;
+    }
+
+    inviteFriendToServer(serverId: string, friendId: string): Promise<{ success: boolean }> {
+        const userId = this.authStore.user()?.id || 'user';
+        return this.http.post<{ success: boolean }>(
+            `${this.apiConfig.baseUrl}/servers/${serverId}/invite-friend`,
+            { friendId, inviterId: userId }
+        ).toPromise() as any;
     }
 }
