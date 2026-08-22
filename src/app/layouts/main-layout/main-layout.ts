@@ -5,7 +5,6 @@ import { FriendService } from '../../core/services/friend';
 import { ModalService } from '../../core/services/modal';
 import { AuthService } from '../../core/auth/auth.service';
 import { AuthStore } from '../../core/auth/auth.store';
-import { AuthService } from '../../core/auth/auth.service';
 import { VoiceControlComponent } from '../../shared/ui/voice-control/voice-control';
 import { ModalComponent } from '../../shared/ui/modal/modal';
 
@@ -37,19 +36,20 @@ export class MainLayout {
 
     public userStatusText = computed(() => {
         const user = this.authStore.user();
-        if (!user) return 'Online';
-        if (user.customStatus) {
-            return `${user.customStatusEmoji ? user.customStatusEmoji + ' ' : ''}${user.customStatus}`;
+        if (!user) return 'Trực tuyến';
+        const custom = user.customStatus?.trim();
+        if (custom) {
+            return `${user.customStatusEmoji ? user.customStatusEmoji + ' ' : ''}${custom}`;
         }
-        if (user.statusMessage) {
-            return user.statusMessage;
+        if (user.statusMessage?.trim()) {
+            return user.statusMessage.trim();
         }
         switch (user.presence) {
-            case 'online': return 'Online';
-            case 'idle': return 'Idle';
-            case 'dnd': return 'Do Not Disturb';
-            case 'offline': return 'Invisible';
-            default: return 'Online';
+            case 'online': return 'Trực tuyến';
+            case 'idle': return 'Chờ';
+            case 'dnd': return 'Đừng làm phiền';
+            case 'offline': return 'Ngoại tuyến';
+            default: return 'Trực tuyến';
         }
     });
 

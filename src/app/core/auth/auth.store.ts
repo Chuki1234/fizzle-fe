@@ -29,9 +29,23 @@ export class AuthStore {
     this._status.set('authenticating');
   }
 
+  private sanitizeUser(user: User): User {
+    const clean = { ...user };
+    if (typeof clean.customStatus === 'string' && clean.customStatus.trim().startsWith('{')) {
+      clean.customStatus = null;
+    }
+    if (typeof clean.statusMessage === 'string' && clean.statusMessage.trim().startsWith('{')) {
+      clean.statusMessage = null;
+    }
+    if (typeof clean.customStatusEmoji === 'string' && clean.customStatusEmoji.trim().startsWith('{')) {
+      clean.customStatusEmoji = null;
+    }
+    return clean;
+  }
+
   setSession(session: AuthSession): void {
     this._accessToken.set(session.accessToken);
-    this._user.set(session.user);
+    this._user.set(this.sanitizeUser(session.user));
     this._status.set('authenticated');
   }
 
@@ -42,7 +56,7 @@ export class AuthStore {
   }
 
   patchUser(patch: Partial<User>): void {
-    this._user.update((u) => (u ? { ...u, ...patch } : u));
+    this._user.update((u) => (u ? this.sanitizeUser({ ...u, ...patch }) : u));
   }
 
   clear(): void {

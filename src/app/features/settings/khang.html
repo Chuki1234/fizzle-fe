@@ -799,14 +799,12 @@
                   </div>
                 </div>
 
-                @if (customStatus()) {
                 <div class="card-custom-status-box">
                   @if (customStatusEmoji()) {
                   <span class="custom-status-emoji">{{ customStatusEmoji() }}</span>
                   }
-                  <span>{{ customStatus() }}</span>
+                  <span>{{ displayCustomStatus() }}</span>
                 </div>
-                }
 
                 <!-- Card Nav Tabs -->
                 <div class="card-nav-tabs">
@@ -1068,14 +1066,12 @@
                   </div>
                 </div>
 
-                @if (customStatus()) {
                 <div class="card-custom-status-box">
                   @if (customStatusEmoji()) {
                   <span class="custom-status-emoji">{{ customStatusEmoji() }}</span>
                   }
-                  <span>{{ customStatus() }}</span>
+                  <span>{{ displayCustomStatus() }}</span>
                 </div>
-                }
 
                 <!-- Rich Presence Activity Card in Preview -->
                 @if (isPlayingGame()) {
