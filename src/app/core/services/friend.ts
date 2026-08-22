@@ -1,14 +1,18 @@
-import { Injectable, signal, computed, inject } from '@angular/core';
+import { Injectable, signal, computed, inject, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Friend, ChatMessage } from '../models/friend.model';
 import { API_CONFIG } from '../http/api.config';
+import { SocketService } from './socket';
+import { AuthStore } from '../auth/auth.store';
 
 @Injectable({
     providedIn: 'root'
 })
-export class FriendService {
+export class FriendService implements OnDestroy {
     private http = inject(HttpClient);
     private apiConfig = inject(API_CONFIG);
+    private socketService = inject(SocketService);
+    private authStore = inject(AuthStore);
 
     // 1. Danh sách bạn bè gốc
     friends = signal<Friend[]>([
@@ -68,16 +72,16 @@ export class FriendService {
         }
     ]);
 
-    // 2. Tab đang chọn ở màn Friend: 'online' | 'all' | 'pending'
-    activeTab = signal<'online' | 'all' | 'pending'>('online');
+    // 2. Tab đang chọn
+    activeTab = signal<'online' | 'all' | 'pending' | 'add'>('online');
 
-    // 3. Quản lý trạng thái Chat Active (ID của bạn bè đang nhắn tin)
+    // 3. Trạng thái Chat Active
     activeChatId = signal<string>('kevin');
 
-    // 4. Danh sách ID những người xuất hiện ở cột "TIN NHẮN TRỰC TIẾP" bên trái (Mặc định có kevin)
+    // 4. Danh sách ID trong cột DM bên trái
     directMessageIds = signal<string[]>(['kevin']);
 
-    // 5. Kho lưu trữ tin nhắn riêng cho từng ID bạn bè { [friendId]: ChatMessage[] }
+    // 5. Kho lưu trữ tin nhắn riêng cho từng ID
     private messagesByFriend = signal<Record<string, ChatMessage[]>>({
         kevin: [
             {
@@ -99,9 +103,15 @@ export class FriendService {
         ]
     });
 
+    // Search state
+    searchQuery = signal<string>('');
+    searchResults = signal<Friend[]>([]);
+    isSearching = signal<boolean>(false);
+    searchError = signal<string>('');
+    friendRequestStatus = signal<Record<string, 'idle' | 'sending' | 'sent' | 'error'>>({});
+
     // --- COMPUTED PROPERTIES ---
 
-    // Lọc danh sách bạn bè theo Tab
     filteredFriends = computed(() => {
         const list = this.friends();
         const tab = this.activeTab();
@@ -112,43 +122,140 @@ export class FriendService {
         if (tab === 'pending') {
             return list.filter(f => f.relationshipStatus === 'pending');
         }
+        if (tab === 'add') {
+            return [];
+        }
         return list.filter(f => f.relationshipStatus === 'friend');
     });
 
-    // Số lượng đếm cho Badge thông báo
     pendingCount = computed(() => this.friends().filter(f => f.relationshipStatus === 'pending').length);
     onlineCount = computed(() => this.friends().filter(f => f.relationshipStatus === 'friend' && f.presence !== 'offline').length);
 
-    // Thông tin bạn bè hiện tại đang chat
     activeFriend = computed(() => {
         const id = this.activeChatId();
         return this.friends().find(f => f.id === id) || this.friends()[0];
     });
 
-    // Danh sách object bạn bè hiển thị ở cột Direct Messages bên trái
     directMessages = computed(() => {
         const ids = this.directMessageIds();
         return this.friends().filter(f => ids.includes(f.id));
     });
 
-    // Lấy ra đúng danh sách tin nhắn của người đang active chat
     messages = computed(() => {
         const activeId = this.activeChatId();
         return this.messagesByFriend()[activeId] || [];
     });
 
     constructor() {
+        // Load friends from backend
+        this.loadFriendsFromBackend();
+
         if (this.activeChatId()) {
             this.loadDirectMessages(this.activeChatId());
         }
+
+        // Register realtime DM handler
+        this.socketService.registerDirectMessageHandler((senderId, targetId, message) => {
+            // Determine which friend ID to use as the "conversation partner"
+            const currentUserId = this.authStore.user()?.id || 'user';
+            const partnerId = senderId === currentUserId ? targetId : senderId;
+
+            // Don't add if it came from current user (already added optimistically)
+            if (senderId === currentUserId) return;
+
+            this.messagesByFriend.update(store => {
+                const current = store[partnerId] || [];
+                // Avoid duplicates
+                if (current.some(m => m.id === message.id)) return store;
+                return { ...store, [partnerId]: [...current, message] };
+            });
+
+            // Auto add to DM sidebar
+            if (!this.directMessageIds().includes(partnerId)) {
+                this.directMessageIds.update(ids => [...ids, partnerId]);
+            }
+        });
+
+        // Friend request received via socket
+        this.socketService.registerFriendRequestHandler((data) => {
+            if (!data) return;
+            const fromUserId = data.fromUserId || data.relationship?.userAId;
+            if (!fromUserId) return;
+
+            // Check if already in list
+            const existing = this.friends().find(f => f.id === fromUserId);
+            if (!existing) {
+                // Add as pending from backend search or a placeholder
+                this.friends.update(list => [
+                    ...list,
+                    {
+                        id: fromUserId,
+                        username: fromUserId,
+                        displayName: fromUserId,
+                        avatarUrl: null,
+                        presence: 'online',
+                        statusText: 'Muốn kết bạn với bạn',
+                        relationshipStatus: 'pending'
+                    }
+                ]);
+            } else if (existing.relationshipStatus !== 'pending') {
+                this.friends.update(list =>
+                    list.map(f => f.id === fromUserId ? { ...f, relationshipStatus: 'pending' } : f)
+                );
+            }
+        });
+
+        // Friend accepted via socket
+        this.socketService.registerFriendAcceptedHandler((data) => {
+            if (!data) return;
+            const currentUserId = this.authStore.user()?.id || 'user';
+            const otherId = data.userAId === currentUserId ? data.userBId : data.userAId;
+            if (otherId) {
+                this.friends.update(list =>
+                    list.map(f => f.id === otherId ? { ...f, relationshipStatus: 'friend' } : f)
+                );
+            }
+        });
     }
 
-    // --- ACTIONS / METHODS ---
+    ngOnDestroy() {
+        // Cleanup
+    }
 
-    // Load tin nhắn từ backend
+    // --- Load bạn bè từ backend ---
+    loadFriendsFromBackend() {
+        const userId = this.authStore.user()?.id;
+        const params = userId ? `?userId=${userId}` : '';
+        this.http.get<Friend[]>(`${this.apiConfig.baseUrl}/friends${params}`).subscribe({
+            next: (data) => {
+                if (data && data.length > 0) {
+                    // Map backend response to Friend model
+                    const mapped = data.map(u => ({
+                        ...u,
+                        relationshipStatus: u.relationshipStatus as any || 'friend'
+                    }));
+                    this.friends.set(mapped);
+
+                    // Auto-add current DM friends to directMessageIds
+                    const friendIds = mapped
+                        .filter(f => f.relationshipStatus === 'friend')
+                        .slice(0, 5)
+                        .map(f => f.id);
+                    const current = this.directMessageIds();
+                    const merged = [...new Set([...current, ...friendIds])];
+                    this.directMessageIds.set(merged);
+                }
+            },
+            error: (err) => console.warn('Could not load friends from backend:', err)
+        });
+    }
+
+    // --- Load tin nhắn từ backend ---
     loadDirectMessages(friendId: string) {
         if (!friendId) return;
-        this.http.get<ChatMessage[]>(`${this.apiConfig.baseUrl}/messages/direct/${friendId}`).subscribe({
+        const userId = this.authStore.user()?.id;
+        const params = userId ? `?userId=${userId}` : '';
+        this.http.get<ChatMessage[]>(`${this.apiConfig.baseUrl}/messages/direct/${friendId}${params}`).subscribe({
             next: (msgs) => {
                 this.messagesByFriend.update(store => ({
                     ...store,
@@ -159,26 +266,21 @@ export class FriendService {
         });
     }
 
-    // Đổi người dùng đang chat & Tự động thêm vào danh sách DM
+    // --- Đổi người dùng đang chat ---
     setActiveChat(id: string) {
         this.activeChatId.set(id);
-
-        // Nếu người này chưa có trong danh sách DM bên trái thì tự động thêm vào
         if (!this.directMessageIds().includes(id)) {
             this.directMessageIds.update(ids => [...ids, id]);
         }
-
         this.loadDirectMessages(id);
     }
 
-    // Gửi tin nhắn đến người đang Active Chat
+    // --- Gửi tin nhắn ---
     sendMessage(text: string, senderName: string = 'Thiện Phúc', senderId: string = 'user') {
         if (!text.trim()) return;
 
         const currentChatId = this.activeChatId();
-        const currentFriend = this.activeFriend();
 
-        // 1. Tạo tin nhắn từ người dùng
         const userMsg: ChatMessage = {
             id: Date.now().toString(),
             senderId: senderId,
@@ -187,16 +289,13 @@ export class FriendService {
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
 
-        // 2. Thêm vào kho tin nhắn của người dùng hiện tại (Optimistic update)
+        // Optimistic update
         this.messagesByFriend.update(store => {
             const currentList = store[currentChatId] || [];
-            return {
-                ...store,
-                [currentChatId]: [...currentList, userMsg]
-            };
+            return { ...store, [currentChatId]: [...currentList, userMsg] };
         });
 
-        // 3. Gửi lên backend để lưu vĩnh viễn
+        // Send to backend (which will broadcast via socket to the recipient)
         this.http.post<ChatMessage>(`${this.apiConfig.baseUrl}/messages/direct/${currentChatId}`, {
             text: text,
             senderId: senderId,
@@ -204,52 +303,109 @@ export class FriendService {
         }).subscribe({
             error: (err) => console.warn('Could not persist direct message to backend:', err)
         });
-
-        // 4. Tự động phản hồi (Auto Reply) từ đúng bạn bè đó sau 1.5s và lưu luôn vào backend
-        setTimeout(() => {
-            const replies = [
-                "Oke Phúc ơi, chút nữa tớ qua!",
-                "Chuẩn bài luôn, đang tính nhắn Phúc nè! 🎮",
-                "Đang dở tay debug bài Java xíu, 10p nữa tớ rep nha!",
-                "Duyệt nha! Ghé chỗ cũ làm ly cà phê luôn."
-            ];
-            const randomReply = replies[Math.floor(Math.random() * replies.length)];
-
-            const botMsg: ChatMessage = {
-                id: (Date.now() + 1).toString(),
-                senderId: currentFriend.id,
-                senderName: currentFriend.displayName,
-                text: randomReply,
-                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            };
-
-            this.messagesByFriend.update(store => {
-                const currentList = store[currentChatId] || [];
-                return {
-                    ...store,
-                    [currentChatId]: [...currentList, botMsg]
-                };
-            });
-
-            // Lưu bot reply vào backend
-            this.http.post<ChatMessage>(`${this.apiConfig.baseUrl}/messages/direct/${currentChatId}`, {
-                text: randomReply,
-                senderId: currentFriend.id,
-                senderName: currentFriend.displayName
-            }).subscribe({
-                error: (err) => console.warn('Could not persist bot direct message to backend:', err)
-            });
-        }, 1500);
     }
 
-    // Chấp nhận / Từ chối kết bạn
+    // --- Tìm kiếm người dùng ---
+    searchUsers(query: string) {
+        const trimmed = query.trim();
+        this.searchQuery.set(trimmed);
+
+        if (!trimmed) {
+            this.searchResults.set([]);
+            this.searchError.set('');
+            return;
+        }
+
+        this.isSearching.set(true);
+        this.searchError.set('');
+
+        const userId = this.authStore.user()?.id;
+        const params = `?q=${encodeURIComponent(trimmed)}${userId ? `&userId=${userId}` : ''}`;
+
+        this.http.get<Friend[]>(`${this.apiConfig.baseUrl}/friends/search${params}`).subscribe({
+            next: (results) => {
+                this.searchResults.set(results || []);
+                this.isSearching.set(false);
+            },
+            error: (err) => {
+                console.warn('Friend search failed:', err);
+                this.searchResults.set([]);
+                this.isSearching.set(false);
+                this.searchError.set('Không thể tìm kiếm. Thử lại sau.');
+            }
+        });
+    }
+
+    // --- Gửi lời mời kết bạn ---
+    sendFriendRequest(targetUserId: string, targetUsername?: string) {
+        const currentStatus = this.friendRequestStatus()[targetUserId];
+        if (currentStatus === 'sending' || currentStatus === 'sent') return;
+
+        this.friendRequestStatus.update(s => ({ ...s, [targetUserId]: 'sending' }));
+
+        const userId = this.authStore.user()?.id;
+
+        this.http.post<any>(`${this.apiConfig.baseUrl}/friends/request`, {
+            targetUserId,
+            targetUsername,
+            senderId: userId || 'user'
+        }).subscribe({
+            next: () => {
+                this.friendRequestStatus.update(s => ({ ...s, [targetUserId]: 'sent' }));
+                // Update friends list to show pending_outgoing
+                const existing = this.friends().find(f => f.id === targetUserId);
+                if (!existing) {
+                    const result = this.searchResults().find(r => r.id === targetUserId);
+                    if (result) {
+                        this.friends.update(list => [...list, { ...result, relationshipStatus: 'pending' as any }]);
+                    }
+                }
+            },
+            error: (err) => {
+                console.warn('Failed to send friend request:', err);
+                this.friendRequestStatus.update(s => ({ ...s, [targetUserId]: 'error' }));
+            }
+        });
+    }
+
+    // --- Chấp nhận kết bạn ---
     acceptFriend(id: string) {
-        this.friends.update(list =>
-            list.map(f => f.id === id ? { ...f, relationshipStatus: 'friend' } : f)
-        );
+        const userId = this.authStore.user()?.id;
+        const params = userId ? `?userId=${userId}` : '';
+
+        this.http.post<any>(`${this.apiConfig.baseUrl}/friends/${id}/accept${params}`, {}).subscribe({
+            next: () => {
+                this.friends.update(list =>
+                    list.map(f => f.id === id ? { ...f, relationshipStatus: 'friend' } : f)
+                );
+                // Add to DM sidebar
+                if (!this.directMessageIds().includes(id)) {
+                    this.directMessageIds.update(ids => [...ids, id]);
+                }
+            },
+            error: (err) => {
+                console.warn('Failed to accept friend request:', err);
+                // Still update locally
+                this.friends.update(list =>
+                    list.map(f => f.id === id ? { ...f, relationshipStatus: 'friend' } : f)
+                );
+            }
+        });
     }
 
+    // --- Từ chối kết bạn ---
     rejectFriend(id: string) {
-        this.friends.update(list => list.filter(f => f.id !== id));
+        const userId = this.authStore.user()?.id;
+        const params = userId ? `?userId=${userId}` : '';
+
+        this.http.post<any>(`${this.apiConfig.baseUrl}/friends/${id}/reject${params}`, {}).subscribe({
+            next: () => {
+                this.friends.update(list => list.filter(f => f.id !== id));
+            },
+            error: (err) => {
+                console.warn('Failed to reject friend request:', err);
+                this.friends.update(list => list.filter(f => f.id !== id));
+            }
+        });
     }
 }
