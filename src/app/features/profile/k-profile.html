@@ -205,9 +205,13 @@
                 <div class="friend-item">
                   <div class="friend-left">
                     <div class="friend-avatar-wrap">
-                      <div class="friend-avatar" [style.background-color]="friend.avatarBg">
-                        {{ friend.avatarText }}
-                      </div>
+                      @if (friend.avatarUrl) {
+                        <img [src]="friend.avatarUrl" class="friend-avatar" style="object-fit: cover;" alt="Avatar" />
+                      } @else {
+                        <div class="friend-avatar" [style.background-color]="friend.avatarBg">
+                          {{ friend.avatarText }}
+                        </div>
+                      }
                       <div
                         class="friend-status-dot"
                         [style.background-color]="getStatusColor(friend.status)"

@@ -139,10 +139,14 @@
             <div class="flex items-center gap-3">
                 <!-- Avatar + Chấm Status Discord -->
                 <div class="relative">
-                    <div
-                        class="w-10 h-10 rounded-full bg-[var(--color-surface-code)] text-white font-bold flex items-center justify-center">
-                        {{ friend.displayName.charAt(0) }}
-                    </div>
+                    @if (friend.avatarUrl) {
+                        <img [src]="friend.avatarUrl" class="w-10 h-10 rounded-full object-cover" alt="Avatar" />
+                    } @else {
+                        <div
+                            class="w-10 h-10 rounded-full bg-[var(--color-surface-code)] text-white font-bold flex items-center justify-center">
+                            {{ friend.displayName.charAt(0) }}
+                        </div>
+                    }
 
                     <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[var(--color-surface)]"
                         [class.bg-emerald-500]="friend.presence === 'online'"

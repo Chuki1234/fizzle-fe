@@ -2,6 +2,8 @@ import { UserSummary } from './user.model';
 
 export interface Friend extends UserSummary {
     statusText?: string;
+    customStatus?: string | null;
+    customStatusEmoji?: string | null;
     relationshipStatus: 'friend' | 'pending' | 'pending_outgoing' | 'none';
 }
 

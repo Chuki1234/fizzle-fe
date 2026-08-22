@@ -116,9 +116,13 @@
                         class="sidebar-left__dm-item">
 
                         <div class="sidebar-left__avatar-container">
-                            <div class="sidebar-left__avatar">
-                                {{ friend.displayName.charAt(0) }}
-                            </div>
+                            @if (friend.avatarUrl) {
+                                <img [src]="friend.avatarUrl" class="sidebar-left__avatar" style="object-fit: cover; border-radius: 50%;" alt="Avatar" />
+                            } @else {
+                                <div class="sidebar-left__avatar">
+                                    {{ friend.displayName.charAt(0) }}
+                                </div>
+                            }
                             <span class="sidebar-left__status-dot" [class.bg-emerald-500]="friend.presence === 'online'"
                                 [class.bg-amber-500]="friend.presence === 'idle'"
                                 [class.bg-rose-500]="friend.presence === 'dnd'"
@@ -127,7 +131,7 @@
 
                         <div class="sidebar-left__dm-info">
                             <span class="sidebar-left__dm-name">{{ friend.displayName }}</span>
-                            <span class="sidebar-left__dm-status">{{ friend.statusText }}</span>
+                            <span class="sidebar-left__dm-status">{{ friendService.getDisplayStatus(friend) }}</span>
                         </div>
 
                         @if (friendService.unreadCounts()[friend.id] > 0) {

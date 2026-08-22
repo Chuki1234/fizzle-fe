@@ -4,35 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router, RouterModule } from '@angular/router';
 import { AuthStore } from '../../core/auth/auth.store';
 import { AuthService } from '../../core/auth/auth.service';
-import { ProfileService } from '../../core/services/profile';
-
-export interface Badge {
-  id: string;
-  name: string;
-  icon: string;
-  color: string;
-  description: string;
-  active: boolean;
-}
-
-export interface MutualServer {
-  id: string;
-  name: string;
-  iconText: string;
-  bgColor: string;
-  members: number;
-  mutualFriendsCount: number;
-}
-
-export interface MutualFriend {
-  id: string;
-  name: string;
-  tag: string;
-  avatarBg: string;
-  avatarText: string;
-  status: 'online' | 'idle' | 'dnd' | 'offline';
-  customStatus?: string;
-}
+import { ProfileService, Badge, MutualServer, MutualFriend } from '../../core/services/profile';
 
 export interface SettingFeatureItem {
   id: string;
