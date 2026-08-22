@@ -31,7 +31,31 @@ export interface MutualFriend {
   avatarBg: string;
   avatarText: string;
   status: PresenceStatus;
-  customStatus?: string;
+  customStatus?: string | null;
+  avatarUrl?: string | null;
+}
+
+export function cleanStatusString(val: any): string | null {
+  if (!val || typeof val !== 'string') return null;
+  const trimmed = val.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      const custom = (typeof parsed.customStatus === 'string' && !parsed.customStatus.trim().startsWith('{')) ? parsed.customStatus.trim() : null;
+      const statusMsg = (typeof parsed.statusMessage === 'string' && !parsed.statusMessage.trim().startsWith('{')) ? parsed.statusMessage.trim() : null;
+      const text = custom || statusMsg || (typeof parsed.statusText === 'string' && !parsed.statusText.trim().startsWith('{') ? parsed.statusText.trim() : null);
+      const emoji = typeof parsed.customStatusEmoji === 'string' ? parsed.customStatusEmoji.trim() : null;
+      if (text) {
+        return emoji ? `${emoji} ${text}` : text;
+      }
+      if (emoji) return emoji;
+    } catch {
+      // ignore
+    }
+    return null;
+  }
+  return trimmed;
 }
 
 @Injectable({
@@ -105,10 +129,13 @@ export class ProfileService {
   mutualFriends = computed<MutualFriend[]>(() => {
     const friendsList = this.friendService.friends().filter(f => f.relationshipStatus === 'friend');
     return friendsList.map((f, idx) => {
-      const parts = f.displayName.split(' ');
+      const parts = (f.displayName || f.username || '').split(' ');
       const avatarText = parts.length > 1
         ? (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
-        : f.displayName.substring(0, 2).toUpperCase();
+        : (f.displayName || f.username || 'U').substring(0, 2).toUpperCase();
+
+      const rawStatus = (f as any).customStatus || f.statusText;
+      const cleanStatus = cleanStatusString(rawStatus);
 
       return {
         id: f.id,
@@ -117,7 +144,8 @@ export class ProfileService {
         avatarBg: ['#4e5058', '#383a40', '#2b2d31', '#6d6f78'][idx % 4],
         avatarText,
         status: f.presence as PresenceStatus,
-        customStatus: f.statusText,
+        customStatus: cleanStatus,
+        avatarUrl: f.avatarUrl || null,
       };
     });
   });
