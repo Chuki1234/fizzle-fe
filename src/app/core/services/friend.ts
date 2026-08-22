@@ -4,6 +4,7 @@ import { Friend, ChatMessage } from '../models/friend.model';
 import { API_CONFIG } from '../http/api.config';
 import { SocketService } from './socket';
 import { AuthStore } from '../auth/auth.store';
+import { NotificationService } from './notification.service';
 import { cleanStatusString } from './profile';
 
 @Injectable({
@@ -14,95 +15,23 @@ export class FriendService implements OnDestroy {
     private apiConfig = inject(API_CONFIG);
     private socketService = inject(SocketService);
     private authStore = inject(AuthStore);
+    private notificationService = inject(NotificationService);
 
     // 1. Danh sách bạn bè gốc
-    friends = signal<Friend[]>([
-        {
-            id: 'kevin',
-            username: 'kevin_se',
-            displayName: 'Kevin',
-            avatarUrl: null,
-            presence: 'online',
-            statusText: 'Đang chơi League of Legends 🎮',
-            relationshipStatus: 'friend'
-        },
-        {
-            id: 'hoang',
-            username: 'nam_dev',
-            displayName: 'Hoàng Nam',
-            avatarUrl: null,
-            presence: 'dnd',
-            statusText: 'Đang làm Đồ Án Cuối Kỳ Java 💻',
-            relationshipStatus: 'friend'
-        },
-        {
-            id: 'minh',
-            username: 'tri_mcfc',
-            displayName: 'Minh Trí',
-            avatarUrl: null,
-            presence: 'online',
-            statusText: 'Đang xem Highlights Manchester City ⚽',
-            relationshipStatus: 'friend'
-        },
-        {
-            id: 'bao',
-            username: 'bao_game',
-            displayName: 'Gia Bảo',
-            avatarUrl: null,
-            presence: 'idle',
-            statusText: 'Chờ xíu đi pha cà phê ☕',
-            relationshipStatus: 'friend'
-        },
-        {
-            id: 'anh',
-            username: 'anh_tuan',
-            displayName: 'Tuấn Anh',
-            avatarUrl: null,
-            presence: 'offline',
-            statusText: 'Ngoại tuyến',
-            relationshipStatus: 'friend'
-        },
-        {
-            id: 'khang',
-            username: 'khang_hsu',
-            displayName: 'Quốc Khang',
-            avatarUrl: null,
-            presence: 'online',
-            statusText: 'Muốn kết bạn với bạn',
-            relationshipStatus: 'pending'
-        }
-    ]);
+    friends = signal<Friend[]>([]);
 
     // 2. Tab đang chọn
     activeTab = signal<'online' | 'all' | 'pending' | 'add'>('online');
 
     // 3. Trạng thái Chat Active
-    activeChatId = signal<string>('kevin');
+    activeChatId = signal<string>('');
 
     // 4. Danh sách ID trong cột DM bên trái
-    directMessageIds = signal<string[]>(['kevin']);
+    directMessageIds = signal<string[]>([]);
 
     // 5. Kho lưu trữ tin nhắn riêng cho từng ID
-    private messagesByFriend = signal<Record<string, ChatMessage[]>>({
-        kevin: [
-            {
-                id: '1',
-                senderId: 'kevin',
-                senderName: 'Kevin',
-                text: 'Chiều nay ghé Highlands học tiếp không Phúc?',
-                timestamp: '10:45 AM'
-            }
-        ],
-        bao: [
-            {
-                id: '1',
-                senderId: 'bao',
-                senderName: 'Gia Bảo',
-                text: 'Chiều nay ghé Highlands học tiếp không Phúc?',
-                timestamp: '10:45 AM'
-            }
-        ]
-    });
+    private messagesByFriend = signal<Record<string, ChatMessage[]>>({});
+
 
     // Search state
     searchQuery = signal<string>('');
@@ -110,6 +39,9 @@ export class FriendService implements OnDestroy {
     isSearching = signal<boolean>(false);
     searchError = signal<string>('');
     friendRequestStatus = signal<Record<string, 'idle' | 'sending' | 'sent' | 'error'>>({});
+
+    // Unread message count per friend ID (for badge)
+    unreadCounts = signal<Record<string, number>>({});
 
     // --- COMPUTED PROPERTIES ---
 
@@ -166,7 +98,7 @@ export class FriendService implements OnDestroy {
 
             this.messagesByFriend.update(store => {
                 const current = store[partnerId] || [];
-                // Avoid duplicates
+                // Avoid duplicates by message id
                 if (current.some(m => m.id === message.id)) return store;
                 return { ...store, [partnerId]: [...current, message] };
             });
@@ -174,6 +106,39 @@ export class FriendService implements OnDestroy {
             // Auto add to DM sidebar
             if (!this.directMessageIds().includes(partnerId)) {
                 this.directMessageIds.update(ids => [...ids, partnerId]);
+
+                // If partner not in friends list, add as a placeholder so sidebar renders
+                const alreadyKnown = this.friends().some(f => f.id === partnerId);
+                if (!alreadyKnown) {
+                    this.friends.update(list => [
+                        ...list,
+                        {
+                            id: partnerId,
+                            username: partnerId,
+                            displayName: message.senderName || partnerId,
+                            avatarUrl: null,
+                            presence: 'online' as const,
+                            statusText: '',
+                            relationshipStatus: 'friend' as const
+                        }
+                    ]);
+                }
+            }
+
+            // Track unread if partner is not currently active chat
+            if (this.activeChatId() !== partnerId) {
+                this.unreadCounts.update(counts => ({
+                    ...counts,
+                    [partnerId]: (counts[partnerId] || 0) + 1
+                }));
+
+                this.notificationService.show({
+                    type: 'message',
+                    title: message.senderName || 'Tin nhắn mới',
+                    message: message.text,
+                    actionLabel: 'Mở tin nhắn',
+                    actionRoute: ['/chat', partnerId]
+                });
             }
         });
 
@@ -204,6 +169,14 @@ export class FriendService implements OnDestroy {
                     list.map(f => f.id === fromUserId ? { ...f, relationshipStatus: 'pending' } : f)
                 );
             }
+
+            this.notificationService.show({
+                type: 'friend_request',
+                title: 'Lời mời kết bạn mới 👤',
+                message: `Bạn nhận được lời mời kết bạn từ ${fromUserId}!`,
+                actionLabel: 'Xem lời mời',
+                actionRoute: ['/friends']
+            });
         });
 
         // Friend accepted via socket
@@ -340,6 +313,8 @@ export class FriendService implements OnDestroy {
     // --- Đổi người dùng đang chat ---
     setActiveChat(id: string) {
         this.activeChatId.set(id);
+        // Clear unread count when opening chat
+        this.unreadCounts.update(counts => ({ ...counts, [id]: 0 }));
         if (!this.directMessageIds().includes(id)) {
             this.directMessageIds.update(ids => [...ids, id]);
         }

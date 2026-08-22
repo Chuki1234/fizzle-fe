@@ -72,20 +72,17 @@
 
             @for (msg of activeMessages; track msg.id) {
             <div class="flex items-start gap-3.5 w-full">
-                @if (getSenderAvatar(msg)) {
-                    <img [src]="getSenderAvatar(msg)" class="w-10 h-10 rounded-full object-cover shrink-0 border border-[#2a2c33]" alt="Avatar" />
-                } @else {
-                    <div
-                        class="w-10 h-10 rounded-full bg-[#1b1d22] text-white font-bold flex items-center justify-center shrink-0 border border-[#2a2c33]">
-                        {{ getSenderInitial(msg) }}
-                    </div>
-                }
+                <div
+                    class="w-10 h-10 rounded-full bg-[#1b1d22] text-white font-bold flex items-center justify-center shrink-0 border border-[#2a2c33]">
+                    {{ msg.senderName ? msg.senderName.charAt(0) : (msg.senderId === authStore.user()?.id ? (authStore.user()?.displayName || 'U').charAt(0) :
+                    friendService.activeFriend() ? friendService.activeFriend()!.displayName.charAt(0) : 'U') }}
+                </div>
 
                 <div class="flex flex-col items-start max-w-[80%] min-w-0">
                     <div class="flex items-center gap-2 mb-1">
-                        <span class="text-xs font-bold" [class.text-emerald-400]="msg.senderId !== 'user'"
-                            [class.text-white]="msg.senderId === 'user'">
-                            {{ msg.senderName || (msg.senderId === 'user' ? 'Thiện Phúc' :
+                        <span class="text-xs font-bold" [class.text-emerald-400]="msg.senderId !== authStore.user()?.id"
+                            [class.text-white]="msg.senderId === authStore.user()?.id">
+                            {{ msg.senderName || (msg.senderId === authStore.user()?.id ? (authStore.user()?.displayName || 'Bạn') :
                             friendService.activeFriend() ? friendService.activeFriend()!.displayName : 'Người dùng') }}
                         </span>
                         <span class="text-[10px] text-zinc-500">{{ msg.timestamp }}</span>

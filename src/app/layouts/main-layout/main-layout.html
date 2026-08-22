@@ -134,6 +134,10 @@
                             <span class="sidebar-left__dm-name">{{ friend.displayName }}</span>
                             <span class="sidebar-left__dm-status">{{ friendService.getDisplayStatus(friend) }}</span>
                         </div>
+
+                        @if (friendService.unreadCounts()[friend.id] > 0) {
+                        <span class="sidebar-left__badge">{{ friendService.unreadCounts()[friend.id] }}</span>
+                        }
                     </a>
                     }
                 </div>
@@ -180,6 +184,32 @@
     </main>
 
 </div>
+
+<!-- TOAST NOTIFICATION CONTAINER -->
+@if (notificationService.notifications().length > 0) {
+<div class="toast-container" aria-live="polite">
+    @for (n of notificationService.notifications(); track n.id) {
+    <div class="toast-card" [class.toast-card--invite]="n.type === 'server_invite'"
+        [class.toast-card--friend]="n.type === 'friend_request'"
+        [class.toast-card--message]="n.type === 'message'">
+        <div class="toast-card__icon">
+            @if (n.type === 'server_invite') { 🚀 }
+            @else if (n.type === 'friend_request') { 👤 }
+            @else { 💬 }
+        </div>
+        <div class="toast-card__content" (click)="handleNotificationClick(n)">
+            <h4 class="toast-card__title">{{ n.title }}</h4>
+            <p class="toast-card__message">{{ n.message }}</p>
+            @if (n.actionLabel) {
+            <span class="toast-card__action">{{ n.actionLabel }} →</span>
+            }
+        </div>
+        <button (click)="notificationService.dismiss(n.id); $event.stopPropagation()" class="toast-card__close-btn"
+            title="Đóng">✕</button>
+    </div>
+    }
+</div>
+}
 
 <!-- COMPONENT MODAL DÙNG CHUNG -->
 <app-modal></app-modal>

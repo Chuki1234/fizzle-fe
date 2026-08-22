@@ -6,6 +6,7 @@ import { ModalService } from '../../core/services/modal';
 import { SocketService } from '../../core/services/socket';
 import { AuthService } from '../../core/auth/auth.service';
 import { AuthStore } from '../../core/auth/auth.store';
+import { NotificationService, InAppNotification } from '../../core/services/notification.service';
 import { VoiceControlComponent } from '../../shared/ui/voice-control/voice-control';
 import { ModalComponent } from '../../shared/ui/modal/modal';
 
@@ -28,6 +29,7 @@ export class MainLayout {
     public modalService = inject(ModalService);
     public authService = inject(AuthService);
     public authStore = inject(AuthStore);
+    public notificationService = inject(NotificationService);
     private socketService = inject(SocketService);
     private router = inject(Router);
 
@@ -71,10 +73,18 @@ export class MainLayout {
             const user = this.authStore.user();
             if (user?.id) {
                 this.socketService.connect(user.id);
-                // Also reload friends when user is known
+                // Reload both friends and servers for this user
                 this.friendService.loadFriendsFromBackend();
+                this.serverService.loadServers();
             }
         });
+    }
+
+    public handleNotificationClick(n: InAppNotification): void {
+        if (n.actionRoute && n.actionRoute.length > 0) {
+            void this.router.navigate(n.actionRoute);
+        }
+        this.notificationService.dismiss(n.id);
     }
 
     public logout(): void {
