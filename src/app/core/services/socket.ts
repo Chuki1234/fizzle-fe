@@ -71,20 +71,31 @@ export class SocketService {
       });
     });
 
-    // ---- DIRECT MESSAGES ----
+    // ---- DIRECT & CHANNEL MESSAGES VIA RECEIVE_MESSAGE ----
     this.socket.on('receive_message', (data: any) => {
       this.ngZone.run(() => {
         if (!data) return;
 
-        // Skip channel messages here — handled by 'channel_message' event above
+        // 1. Channel message
         if (data.channelId && data.message) {
+          this.onChannelMessage?.(data.channelId, data.message);
           return;
         }
 
-        // DM: targeted to this user's room, has senderId and targetId
-        if (data.senderId && data.targetId && data.message) {
-          this.onDirectMessage?.(data.senderId, data.targetId, data.message);
+        // 2. Direct message
+        const senderId = data.senderId;
+        const targetId = data.targetId || data.recipientId;
+        if (senderId && targetId && data.message) {
+          this.onDirectMessage?.(senderId, targetId, data.message);
           return;
+        }
+      });
+    });
+
+    this.socket.on('direct_message', (data: any) => {
+      this.ngZone.run(() => {
+        if (data?.senderId && data?.recipientId && data?.message) {
+          this.onDirectMessage?.(data.senderId, data.recipientId, data.message);
         }
       });
     });

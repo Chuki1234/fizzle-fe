@@ -1,5 +1,6 @@
 import {
     ChangeDetectionStrategy,
+    ChangeDetectorRef,
     Component,
     ElementRef,
     inject,
@@ -28,15 +29,17 @@ export class Chat implements OnInit {
     public serverService = inject(ServerService);
     public authStore = inject(AuthStore);
     private route = inject(ActivatedRoute);
+    private cdr = inject(ChangeDetectorRef);
 
     @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
 
     constructor() {
-        // Tự động cuộn xuống tin nhắn mới nhất khi Signal tin nhắn thay đổi
+        // Tự động cuộn xuống tin nhắn mới nhất và cập nhật view khi Signal tin nhắn thay đổi
         effect(() => {
             // Read signals để trigger effect khi có tin nhắn mới
             this.serverService.messages();
             this.friendService.messages();
+            this.cdr.markForCheck();
 
             setTimeout(() => this.scrollToBottom(), 50);
         });
