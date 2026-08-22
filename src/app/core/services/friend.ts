@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Friend, ChatMessage } from '../models/friend.model';
 import { API_CONFIG } from '../http/api.config';
 import { SocketService } from './socket';
+import { SupabaseRealtimeService } from './supabase-realtime.service';
 import { AuthStore } from '../auth/auth.store';
 import { NotificationService } from './notification.service';
 import { cleanStatusString } from './profile';
@@ -14,6 +15,7 @@ export class FriendService implements OnDestroy {
     private http = inject(HttpClient);
     private apiConfig = inject(API_CONFIG);
     private socketService = inject(SocketService);
+    private supabaseRealtime = inject(SupabaseRealtimeService);
     private authStore = inject(AuthStore);
     private notificationService = inject(NotificationService);
 
@@ -87,9 +89,7 @@ export class FriendService implements OnDestroy {
             this.loadDirectMessages(this.activeChatId());
         }
 
-        // Register realtime DM handler
-        this.socketService.registerDirectMessageHandler((senderId, targetId, message) => {
-            // Determine which friend ID to use as the "conversation partner"
+        const handleIncomingDM = (senderId: string, targetId: string, message: any) => {
             const currentUserId = this.authStore.user()?.id || 'user';
             const partnerId = senderId === currentUserId ? targetId : senderId;
 
@@ -107,7 +107,6 @@ export class FriendService implements OnDestroy {
             if (!this.directMessageIds().includes(partnerId)) {
                 this.directMessageIds.update(ids => [...ids, partnerId]);
 
-                // If partner not in friends list, add as a placeholder so sidebar renders
                 const alreadyKnown = this.friends().some(f => f.id === partnerId);
                 if (!alreadyKnown) {
                     this.friends.update(list => [
@@ -140,7 +139,13 @@ export class FriendService implements OnDestroy {
                     actionRoute: ['/chat', partnerId]
                 });
             }
-        });
+        };
+
+        // 1. Listen via local Socket
+        this.socketService.registerDirectMessageHandler(handleIncomingDM);
+
+        // 2. Listen via Supabase Realtime (Cloud-wide sync for all devices/computers!)
+        this.supabaseRealtime.registerDirectMessageHandler(handleIncomingDM);
 
         // Friend request received via socket
         this.socketService.registerFriendRequestHandler((data) => {
@@ -154,7 +159,6 @@ export class FriendService implements OnDestroy {
             // Check if already in list
             const existing = this.friends().find(f => f.id === fromUserId);
             if (!existing) {
-                // Add as pending from backend search or a placeholder
                 this.friends.update(list => [
                     ...list,
                     {
@@ -183,6 +187,33 @@ export class FriendService implements OnDestroy {
             });
         });
 
+        // Friend request / status changed via Supabase Realtime
+        this.supabaseRealtime.registerFriendshipChangeHandler((payload) => {
+            const currentUserId = this.authStore.user()?.id;
+            if (!currentUserId || !payload) return;
+
+            const row = payload.new;
+            this.loadFriendsFromBackend();
+
+            if (row && payload.eventType === 'INSERT' && row.user_b_id === currentUserId && row.status === 'pending') {
+                this.notificationService.show({
+                    type: 'friend_request',
+                    title: 'Lời mời kết bạn mới 👤',
+                    message: `Bạn vừa nhận được một lời mời kết bạn mới!`,
+                    actionLabel: 'Xem lời mời',
+                    actionRoute: ['/friends']
+                });
+            } else if (row && row.status === 'friend') {
+                this.notificationService.show({
+                    type: 'friend_request',
+                    title: 'Đã trở thành bạn bè 🎉',
+                    message: `Lời mời kết bạn đã được chấp nhận!`,
+                    actionLabel: 'Xem danh sách bạn bè',
+                    actionRoute: ['/friends']
+                });
+            }
+        });
+
         // Friend accepted via socket
         this.socketService.registerFriendAcceptedHandler((data) => {
             if (!data) return;
@@ -199,27 +230,25 @@ export class FriendService implements OnDestroy {
             }
         });
 
-        // User profile / status / customStatus / avatar updated via socket
-        this.socketService.registerUserStatusUpdatedHandler((data) => {
+        // User profile / status / customStatus / avatar updated via socket or Supabase
+        const handleProfileUpdate = (data: any) => {
             if (!data || (!data.userId && !data.id)) return;
             const updatedId = data.userId || data.id;
 
-            // Update reactive friends signal array
             this.friends.update(currentList => {
                 const existing = currentList.find(f => f.id === updatedId);
                 if (!existing) return currentList;
 
                 return currentList.map(friend => {
                     if (friend.id === updatedId) {
-                        // Ưu tiên statusText đã được backend parse sạch
-                        const rawText = data.statusText || data.customStatus || '';
+                        const rawText = data.statusText || data.customStatus || data.status_message || '';
                         const cleanText = rawText && !rawText.startsWith('{') ? rawText : cleanStatusString(rawText) || friend.statusText || '';
-                        const rawCustom = data.customStatus || '';
+                        const rawCustom = data.customStatus || data.custom_status || '';
                         const cleanCustom = rawCustom && !rawCustom.startsWith('{') ? rawCustom : cleanStatusString(rawCustom) || friend.customStatus || null;
                         return {
                             ...friend,
-                            displayName: data.displayName ?? friend.displayName,
-                            avatarUrl: data.avatarUrl !== undefined ? data.avatarUrl : friend.avatarUrl,
+                            displayName: data.displayName || data.display_name || friend.displayName,
+                            avatarUrl: data.avatarUrl !== undefined ? data.avatarUrl : (data.avatar_url !== undefined ? data.avatar_url : friend.avatarUrl),
                             presence: data.presence ?? friend.presence,
                             statusText: cleanText,
                             customStatus: cleanCustom,
@@ -229,7 +258,10 @@ export class FriendService implements OnDestroy {
                     return friend;
                 });
             });
-        });
+        };
+
+        this.socketService.registerUserStatusUpdatedHandler(handleProfileUpdate);
+        this.supabaseRealtime.registerProfileChangeHandler(handleProfileUpdate);
     }
 
     ngOnDestroy() {
