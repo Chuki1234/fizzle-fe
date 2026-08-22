@@ -18,93 +18,20 @@ export class FriendService implements OnDestroy {
     private notificationService = inject(NotificationService);
 
     // 1. Danh sách bạn bè gốc
-    friends = signal<Friend[]>([
-        {
-            id: 'kevin',
-            username: 'kevin_se',
-            displayName: 'Kevin',
-            avatarUrl: null,
-            presence: 'online',
-            statusText: 'Đang chơi League of Legends 🎮',
-            relationshipStatus: 'friend'
-        },
-        {
-            id: 'hoang',
-            username: 'nam_dev',
-            displayName: 'Hoàng Nam',
-            avatarUrl: null,
-            presence: 'dnd',
-            statusText: 'Đang làm Đồ Án Cuối Kỳ Java 💻',
-            relationshipStatus: 'friend'
-        },
-        {
-            id: 'minh',
-            username: 'tri_mcfc',
-            displayName: 'Minh Trí',
-            avatarUrl: null,
-            presence: 'online',
-            statusText: 'Đang xem Highlights Manchester City ⚽',
-            relationshipStatus: 'friend'
-        },
-        {
-            id: 'bao',
-            username: 'bao_game',
-            displayName: 'Gia Bảo',
-            avatarUrl: null,
-            presence: 'idle',
-            statusText: 'Chờ xíu đi pha cà phê ☕',
-            relationshipStatus: 'friend'
-        },
-        {
-            id: 'anh',
-            username: 'anh_tuan',
-            displayName: 'Tuấn Anh',
-            avatarUrl: null,
-            presence: 'offline',
-            statusText: 'Ngoại tuyến',
-            relationshipStatus: 'friend'
-        },
-        {
-            id: 'khang',
-            username: 'khang_hsu',
-            displayName: 'Quốc Khang',
-            avatarUrl: null,
-            presence: 'online',
-            statusText: 'Muốn kết bạn với bạn',
-            relationshipStatus: 'pending'
-        }
-    ]);
+    friends = signal<Friend[]>([]);
 
     // 2. Tab đang chọn
     activeTab = signal<'online' | 'all' | 'pending' | 'add'>('online');
 
     // 3. Trạng thái Chat Active
-    activeChatId = signal<string>('kevin');
+    activeChatId = signal<string>('');
 
     // 4. Danh sách ID trong cột DM bên trái
-    directMessageIds = signal<string[]>(['kevin']);
+    directMessageIds = signal<string[]>([]);
 
     // 5. Kho lưu trữ tin nhắn riêng cho từng ID
-    private messagesByFriend = signal<Record<string, ChatMessage[]>>({
-        kevin: [
-            {
-                id: '1',
-                senderId: 'kevin',
-                senderName: 'Kevin',
-                text: 'Chiều nay ghé Highlands học tiếp không Phúc?',
-                timestamp: '10:45 AM'
-            }
-        ],
-        bao: [
-            {
-                id: '1',
-                senderId: 'bao',
-                senderName: 'Gia Bảo',
-                text: 'Chiều nay ghé Highlands học tiếp không Phúc?',
-                timestamp: '10:45 AM'
-            }
-        ]
-    });
+    private messagesByFriend = signal<Record<string, ChatMessage[]>>({});
+
 
     // Search state
     searchQuery = signal<string>('');

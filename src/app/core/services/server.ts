@@ -25,47 +25,21 @@ export class ServerService {
     isDeafened = signal<boolean>(false);
 
     // --- DANH SÁCH SERVER & KÊNH ---
-    servers = signal<Server[]>([
-        {
-            id: 'hsu-it',
-            name: 'HSU - AI & IT',
-            icon: 'HSU',
-            channels: [
-                { id: 'c-general', name: 'thảo-luận-chung', type: 'text' },
-                { id: 'c-java', name: 'đồ-án-java', type: 'text' },
-                { id: 'c-lounge', name: 'Phòng Chờ 🎙️', type: 'voice' }
-            ]
-        },
-        {
-            id: 'gaming-hub',
-            name: 'Gaming Community',
-            icon: '🎮',
-            channels: [
-                { id: 'c-lol', name: 'league-of-legends', type: 'text' },
-                { id: 'c-voice-1', name: 'Team 1 🔊', type: 'voice' }
-            ]
-        }
-    ]);
+    servers = signal<Server[]>([]);
 
-    activeServerId = signal<string>('hsu-it');
-    activeChannelId = signal<string>('c-general');
+    activeServerId = signal<string>('');
+    activeChannelId = signal<string>('');
 
     activeServer = computed(() => this.servers().find(s => s.id === this.activeServerId()));
     activeChannel = computed(() => this.activeServer()?.channels.find(c => c.id === this.activeChannelId()));
 
-    private channelMessages = signal<Record<string, ChatMessage[]>>({
-        'c-general': [
-            { id: '1', senderId: 'hoang', senderName: 'Hoàng Nam', text: 'Anh em làm xong bài tập Discrete Math chưa?', timestamp: '09:15 AM' }
-        ],
-        'c-java': [
-            { id: '1', senderId: 'kevin', senderName: 'Kevin', text: 'Dự án DoAnCuoiKi đang bị lỗi file path này Phúc ơi!', timestamp: '10:00 AM' }
-        ]
-    });
+    private channelMessages = signal<Record<string, ChatMessage[]>>({});
 
     messages = computed(() => {
         const channelId = this.activeChannelId();
         return this.channelMessages()[channelId] || [];
     });
+
 
     constructor() {
         this.loadServers();
