@@ -18,22 +18,40 @@
             </div>
             } @else {
             @let activeUser = friendService.activeFriend();
-            <div
-                class="w-8 h-8 rounded-full bg-[#1b1d22] text-white font-bold flex items-center justify-center text-sm border border-[#2a2c33]">
-                {{ activeUser ? activeUser.displayName.charAt(0) : '?' }}
+            <div class="relative flex items-center justify-center">
+                @if (activeUser?.avatarUrl) {
+                    <img [src]="activeUser.avatarUrl" class="w-8 h-8 rounded-full object-cover shrink-0 border border-[#2a2c33]" alt="Avatar" />
+                } @else {
+                    <div class="w-8 h-8 rounded-full bg-[#1b1d22] text-white font-bold flex items-center justify-center text-sm border border-[#2a2c33]">
+                        {{ activeUser ? activeUser.displayName.charAt(0) : '?' }}
+                    </div>
+                }
+                @if (activeUser) {
+                    <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#0e0f12]"
+                        [class.bg-emerald-500]="activeUser.presence === 'online'"
+                        [class.bg-amber-500]="activeUser.presence === 'idle'"
+                        [class.bg-rose-500]="activeUser.presence === 'dnd'"
+                        [class.bg-zinc-500]="!activeUser.presence || activeUser.presence === 'offline'"></span>
+                }
             </div>
             <div class="flex items-center gap-2">
-                <span class="font-bold text-white text-sm">{{ activeUser ? activeUser.displayName : 'Trò chuyện'
-                    }}</span>
+                <span class="font-bold text-white text-sm">{{ activeUser ? activeUser.displayName : 'Trò chuyện' }}</span>
                 @if (activeUser) {
                 <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium"
                     [class.bg-emerald-500\/10]="activeUser.presence === 'online'"
                     [class.text-emerald-400]="activeUser.presence === 'online'"
-                    [class.bg-zinc-500\/10]="activeUser.presence === 'offline'"
-                    [class.text-zinc-400]="activeUser.presence === 'offline'">
-                    <span class="w-1.5 h-1.5 rounded-full" [class.bg-emerald-400]="activeUser.presence === 'online'"
-                        [class.bg-zinc-500]="activeUser.presence === 'offline'"></span>
-                    {{ activeUser.presence === 'online' ? 'Online' : 'Offline' }}
+                    [class.bg-amber-500\/10]="activeUser.presence === 'idle'"
+                    [class.text-amber-400]="activeUser.presence === 'idle'"
+                    [class.bg-rose-500\/10]="activeUser.presence === 'dnd'"
+                    [class.text-rose-400]="activeUser.presence === 'dnd'"
+                    [class.bg-zinc-500\/10]="!activeUser.presence || activeUser.presence === 'offline'"
+                    [class.text-zinc-400]="!activeUser.presence || activeUser.presence === 'offline'">
+                    <span class="w-1.5 h-1.5 rounded-full"
+                        [class.bg-emerald-400]="activeUser.presence === 'online'"
+                        [class.bg-amber-400]="activeUser.presence === 'idle'"
+                        [class.bg-rose-400]="activeUser.presence === 'dnd'"
+                        [class.bg-zinc-500]="!activeUser.presence || activeUser.presence === 'offline'"></span>
+                    {{ activeUser.presence === 'online' ? 'Online' : (activeUser.presence === 'idle' ? 'Chờ' : (activeUser.presence === 'dnd' ? 'Đừng làm phiền' : 'Offline')) }}
                 </span>
                 }
             </div>
@@ -54,11 +72,14 @@
 
             @for (msg of activeMessages; track msg.id) {
             <div class="flex items-start gap-3.5 w-full">
-                <div
-                    class="w-10 h-10 rounded-full bg-[#1b1d22] text-white font-bold flex items-center justify-center shrink-0 border border-[#2a2c33]">
-                    {{ msg.senderName ? msg.senderName.charAt(0) : (msg.senderId === 'user' ? 'P' :
-                    friendService.activeFriend() ? friendService.activeFriend()!.displayName.charAt(0) : 'U') }}
-                </div>
+                @if (getSenderAvatar(msg)) {
+                    <img [src]="getSenderAvatar(msg)" class="w-10 h-10 rounded-full object-cover shrink-0 border border-[#2a2c33]" alt="Avatar" />
+                } @else {
+                    <div
+                        class="w-10 h-10 rounded-full bg-[#1b1d22] text-white font-bold flex items-center justify-center shrink-0 border border-[#2a2c33]">
+                        {{ getSenderInitial(msg) }}
+                    </div>
+                }
 
                 <div class="flex flex-col items-start max-w-[80%] min-w-0">
                     <div class="flex items-center gap-2 mb-1">
@@ -106,16 +127,23 @@
     @if (profile) {
     <div class="w-80 h-full bg-[#0e0f12] p-4 shrink-0 hidden lg:block">
         <div class="bg-[#141519] border border-[#22242b] rounded-2xl p-5">
-            <!-- Avatar -->
-            @if (profile.avatarUrl) {
-                <img [src]="profile.avatarUrl" alt="Avatar"
-                    class="w-16 h-16 rounded-full object-cover mb-4 border border-[#2a2c33]" />
-            } @else {
-                <div
-                    class="w-16 h-16 rounded-full bg-[#1b1d22] text-white font-bold flex items-center justify-center text-xl mb-4 border border-[#2a2c33]">
-                    {{ profile.displayName.charAt(0) }}
-                </div>
-            }
+            <!-- Avatar & Badge -->
+            <div class="relative w-16 h-16 mb-4">
+                @if (profile.avatarUrl) {
+                    <img [src]="profile.avatarUrl" alt="Avatar"
+                        class="w-16 h-16 rounded-full object-cover border border-[#2a2c33]" />
+                } @else {
+                    <div
+                        class="w-16 h-16 rounded-full bg-[#1b1d22] text-white font-bold flex items-center justify-center text-xl border border-[#2a2c33]">
+                        {{ profile.displayName.charAt(0) }}
+                    </div>
+                }
+                <span class="absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-[#141519]"
+                    [class.bg-emerald-500]="profile.presence === 'online'"
+                    [class.bg-amber-500]="profile.presence === 'idle'"
+                    [class.bg-rose-500]="profile.presence === 'dnd'"
+                    [class.bg-zinc-500]="!profile.presence || profile.presence === 'offline'"></span>
+            </div>
 
             <h3 class="text-lg font-bold text-white">{{ profile.displayName }}</h3>
             <p class="text-xs text-zinc-500 mb-4">&#64;{{ profile.username }}</p>

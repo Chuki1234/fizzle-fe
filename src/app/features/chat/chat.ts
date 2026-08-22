@@ -13,6 +13,8 @@ import { FriendService } from '../../core/services/friend';
 import { ServerService } from '../../core/services/server';
 import { AuthStore } from '../../core/auth/auth.store';
 
+import { ChatMessage } from '../../core/models/friend.model';
+
 @Component({
     selector: 'fz-chat',
     standalone: true,
@@ -73,6 +75,34 @@ export class Chat implements OnInit {
         } else {
             this.friendService.sendMessage(text, senderName, senderId);
         }
+    }
+
+    getSenderAvatar(msg: ChatMessage): string | null {
+        const currentUserId = this.authStore.user()?.id || 'user';
+        if (msg.senderId === currentUserId || msg.senderId === 'user') {
+            return this.authStore.user()?.avatarUrl || null;
+        }
+        const activeFriend = this.friendService.activeFriend();
+        if (activeFriend && (activeFriend.id === msg.senderId || activeFriend.username === msg.senderId) && activeFriend.avatarUrl) {
+            return activeFriend.avatarUrl;
+        }
+        const friend = this.friendService.friends().find(f => f.id === msg.senderId || f.username === msg.senderId);
+        if (friend?.avatarUrl) {
+            return friend.avatarUrl;
+        }
+        return null;
+    }
+
+    getSenderInitial(msg: ChatMessage): string {
+        if (msg.senderName) return msg.senderName.charAt(0).toUpperCase();
+        const currentUserId = this.authStore.user()?.id || 'user';
+        if (msg.senderId === currentUserId || msg.senderId === 'user') {
+            const name = this.authStore.user()?.displayName || this.authStore.user()?.username || 'P';
+            return name.charAt(0).toUpperCase();
+        }
+        const friend = this.friendService.friends().find(f => f.id === msg.senderId || f.username === msg.senderId);
+        if (friend?.displayName) return friend.displayName.charAt(0).toUpperCase();
+        return 'U';
     }
 
     private scrollToBottom(): void {

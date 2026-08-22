@@ -123,10 +123,11 @@
                                     {{ friend.displayName.charAt(0) }}
                                 </div>
                             }
-                            <span class="sidebar-left__status-dot" [class.bg-emerald-500]="friend.presence === 'online'"
-                                [class.bg-amber-500]="friend.presence === 'idle'"
-                                [class.bg-rose-500]="friend.presence === 'dnd'"
-                                [class.bg-zinc-500]="friend.presence === 'offline'"></span>
+                            <span class="sidebar-left__status-dot"
+                                [class.sidebar-left__status-dot--online]="friend.presence === 'online'"
+                                [class.sidebar-left__status-dot--idle]="friend.presence === 'idle'"
+                                [class.sidebar-left__status-dot--dnd]="friend.presence === 'dnd'"
+                                [class.sidebar-left__status-dot--offline]="!friend.presence || friend.presence === 'offline'"></span>
                         </div>
 
                         <div class="sidebar-left__dm-info">
