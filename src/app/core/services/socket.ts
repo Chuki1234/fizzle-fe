@@ -1,10 +1,11 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, NgZone, inject } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
 
 @Injectable({
   providedIn: 'root'
 })
 export class SocketService {
+  private ngZone = inject(NgZone);
   private socket!: Socket;
   private userId: string = '';
 
@@ -22,6 +23,7 @@ export class SocketService {
     this.userId = userId;
 
     if (this.socket) {
+      this.socket.removeAllListeners();
       this.socket.disconnect();
     }
 
@@ -32,90 +34,116 @@ export class SocketService {
     });
 
     this.socket.on('connect', () => {
-      console.log('[Socket] Connected with ID:', this.socket.id);
-      // Authenticate user
-      this.socket.emit('authenticate', { userId });
+      this.ngZone.run(() => {
+        console.log('[Socket] Connected with ID:', this.socket.id, 'userId:', userId);
+        this.socket.emit('authenticate', { userId });
+      });
     });
 
     this.socket.on('disconnect', () => {
-      console.log('[Socket] Disconnected');
+      this.ngZone.run(() => {
+        console.log('[Socket] Disconnected');
+      });
     });
 
     this.socket.on('connect_error', (err) => {
-      console.warn('[Socket] Connection error:', err.message);
+      this.ngZone.run(() => {
+        console.warn('[Socket] Connection error:', err.message);
+      });
     });
 
     this.listenEvents();
   }
 
   disconnect() {
+    this.socket?.removeAllListeners();
     this.socket?.disconnect();
   }
 
   private listenEvents() {
-    // Channel messages
+    // ---- CHANNEL MESSAGES ----
     this.socket.on('channel_message', (data: any) => {
-      if (data?.channelId && data?.message) {
-        this.onChannelMessage?.(data.channelId, data.message);
-      }
+      this.ngZone.run(() => {
+        if (data?.channelId && data?.message) {
+          this.onChannelMessage?.(data.channelId, data.message);
+        }
+      });
     });
 
-    // Direct messages from server
+    // ---- DIRECT MESSAGES ----
     this.socket.on('receive_message', (data: any) => {
-      if (!data) return;
+      this.ngZone.run(() => {
+        if (!data) return;
 
-      // Channel message has channelId
-      if (data.channelId && data.message) {
-        this.onChannelMessage?.(data.channelId, data.message);
-        return;
-      }
+        // Skip channel messages here — handled by 'channel_message' event above
+        if (data.channelId && data.message) {
+          return;
+        }
 
-      // DM: has senderId and targetId
-      if (data.senderId && data.targetId && data.message) {
-        this.onDirectMessage?.(data.senderId, data.targetId, data.message);
-        return;
-      }
+        // DM: targeted to this user's room, has senderId and targetId
+        if (data.senderId && data.targetId && data.message) {
+          this.onDirectMessage?.(data.senderId, data.targetId, data.message);
+          return;
+        }
+      });
     });
 
-    // Generic DM update
     this.socket.on('dm_update', (data: any) => {
-      if (data?.senderId && data?.recipientId && data?.message) {
-        this.onDirectMessage?.(data.senderId, data.recipientId, data.message);
-      }
+      this.ngZone.run(() => {
+        if (data?.senderId && data?.recipientId && data?.message) {
+          this.onDirectMessage?.(data.senderId, data.recipientId, data.message);
+        }
+      });
     });
 
-    // Friend requests
+    // ---- FRIEND EVENTS ----
     this.socket.on('friend_request_received', (data: any) => {
-      this.onFriendRequestReceived?.(data);
+      this.ngZone.run(() => {
+        this.onFriendRequestReceived?.(data);
+      });
     });
 
     this.socket.on('friend_request_event', (data: any) => {
-      if (data?.targetUserId === this.userId || data?.requestData?.fromUserId === this.userId) {
-        this.onFriendRequestReceived?.(data?.requestData);
-      }
+      this.ngZone.run(() => {
+        if (data?.targetUserId === this.userId) {
+          this.onFriendRequestReceived?.(data?.requestData);
+        }
+      });
     });
 
     this.socket.on('friend_request_accepted', (data: any) => {
-      this.onFriendAccepted?.(data);
+      this.ngZone.run(() => {
+        this.onFriendAccepted?.(data);
+      });
     });
 
     this.socket.on('friend_accepted_event', (data: any) => {
-      this.onFriendAccepted?.(data?.data);
+      this.ngZone.run(() => {
+        if (data?.userAId === this.userId || data?.userBId === this.userId) {
+          this.onFriendAccepted?.(data?.data);
+        }
+      });
     });
 
-    // Server events
+    // ---- SERVER EVENTS ----
     this.socket.on('server_invite_received', (data: any) => {
-      this.onServerInviteReceived?.(data);
+      this.ngZone.run(() => {
+        this.onServerInviteReceived?.(data);
+      });
     });
 
     this.socket.on('server_updated', (data: any) => {
-      this.onServerUpdated?.(data);
+      this.ngZone.run(() => {
+        this.onServerUpdated?.(data);
+      });
     });
 
     this.socket.on('server_invite_event', (data: any) => {
-      if (data?.targetUserId === this.userId) {
-        this.onServerInviteReceived?.(data?.serverData);
-      }
+      this.ngZone.run(() => {
+        if (data?.targetUserId === this.userId) {
+          this.onServerInviteReceived?.(data?.serverData);
+        }
+      });
     });
   }
 

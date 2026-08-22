@@ -6,6 +6,7 @@ import { ChatMessage } from '../models/friend.model';
 import { API_CONFIG } from '../http/api.config';
 import { SocketService } from './socket';
 import { AuthStore } from '../auth/auth.store';
+import { NotificationService } from './notification.service';
 
 @Injectable({
     providedIn: 'root'
@@ -16,6 +17,7 @@ export class ServerService {
     private apiConfig = inject(API_CONFIG);
     private socketService = inject(SocketService);
     private authStore = inject(AuthStore);
+    private notificationService = inject(NotificationService);
 
     // --- STATE QUẢN LÝ VOICE CHANNEL ---
     activeVoiceChannel = signal<{ serverId: string; channelId: string; channelName: string } | null>(null);
@@ -110,26 +112,40 @@ export class ServerService {
             }
 
             if (data.type === 'SERVER_CREATED' && data.server) {
-                const exists = this.servers().some(s => s.id === data.server.id);
-                if (!exists) {
-                    this.servers.update(list => [...list, data.server]);
-                }
+                // Reload from backend to get accurate state (avoids duplicate with optimistic add)
+                this.loadServers();
             }
 
             if (data.type === 'MEMBER_ADDED' && data.server) {
-                const exists = this.servers().some(s => s.id === data.server.id);
-                if (!exists) {
-                    this.servers.update(list => [...list, data.server]);
+                // Check if this member added is the current user
+                const currentUserId = this.authStore.user()?.id;
+                if (data.userId === currentUserId || (data.server.members && data.server.members.includes(currentUserId))) {
+                    const exists = this.servers().some(s => s.id === data.server.id);
+                    if (!exists) {
+                        this.servers.update(list => [...list, data.server]);
+                    }
                 }
+                this.loadServers();
             }
         });
 
         this.socketService.registerServerInviteHandler((data) => {
             if (!data || !data.server) return;
+            // 1. Add server immediately to state
             const exists = this.servers().some(s => s.id === data.server.id);
             if (!exists) {
                 this.servers.update(list => [...list, data.server]);
             }
+            // 2. Show toast notification
+            this.notificationService.show({
+                type: 'server_invite',
+                title: 'Lời mời máy chủ mới 🚀',
+                message: `Bạn đã được thêm vào máy chủ "${data.server.name}"!`,
+                actionLabel: 'Mở máy chủ',
+                actionRoute: ['/channels', data.server.id, data.server.channels?.[0]?.id || '']
+            });
+            // 3. Sync from backend
+            this.loadServers();
         });
     }
 
@@ -141,13 +157,15 @@ export class ServerService {
             next: (data) => {
                 if (data && data.length > 0) {
                     this.servers.set(data);
-                    const currentServer = data.find(s => s.id === this.activeServerId()) || data[0];
-                    if (currentServer) {
-                        this.activeServerId.set(currentServer.id);
-                        const hasChannel = currentServer.channels.some(c => c.id === this.activeChannelId());
-                        if (!hasChannel && currentServer.channels.length > 0) {
-                            const firstText = currentServer.channels.find(c => c.type === 'text') || currentServer.channels[0];
-                            this.activeChannelId.set(firstText.id);
+                    const currentServerId = this.activeServerId();
+                    if (currentServerId) {
+                        const currentServer = data.find(s => s.id === currentServerId);
+                        if (currentServer) {
+                            const hasChannel = currentServer.channels.some(c => c.id === this.activeChannelId());
+                            if (!hasChannel && currentServer.channels.length > 0) {
+                                const firstText = currentServer.channels.find(c => c.type === 'text') || currentServer.channels[0];
+                                this.activeChannelId.set(firstText.id);
+                            }
                         }
                     }
                 }
@@ -245,7 +263,11 @@ export class ServerService {
 
         this.http.post<Server>(`${this.apiConfig.baseUrl}/servers`, payload).subscribe({
             next: (newServer) => {
-                this.servers.update(list => [...list, newServer]);
+                // Add server directly from response (do NOT rely on socket SERVER_CREATED to avoid duplicate)
+                const exists = this.servers().some(s => s.id === newServer.id);
+                if (!exists) {
+                    this.servers.update(list => [...list, newServer]);
+                }
                 this.selectServer(newServer.id);
             },
             error: () => {

@@ -4,6 +4,7 @@ import { Friend, ChatMessage } from '../models/friend.model';
 import { API_CONFIG } from '../http/api.config';
 import { SocketService } from './socket';
 import { AuthStore } from '../auth/auth.store';
+import { NotificationService } from './notification.service';
 
 @Injectable({
     providedIn: 'root'
@@ -13,6 +14,7 @@ export class FriendService implements OnDestroy {
     private apiConfig = inject(API_CONFIG);
     private socketService = inject(SocketService);
     private authStore = inject(AuthStore);
+    private notificationService = inject(NotificationService);
 
     // 1. Danh sách bạn bè gốc
     friends = signal<Friend[]>([
@@ -110,6 +112,9 @@ export class FriendService implements OnDestroy {
     searchError = signal<string>('');
     friendRequestStatus = signal<Record<string, 'idle' | 'sending' | 'sent' | 'error'>>({});
 
+    // Unread message count per friend ID (for badge)
+    unreadCounts = signal<Record<string, number>>({});
+
     // --- COMPUTED PROPERTIES ---
 
     filteredFriends = computed(() => {
@@ -165,7 +170,7 @@ export class FriendService implements OnDestroy {
 
             this.messagesByFriend.update(store => {
                 const current = store[partnerId] || [];
-                // Avoid duplicates
+                // Avoid duplicates by message id
                 if (current.some(m => m.id === message.id)) return store;
                 return { ...store, [partnerId]: [...current, message] };
             });
@@ -173,6 +178,39 @@ export class FriendService implements OnDestroy {
             // Auto add to DM sidebar
             if (!this.directMessageIds().includes(partnerId)) {
                 this.directMessageIds.update(ids => [...ids, partnerId]);
+
+                // If partner not in friends list, add as a placeholder so sidebar renders
+                const alreadyKnown = this.friends().some(f => f.id === partnerId);
+                if (!alreadyKnown) {
+                    this.friends.update(list => [
+                        ...list,
+                        {
+                            id: partnerId,
+                            username: partnerId,
+                            displayName: message.senderName || partnerId,
+                            avatarUrl: null,
+                            presence: 'online' as const,
+                            statusText: '',
+                            relationshipStatus: 'friend' as const
+                        }
+                    ]);
+                }
+            }
+
+            // Track unread if partner is not currently active chat
+            if (this.activeChatId() !== partnerId) {
+                this.unreadCounts.update(counts => ({
+                    ...counts,
+                    [partnerId]: (counts[partnerId] || 0) + 1
+                }));
+
+                this.notificationService.show({
+                    type: 'message',
+                    title: message.senderName || 'Tin nhắn mới',
+                    message: message.text,
+                    actionLabel: 'Mở tin nhắn',
+                    actionRoute: ['/chat', partnerId]
+                });
             }
         });
 
@@ -203,6 +241,14 @@ export class FriendService implements OnDestroy {
                     list.map(f => f.id === fromUserId ? { ...f, relationshipStatus: 'pending' } : f)
                 );
             }
+
+            this.notificationService.show({
+                type: 'friend_request',
+                title: 'Lời mời kết bạn mới 👤',
+                message: `Bạn nhận được lời mời kết bạn từ ${fromUserId}!`,
+                actionLabel: 'Xem lời mời',
+                actionRoute: ['/friends']
+            });
         });
 
         // Friend accepted via socket
@@ -269,6 +315,8 @@ export class FriendService implements OnDestroy {
     // --- Đổi người dùng đang chat ---
     setActiveChat(id: string) {
         this.activeChatId.set(id);
+        // Clear unread count when opening chat
+        this.unreadCounts.update(counts => ({ ...counts, [id]: 0 }));
         if (!this.directMessageIds().includes(id)) {
             this.directMessageIds.update(ids => [...ids, id]);
         }
