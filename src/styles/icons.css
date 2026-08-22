@@ -1,0 +1,45 @@
+/* ============================================================================
+   Fizzle — Material Symbols Rounded (Google Fonts) icon utility
+   Dùng: <span class="mi" aria-hidden="true">icon_name</span>
+   Kích thước theo font-size; màu theo currentColor. Tên icon: fonts.google.com/icons
+   ========================================================================== */
+
+.mi {
+  font-family: 'Material Symbols Rounded';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px; /* mặc định; override bằng font-size ở component */
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24;
+  user-select: none;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+/* Biến thể tô đặc (dùng cho trạng thái active/nhấn mạnh) */
+.mi--fill {
+  font-variation-settings:
+    'FILL' 1,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24;
+}
+
+/* Kích thước tiện dụng */
+.mi--18 { font-size: 18px; }
+.mi--20 { font-size: 20px; }
+.mi--22 { font-size: 22px; }

@@ -712,3 +712,7 @@
   cursor: pointer;
   text-decoration: none;
 }
+
+/* --- Material Symbols sizing ------------------------------------------- */
+.date-icon.mi { font-size: 15px; }
+.btn-mint-secondary .mi { font-size: 16px; }

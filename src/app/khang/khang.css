@@ -2474,3 +2474,14 @@
 }
 
 
+
+/* --- Material Symbols sizing (settings chrome) -------------------------- */
+.group-header-btn .nav-emoji { font-size: 18px; margin-right: 4px; }
+.chevron-arrow.mi { font-size: 18px; }
+.search-icon.mi { font-size: 18px; }
+.btn-clear-search .mi { font-size: 16px; }
+.btn-icon-close .mi { font-size: 18px; }
+.btn-close-esc .close-x.mi { font-size: 18px; }
+.chip-remove-btn .mi { font-size: 14px; }
+.link-edit-profiles .mi { font-size: 14px; }
+.date-icon.mi { font-size: 15px; }

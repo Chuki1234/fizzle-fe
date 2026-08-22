@@ -96,3 +96,5 @@
   border-color: var(--color-stone);
   background-color: var(--color-surface-soft);
 }
+
+.login-form__toggle-pw .mi { font-size: 18px; }

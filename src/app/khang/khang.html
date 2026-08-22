@@ -5,7 +5,7 @@
   <div class="modal-card avatar-modal-card" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h3>Thay đổi Ảnh đại diện (Avatar)</h3>
-      <button type="button" class="btn-icon-close" (click)="closeAvatarModal()">✕</button>
+      <button type="button" class="btn-icon-close" (click)="closeAvatarModal()"><span class="mi" aria-hidden="true">close</span></button>
     </div>
 
     <div class="modal-body avatar-modal-body">
@@ -53,7 +53,7 @@
   <div class="modal-card sec-modal-card" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h3>🛡️ Thiết lập Xác thực 2 Yếu tố (2FA)</h3>
-      <button type="button" class="btn-icon-close" (click)="close2FAModal()">✕</button>
+      <button type="button" class="btn-icon-close" (click)="close2FAModal()"><span class="mi" aria-hidden="true">close</span></button>
     </div>
 
     <div class="modal-body">
@@ -106,7 +106,7 @@
         @case ('password') { Thay đổi Mật khẩu }
         }
       </h3>
-      <button type="button" class="btn-icon-close" (click)="closeEditModal()">✕</button>
+      <button type="button" class="btn-icon-close" (click)="closeEditModal()"><span class="mi" aria-hidden="true">close</span></button>
     </div>
 
     <form [formGroup]="settingsForm" (ngSubmit)="saveFieldEdit()">
@@ -167,18 +167,18 @@
       <div class="user-info-text">
         <h2 class="user-display-name">{{ displayName() }}</h2>
         <button type="button" class="link-edit-profiles" (click)="setSection('profiles')">
-          Edit Profiles ✎
+          Edit Profiles <span class="mi" aria-hidden="true">edit</span>
         </button>
       </div>
     </div>
 
     <!-- Search Pill (Matching Screenshot) -->
     <div class="search-pill-box">
-      <span class="search-icon">🔍</span>
+      <span class="mi search-icon">search</span>
       <input type="text" class="search-input" placeholder="Tìm kiếm tính năng..." [value]="searchQuery()"
         (input)="searchQuery.set($any($event.target).value)" />
       @if (searchQuery()) {
-        <button type="button" class="btn-clear-search" (click)="searchQuery.set('')" title="Xóa tìm kiếm">✕</button>
+        <button type="button" class="btn-clear-search" (click)="searchQuery.set('')" title="Xóa tìm kiếm"><span class="mi" aria-hidden="true">close</span></button>
       }
     </div>
 
@@ -187,8 +187,8 @@
       <div class="nav-group">
         <button type="button" class="group-header-btn" [class.active]="activeSection() === 'account-info'"
           (click)="toggleAccountExpand()">
-          <span>👤 Account Info</span>
-          <span class="chevron-arrow">{{ isAccountExpanded() ? '▾' : '▸' }}</span>
+          <span><span class="mi nav-emoji" aria-hidden="true">person</span> Account Info</span>
+          <span class="mi chevron-arrow">{{ isAccountExpanded() ? 'expand_more' : 'chevron_right' }}</span>
         </button>
 
         @if (isAccountExpanded()) {
@@ -214,28 +214,28 @@
       <div class="nav-group">
         <button type="button" class="group-header-btn" [class.active]="activeSection() === 'accessibility'"
           (click)="setSection('accessibility')">
-          ♿ Accessibility & Theme
+          <span class="mi nav-emoji" aria-hidden="true">accessibility_new</span> Accessibility & Theme
         </button>
       </div>
 
       <div class="nav-group">
         <button type="button" class="group-header-btn" [class.active]="activeSection() === 'privacy'"
           (click)="setSection('privacy')">
-          🛡️ Data & Privacy
+          <span class="mi nav-emoji" aria-hidden="true">shield</span> Data & Privacy
         </button>
       </div>
 
       <div class="nav-group">
         <button type="button" class="group-header-btn" [class.active]="activeSection() === 'messaging'"
           (click)="setSection('messaging')">
-          💬 Messaging Permissions
+          <span class="mi nav-emoji" aria-hidden="true">forum</span> Messaging Permissions
         </button>
       </div>
 
       <div class="nav-group">
         <button type="button" class="group-header-btn" [class.active]="activeSection() === 'notifications'"
           (click)="setSection('notifications')">
-          🔔 Notifications
+          <span class="mi nav-emoji" aria-hidden="true">notifications</span> Notifications
         </button>
       </div>
     </nav>
@@ -263,7 +263,7 @@
       </h1>
 
       <button type="button" class="btn-close-esc" (click)="closeSettings()" title="Thoát Cài đặt (Về Dashboard)">
-        <span class="close-x">✕</span>
+        <span class="mi close-x">close</span>
         <span class="esc-label">ESC</span>
       </button>
     </div>
@@ -290,7 +290,7 @@
                   <p class="search-item-desc">{{ item.description }}</p>
                 </div>
                 <button type="button" class="btn-mint-secondary btn-sm flex-shrink-0">
-                  Mở tính năng ➔
+                  Mở tính năng <span class="mi" aria-hidden="true">arrow_forward</span>
                 </button>
               </div>
             }
@@ -317,7 +317,7 @@
             </div>
 
             <button type="button" class="btn-mint-primary margin-top-lg" (click)="searchQuery.set('')">
-              ✕ Xóa tìm kiếm (Quay lại Cài đặt)
+              <span class="mi" aria-hidden="true">close</span> Xóa tìm kiếm (Quay lại Cài đặt)
             </button>
           </div>
         }
@@ -683,7 +683,7 @@
                     <span>Gia nhập Discord: {{ joinedDiscord() }}</span>
                   </div>
                   <div class="date-item">
-                    <span class="date-icon">⚡</span>
+                    <span class="mi date-icon">bolt</span>
                     <span>Gia nhập Server: {{ joinedServer() }}</span>
                   </div>
                 </div>
@@ -1082,7 +1082,7 @@
             @for (word of customBannedWords(); track word) {
               <span class="banned-chip-pill">
                 <span>🚫 {{ word }}</span>
-                <button type="button" class="chip-remove-btn" (click)="removeCustomBannedWord(word)">✕</button>
+                <button type="button" class="chip-remove-btn" (click)="removeCustomBannedWord(word)"><span class="mi" aria-hidden="true">close</span></button>
               </span>
             }
           </div>

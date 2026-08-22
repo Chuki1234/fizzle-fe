@@ -20,6 +20,37 @@
     overflow: hidden;
 }
 
+/* Vùng trái xếp chồng: (server rail + sidebar) ở trên, thanh user ở dưới */
+.left-stack {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    flex-shrink: 0;
+}
+
+.left-top {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+}
+
+/* Thanh user trải ngang cả cột server + sidebar (chỉ trên dashboard) */
+.user-dock {
+    flex-shrink: 0;
+    padding: var(--space-xs) var(--space-sm) var(--space-sm);
+    background-color: var(--color-surface);
+    border-top: 1px solid var(--color-hairline);
+    border-right: 1px solid var(--color-hairline);
+}
+
+/* Cụm đáy trong sidebar (voice control + panel hẹp) luôn nằm dưới cùng */
+.sidebar-left__dock {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
 /* --- SIDEBAR TRÁI CỐ ĐỊNH --- */
 .sidebar-left {
     width: 260px;
@@ -211,6 +242,44 @@
     border: 1px solid var(--color-hairline);
 }
 
+.sidebar-left__user-info {
+    min-width: 0;
+}
+
+/* Nút bánh răng -> trang Cài đặt */
+.sidebar-left__settings-btn {
+    margin-left: auto;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-md);
+    color: var(--color-steel);
+    text-decoration: none;
+    transition:
+        color var(--duration-fast) var(--ease-standard),
+        background-color var(--duration-fast) var(--ease-standard);
+}
+
+.sidebar-left__settings-btn .mi {
+    font-size: 20px;
+}
+
+.sidebar-left__settings-btn:hover {
+    color: var(--color-ink);
+    background-color: var(--color-raised);
+}
+
+.sidebar-left__settings-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+}
+
+.sidebar-left__settings-btn--active {
+    color: var(--color-accent);
+}
+
 .sidebar-left__avatar--user {
     background-color: var(--color-accent);
     color: var(--color-on-accent);
@@ -358,3 +427,9 @@
     background-color: #16171c;
     color: #fff;
 }
+/* --- Material Symbols sizing trong shell -------------------------------- */
+.server-icon-text.mi { font-size: 24px; }
+.sidebar-left__dropdown-icon.mi { font-size: 18px; }
+.sidebar-left__channel-prefix.mi { font-size: 18px; }
+.sidebar-left__nav-icon.mi { font-size: 20px; }
+.sidebar-left__add-btn .mi { font-size: 20px; }

@@ -290,3 +290,5 @@
   max-width: 440px;
   margin: 0 auto;
 }
+
+.auth-shell__feature-icon .mi { font-size: 22px; }

@@ -132,3 +132,6 @@
   grid-template-columns: repeat(3, 1fr);
   gap: var(--space-sm);
 }
+
+.register-form__toggle-pw .mi { font-size: 18px; }
+.register-form__phone-prefix .mi { font-size: 16px; }

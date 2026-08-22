@@ -9,6 +9,7 @@
 @import './styles/tailwind.css';
 @import './styles/base.css';
 @import './styles/typography.css';
+@import './styles/icons.css';
 
 /* Global recipes for directives/shared UI */
 @import './app/shared/ui/input/input.css';

@@ -49,7 +49,7 @@
 
       <div class="modal-actions">
         <a class="btn-mint-secondary" routerLink="/settings" (click)="closeAvatarModal()">
-          ⚙️ Mở trong Cài đặt
+          <span class="mi" aria-hidden="true">settings</span> Mở trong Cài đặt
         </a>
         <button type="button" class="btn-mint-primary" (click)="closeAvatarModal()">Hoàn tất</button>
       </div>
@@ -170,7 +170,7 @@
                 <span>Gia nhập Discord: {{ joinedDiscord() }}</span>
               </div>
               <div class="date-item">
-                <span class="date-icon">⚡</span>
+                <span class="mi date-icon">bolt</span>
                 <span>Gia nhập Server: {{ joinedServer() }}</span>
               </div>
             </div>

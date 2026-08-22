@@ -1,11 +1,15 @@
 <div class="main-shell">
 
+  <!-- VÙNG TRÁI: server rail + sidebar xếp cạnh nhau, phía dưới là thanh user -->
+  <div class="left-stack">
+    <div class="left-top">
+
     <!-- CỘT 1: BAR CHỌN SERVER DỌC (DISCORD STYLE) -->
     <aside class="sidebar-servers">
         <!-- Nút Trang Chủ / Direct Messages -->
         <a routerLink="/friends" (click)="serverService.activeServerId.set('')" class="server-icon-btn"
             [class.server-icon-btn--active]="!serverService.activeServerId()">
-            <span class="server-icon-text">⚡</span>
+            <span class="mi server-icon-text">bolt</span>
             <span class="server-tooltip">Trang chủ & DMs</span>
         </a>
 
@@ -22,7 +26,7 @@
 
         <!-- Nút Thêm Server -> Gọi Modal CREATE_SERVER -->
         <button (click)="modalService.open('CREATE_SERVER')" class="server-icon-btn server-icon-btn--add">
-            <span class="server-icon-text">+</span>
+            <span class="mi server-icon-text">add</span>
             <span class="server-tooltip">Thêm máy chủ</span>
         </button>
     </aside>
@@ -36,7 +40,7 @@
 
             <div class="sidebar-left__server-header">
                 <span class="sidebar-left__server-title">{{ serverService.activeServer()?.name }}</span>
-                <span class="sidebar-left__dropdown-icon">▼</span>
+                <span class="mi sidebar-left__dropdown-icon">expand_more</span>
             </div>
 
             <div class="sidebar-left__content">
@@ -44,13 +48,13 @@
                     <div class="sidebar-left__section-header">
                         <span>KÊNH TRÒ CHUYỆN</span>
                         <!-- Nút Thêm Kênh -> Gọi Modal CREATE_CHANNEL -->
-                        <button (click)="modalService.open('CREATE_CHANNEL')" class="sidebar-left__add-btn">+</button>
+                        <button (click)="modalService.open('CREATE_CHANNEL')" class="sidebar-left__add-btn"><span class="mi">add</span></button>
                     </div>
 
                     @for (channel of serverService.activeServer()?.channels; track channel.id) {
                     <button (click)="serverService.selectChannel(channel)" class="sidebar-left__channel-item"
                         [class.sidebar-left__channel-item--active]="serverService.activeChannelId() === channel.id">
-                        <span class="sidebar-left__channel-prefix">{{ channel.type === 'text' ? '#' : '🎙️' }}</span>
+                        <span class="mi sidebar-left__channel-prefix">{{ channel.type === 'text' ? 'tag' : 'mic' }}</span>
                         <span class="sidebar-left__channel-name">{{ channel.name }}</span>
                     </button>
                     }
@@ -74,7 +78,7 @@
                 <a routerLink="/friends" routerLinkActive="sidebar-left__nav-item--active"
                     class="sidebar-left__nav-item">
                     <div class="sidebar-left__nav-link">
-                        <span class="sidebar-left__nav-icon">👤</span>
+                        <span class="mi sidebar-left__nav-icon">group</span>
                         <span class="sidebar-left__nav-text">Bạn bè</span>
                     </div>
 
@@ -85,7 +89,7 @@
 
                 <a routerLink="/requests" class="sidebar-left__nav-item">
                     <div class="sidebar-left__nav-link">
-                        <span class="sidebar-left__nav-icon">✉️</span>
+                        <span class="mi sidebar-left__nav-icon">mail</span>
                         <span class="sidebar-left__nav-text">Yêu cầu tin nhắn</span>
                     </div>
                 </a>
@@ -93,7 +97,7 @@
                 <div class="sidebar-left__section">
                     <div class="sidebar-left__section-header">
                         <span>TIN NHẮN TRỰC TIẾP</span>
-                        <button class="sidebar-left__add-btn">+</button>
+                        <button class="sidebar-left__add-btn"><span class="mi">add</span></button>
                     </div>
 
                     @for (friend of friendService.directMessages(); track friend.id) {
@@ -121,19 +125,26 @@
 
             }
 
-            <!-- 🎙️ VOICE CONTROL -->
-            <app-voice-control></app-voice-control>
-
-            <!-- USER PROFILE FOOTER -->
-            <div class="sidebar-left__user-profile">
-                <div class="sidebar-left__avatar sidebar-left__avatar--user">P</div>
-                <div class="sidebar-left__user-info">
-                    <span class="sidebar-left__user-name">Thiện Phúc</span>
-                    <span class="sidebar-left__user-status">● Online</span>
-                </div>
+            <!-- Cụm đáy sidebar: voice control + hồ sơ người dùng (bản hẹp,
+                 chỉ hiện khi KHÔNG ở dashboard — trên dashboard nó thành thanh
+                 trải ngang cả cột server ở dưới) -->
+            <div class="sidebar-left__dock">
+                <app-voice-control></app-voice-control>
+                @if (!isDashboard()) {
+                    <app-user-panel></app-user-panel>
+                }
             </div>
         </div>
     </aside>
+    </div>
+
+    <!-- Trên dashboard: thanh user trải ngang cả cột server + sidebar -->
+    @if (isDashboard()) {
+      <div class="user-dock">
+        <app-user-panel></app-user-panel>
+      </div>
+    }
+  </div>
 
     <!-- CỘT 3: NƠI CHỨA NỘI DUNG CHÍNH -->
     <main class="main-shell__content">

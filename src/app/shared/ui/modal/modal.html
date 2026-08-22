@@ -12,7 +12,7 @@
         <!-- Nút Đóng X -->
         <button (click)="modalService.close()" type="button"
             class="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full text-zinc-400 hover:bg-[#35373c] hover:text-white transition">
-            ✕
+            <span class="mi" style="font-size:20px" aria-hidden="true">close</span>
         </button>
 
         <!-- 1. MODAL TẠO SERVER -->
@@ -75,7 +75,7 @@
                         [class.border-emerald-500]="channelType() === 'text'"
                         [class.bg-[#2b2d31]]="channelType() === 'text'"
                         [class.border-[#3f4147]]="channelType() !== 'text'">
-                        <span class="text-lg">#</span>
+                        <span class="mi" style="font-size:20px" aria-hidden="true">tag</span>
                         <div>
                             <p class="text-xs font-bold text-white">Text</p>
                             <p class="text-[10px] text-zinc-400">Gửi tin nhắn, ảnh</p>
@@ -87,7 +87,7 @@
                         [class.border-emerald-500]="channelType() === 'voice'"
                         [class.bg-[#2b2d31]]="channelType() === 'voice'"
                         [class.border-[#3f4147]]="channelType() !== 'voice'">
-                        <span class="text-lg">🎙️</span>
+                        <span class="mi" style="font-size:20px" aria-hidden="true">mic</span>
                         <div>
                             <p class="text-xs font-bold text-white">Voice</p>
                             <p class="text-[10px] text-zinc-400">Nói chuyện trực tiếp</p>

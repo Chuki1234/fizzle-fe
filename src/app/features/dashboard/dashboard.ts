@@ -1,17 +1,17 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { AuthStore } from '../../core/auth/auth.store';
-import { FriendService } from '../../core/services/friend';
 import { ModalService } from '../../core/services/modal';
 import { ServerService } from '../../core/services/server';
 import { Server } from '../../core/models/server.model';
 
 /**
- * Trang chủ (home hub) sau khi đăng nhập: chào theo tên, lối tắt tạo/thêm,
- * danh sách máy chủ của bạn và bạn bè đang hoạt động.
+ * Panel home (cột nội dung chính) khi chưa mở hội thoại nào.
  *
- * Dữ liệu lấy từ ServerService/FriendService sẵn có nên khớp với rail server và
- * trang bạn bè — không tạo số liệu ảo. (Bản MVP dùng mock cho tới khi có backend.)
+ * Vai trò giống khung phải của một app nhắn tin: chào người dùng trở lại và mở
+ * lối nhanh nhất để bắt đầu — nhắn tin, tạo máy chủ, thêm bạn, vào máy chủ.
+ * Danh sách hội thoại/DM và rail server đã do main-layout đảm nhận, nên panel
+ * này cố ý giữ tối giản.
  */
 @Component({
   selector: 'fz-dashboard',
@@ -22,27 +22,28 @@ import { Server } from '../../core/models/server.model';
 })
 export class Dashboard {
   private readonly server = inject(ServerService);
-  private readonly friend = inject(FriendService);
   private readonly modal = inject(ModalService);
   private readonly authStore = inject(AuthStore);
   private readonly router = inject(Router);
 
   protected readonly displayName = this.authStore.displayName;
-  protected readonly servers = this.server.servers;
 
-  /** Bạn bè đã kết bạn và đang không offline — phần "sống" nhất của trang. */
-  protected readonly onlineFriends = computed(() =>
-    this.friend
-      .friends()
-      .filter((f) => f.relationshipStatus === 'friend' && f.presence !== 'offline'),
+  /** Máy chủ đầu tiên của người dùng (nếu có) — dùng cho lối tắt "Vào máy chủ". */
+  protected readonly firstServer = computed<Server | null>(
+    () => this.server.servers()[0] ?? null,
   );
 
   protected createServer(): void {
     this.modal.open('CREATE_SERVER');
   }
 
-  /** Vào một máy chủ: chọn nó trên rail rồi mở kênh đầu tiên. */
-  protected openServer(server: Server): void {
+  /** Mở máy chủ đầu tiên nếu có; nếu chưa có máy chủ nào thì mời tạo mới. */
+  protected enterFirstServer(): void {
+    const server = this.firstServer();
+    if (!server) {
+      this.createServer();
+      return;
+    }
     this.server.selectServer(server.id);
     const firstChannel = server.channels[0];
     if (firstChannel) {

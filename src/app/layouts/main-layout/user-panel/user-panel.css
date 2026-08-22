@@ -1,0 +1,77 @@
+:host {
+  display: block;
+}
+
+.user-panel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background-color: var(--color-surface-soft);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-lg);
+}
+
+.user-panel__avatar {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-accent);
+  color: var(--color-on-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.user-panel__info {
+  min-width: 0;
+}
+
+.user-panel__name {
+  display: block;
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-ink);
+}
+
+.user-panel__status {
+  font-size: var(--text-micro);
+  color: var(--color-presence-online);
+  font-weight: var(--weight-medium);
+}
+
+.user-panel__settings-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  color: var(--color-steel);
+  text-decoration: none;
+  transition:
+    color var(--duration-fast) var(--ease-standard),
+    background-color var(--duration-fast) var(--ease-standard);
+}
+
+.user-panel__settings-btn .mi {
+  font-size: 20px;
+}
+
+.user-panel__settings-btn:hover {
+  color: var(--color-ink);
+  background-color: var(--color-raised);
+}
+
+.user-panel__settings-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.user-panel__settings-btn--active {
+  color: var(--color-accent);
+}
