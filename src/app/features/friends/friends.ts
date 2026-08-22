@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FriendService } from '../../core/services/friend';
@@ -11,8 +11,12 @@ import { FriendService } from '../../core/services/friend';
     templateUrl: './friends.html',
     styleUrl: './friends.css',
 })
-export class Friends {
+export class Friends implements OnInit {
     public friendService = inject(FriendService);
+
+    ngOnInit() {
+        this.friendService.loadFriendsFromBackend();
+    }
 
     onSearch(event: Event) {
         const value = (event.target as HTMLInputElement).value;
