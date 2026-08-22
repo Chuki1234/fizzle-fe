@@ -148,32 +148,14 @@ export class FriendService implements OnDestroy {
             const fromUserId = data.fromUserId || data.relationship?.userAId;
             if (!fromUserId) return;
 
-            // Check if already in list
-            const existing = this.friends().find(f => f.id === fromUserId);
-            if (!existing) {
-                // Add as pending from backend search or a placeholder
-                this.friends.update(list => [
-                    ...list,
-                    {
-                        id: fromUserId,
-                        username: fromUserId,
-                        displayName: fromUserId,
-                        avatarUrl: null,
-                        presence: 'online',
-                        statusText: 'Muốn kết bạn với bạn',
-                        relationshipStatus: 'pending'
-                    }
-                ]);
-            } else if (existing.relationshipStatus !== 'pending') {
-                this.friends.update(list =>
-                    list.map(f => f.id === fromUserId ? { ...f, relationshipStatus: 'pending' } : f)
-                );
-            }
+            // Re-fetch friends from backend to get fresh records from database
+            this.loadFriendsFromBackend();
 
+            const senderName = data.senderDisplayName || data.senderUsername || fromUserId;
             this.notificationService.show({
                 type: 'friend_request',
                 title: 'Lời mời kết bạn mới 👤',
-                message: `Bạn nhận được lời mời kết bạn từ ${fromUserId}!`,
+                message: `Bạn nhận được lời mời kết bạn từ ${senderName}!`,
                 actionLabel: 'Xem lời mời',
                 actionRoute: ['/friends']
             });
@@ -182,13 +164,7 @@ export class FriendService implements OnDestroy {
         // Friend accepted via socket
         this.socketService.registerFriendAcceptedHandler((data) => {
             if (!data) return;
-            const currentUserId = this.authStore.user()?.id || 'user';
-            const otherId = data.userAId === currentUserId ? data.userBId : data.userAId;
-            if (otherId) {
-                this.friends.update(list =>
-                    list.map(f => f.id === otherId ? { ...f, relationshipStatus: 'friend' } : f)
-                );
-            }
+            this.loadFriendsFromBackend();
         });
 
         // User profile / status / customStatus / avatar updated via socket
@@ -264,7 +240,7 @@ export class FriendService implements OnDestroy {
         const params = userId ? `?userId=${userId}` : '';
         this.http.get<Friend[]>(`${this.apiConfig.baseUrl}/friends${params}`).subscribe({
             next: (data) => {
-                if (data && data.length > 0) {
+                if (data) {
                     // Map backend response to Friend model with clean status strings
                     const mapped = data.map(u => {
                         // Parse statusText an toàn: không fallback về JSON raw
@@ -272,7 +248,6 @@ export class FriendService implements OnDestroy {
                         const cleanCustom = cleanStatusString(u.customStatus);
                         return {
                             ...u,
-                            // Nếu parse thành công thì dùng, ngược lại để rỗng
                             statusText: cleanText || '',
                             customStatus: cleanCustom || null,
                             relationshipStatus: (u.relationshipStatus as any) || 'friend'
@@ -283,7 +258,7 @@ export class FriendService implements OnDestroy {
                     // Auto-add current DM friends to directMessageIds
                     const friendIds = mapped
                         .filter(f => f.relationshipStatus === 'friend')
-                        .slice(0, 5)
+                        .slice(0, 10)
                         .map(f => f.id);
                     const current = this.directMessageIds();
                     const merged = [...new Set([...current, ...friendIds])];
@@ -303,7 +278,7 @@ export class FriendService implements OnDestroy {
             next: (msgs) => {
                 this.messagesByFriend.update(store => ({
                     ...store,
-                    [friendId]: msgs
+                    [friendId]: msgs || []
                 }));
             },
             error: (err) => console.warn(`Could not load direct messages for friend ${friendId}:`, err)
@@ -322,10 +297,11 @@ export class FriendService implements OnDestroy {
     }
 
     // --- Gửi tin nhắn ---
-    sendMessage(text: string, senderName: string = 'Thiện Phúc', senderId: string = 'user') {
+    sendMessage(text: string, senderName: string = 'Người dùng', senderId: string = 'user') {
         if (!text.trim()) return;
 
         const currentChatId = this.activeChatId();
+        if (!currentChatId) return;
 
         const userMsg: ChatMessage = {
             id: Date.now().toString(),
@@ -342,7 +318,8 @@ export class FriendService implements OnDestroy {
         });
 
         // Send to backend (which will broadcast via socket to the recipient)
-        this.http.post<ChatMessage>(`${this.apiConfig.baseUrl}/messages/direct/${currentChatId}`, {
+        const params = senderId ? `?userId=${senderId}` : '';
+        this.http.post<ChatMessage>(`${this.apiConfig.baseUrl}/messages/direct/${currentChatId}${params}`, {
             text: text,
             senderId: senderId,
             senderName: senderName
@@ -398,14 +375,7 @@ export class FriendService implements OnDestroy {
         }).subscribe({
             next: () => {
                 this.friendRequestStatus.update(s => ({ ...s, [targetUserId]: 'sent' }));
-                // Update friends list to show pending_outgoing
-                const existing = this.friends().find(f => f.id === targetUserId);
-                if (!existing) {
-                    const result = this.searchResults().find(r => r.id === targetUserId);
-                    if (result) {
-                        this.friends.update(list => [...list, { ...result, relationshipStatus: 'pending' as any }]);
-                    }
-                }
+                this.loadFriendsFromBackend();
             },
             error: (err) => {
                 console.warn('Failed to send friend request:', err);
@@ -421,9 +391,7 @@ export class FriendService implements OnDestroy {
 
         this.http.post<any>(`${this.apiConfig.baseUrl}/friends/${id}/accept${params}`, {}).subscribe({
             next: () => {
-                this.friends.update(list =>
-                    list.map(f => f.id === id ? { ...f, relationshipStatus: 'friend' } : f)
-                );
+                this.loadFriendsFromBackend();
                 // Add to DM sidebar
                 if (!this.directMessageIds().includes(id)) {
                     this.directMessageIds.update(ids => [...ids, id]);
@@ -431,10 +399,7 @@ export class FriendService implements OnDestroy {
             },
             error: (err) => {
                 console.warn('Failed to accept friend request:', err);
-                // Still update locally
-                this.friends.update(list =>
-                    list.map(f => f.id === id ? { ...f, relationshipStatus: 'friend' } : f)
-                );
+                this.loadFriendsFromBackend();
             }
         });
     }
@@ -446,11 +411,11 @@ export class FriendService implements OnDestroy {
 
         this.http.post<any>(`${this.apiConfig.baseUrl}/friends/${id}/reject${params}`, {}).subscribe({
             next: () => {
-                this.friends.update(list => list.filter(f => f.id !== id));
+                this.loadFriendsFromBackend();
             },
             error: (err) => {
                 console.warn('Failed to reject friend request:', err);
-                this.friends.update(list => list.filter(f => f.id !== id));
+                this.loadFriendsFromBackend();
             }
         });
     }
