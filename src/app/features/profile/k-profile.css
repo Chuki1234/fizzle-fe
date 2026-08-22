@@ -364,13 +364,13 @@
 .discord-banner.clickable { cursor: pointer; }
 
 .discord-card-inner {
-  background: #232428; margin: -44px 12px 12px 12px;
-  border-radius: 16px; padding: 16px; position: relative;
+  background: #232428; margin: -28px 12px 12px 12px;
+  border-radius: 16px; padding: 16px; position: relative; z-index: 1;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
 .avatar-row { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 14px; }
-.avatar-wrapper { position: relative; width: 90px; height: 90px; margin-top: -46px; }
+.avatar-wrapper { position: relative; width: 90px; height: 90px; margin-top: -40px; flex-shrink: 0; z-index: 2; }
 
 .avatar-image-circle {
   width: 84px; height: 84px; border-radius: 50%;

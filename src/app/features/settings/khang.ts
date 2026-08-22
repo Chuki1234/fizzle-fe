@@ -724,9 +724,11 @@ export class Khang {
   }
 
   selectPresetColor(preset: { hex: string; gradient: string; name: string }) {
-    this.bannerColor.set(preset.hex);
-    this.bannerGradient.set(preset.gradient);
-    this.showToast(`Đã áp dụng tông màu: ${preset.name}`);
+    this.profileService.selectPresetColor(preset);
+  }
+
+  setAvatarFrame(frameId: string) {
+    this.profileService.setAvatarFrame(frameId);
   }
 
   toggleBadge(badgeId: string) {
