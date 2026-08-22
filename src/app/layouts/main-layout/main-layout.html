@@ -151,11 +151,13 @@
             <!-- USER PROFILE FOOTER -->
             <div class="sidebar-left__user-profile">
                 <a routerLink="/profile" class="sidebar-left__user-profile-left" title="Trang cá nhân">
-                    @if (authStore.user()?.avatarUrl) {
-                        <img [src]="authStore.user()?.avatarUrl" class="sidebar-left__avatar sidebar-left__avatar--user" alt="Avatar" />
-                    } @else {
-                        <div class="sidebar-left__avatar sidebar-left__avatar--user">{{ userInitial() }}</div>
-                    }
+                    <div class="sidebar-left__avatar-wrapper" [class]="'sidebar-left__avatar-wrapper frame-' + (authStore.user()?.avatarFrame || 'none')">
+                        @if (authStore.user()?.avatarUrl) {
+                            <img [src]="authStore.user()?.avatarUrl" class="sidebar-left__avatar sidebar-left__avatar--user" alt="Avatar" />
+                        } @else {
+                            <div class="sidebar-left__avatar sidebar-left__avatar--user">{{ userInitial() }}</div>
+                        }
+                    </div>
                     <div class="sidebar-left__user-info">
                         <span class="sidebar-left__user-name">{{ authStore.user()?.displayName || authStore.user()?.username || 'Người dùng' }}</span>
                         <span class="sidebar-left__user-status" [style.color]="userStatusColor()">● {{ userStatusText() }}</span>

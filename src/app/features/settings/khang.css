@@ -495,21 +495,19 @@
   justify-content: space-between;
   padding: 4px 0;
 
-  &:not(:last-child) {
-    border-bottom: 1px solid #2b2d31;
-    padding-bottom: 16px;
-  }
+  border-bottom: 1px solid #2b2d31;
+  padding-bottom: 16px;
+}
 
-  &.clickable {
-    cursor: pointer;
-    border-radius: 6px;
-    padding: 8px 10px;
-    margin: 0 -10px;
+.account-row-item.clickable {
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin: 0 -10px;
+}
 
-    &:hover {
-      background-color: #2b2d31;
-    }
-  }
+.account-row-item.clickable:hover {
+  background-color: #2b2d31;
 }
 
 .row-label {
@@ -919,7 +917,7 @@
 }
 
 .discord-banner {
-  height: 105px;
+  height: 120px;
   width: 100%;
   position: relative;
   transition: background 0.3s ease;
@@ -927,10 +925,11 @@
 
 .discord-card-inner {
   background: #232428;
-  margin: -40px 10px 10px 10px;
+  margin: -24px 10px 10px 10px;
   border-radius: 12px;
   padding: 14px;
   position: relative;
+  z-index: 1;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
@@ -945,7 +944,9 @@
   position: relative;
   width: 80px;
   height: 80px;
-  margin-top: -42px;
+  margin-top: -36px;
+  flex-shrink: 0;
+  z-index: 2;
 }
 
 .avatar-image-circle {

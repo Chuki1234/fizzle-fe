@@ -175,7 +175,24 @@ export class ProfileService {
       if (user.aboutMe !== undefined) this.aboutMe.set(user.aboutMe ?? '');
       if (user.bannerColor !== undefined && user.bannerColor !== null) {
         this.bannerColor.set(user.bannerColor);
-        this.bannerGradient.set(`linear-gradient(135deg, #1e1f22 0%, ${user.bannerColor} 50%, #00d4a4 100%)`);
+      }
+      if ((user as any).bannerGradient) {
+        this.bannerGradient.set((user as any).bannerGradient);
+      } else if (user.bannerColor) {
+        const presets = [
+          { hex: '#2b2d31', gradient: 'linear-gradient(135deg, #1e1f22 0%, #2b2d31 100%)' },
+          { hex: '#0a0a0a', gradient: 'linear-gradient(135deg, #0a0a0a 0%, #1c1c1e 50%, #00d4a4 100%)' },
+          { hex: '#1e1f22', gradient: 'linear-gradient(135deg, #111214 0%, #1e1f22 100%)' },
+          { hex: '#383a40', gradient: 'linear-gradient(135deg, #2b2d31 0%, #383a40 100%)' },
+          { hex: '#4e5058', gradient: 'linear-gradient(135deg, #313338 0%, #4e5058 100%)' },
+          { hex: '#111214', gradient: 'linear-gradient(135deg, #090a0b 0%, #00d4a4 100%)' },
+        ];
+        const matched = presets.find(p => p.hex === user.bannerColor);
+        if (matched) {
+          this.bannerGradient.set(matched.gradient);
+        } else {
+          this.bannerGradient.set(`linear-gradient(135deg, #1e1f22 0%, ${user.bannerColor} 50%, #00d4a4 100%)`);
+        }
       }
       if (user.avatarFrame !== undefined && user.avatarFrame !== null) this.avatarFrame.set(user.avatarFrame);
       if (user.avatarUrl !== undefined) this.avatarUrl.set(user.avatarUrl);
@@ -199,7 +216,7 @@ export class ProfileService {
   selectPresetColor(preset: { hex: string; gradient: string; name: string }): void {
     this.bannerColor.set(preset.hex);
     this.bannerGradient.set(preset.gradient);
-    this.authService.updateProfile({ bannerColor: preset.hex }).subscribe({
+    this.authService.updateProfile({ bannerColor: preset.hex, bannerGradient: preset.gradient } as any).subscribe({
       next: () => this.showToast(`Đã áp dụng tông màu: ${preset.name}`),
       error: () => this.showToast('Lỗi khi lưu màu banner!'),
     });
@@ -240,6 +257,7 @@ export class ProfileService {
       customStatusEmoji: this.customStatusEmoji() || null,
       aboutMe: this.aboutMe() || null,
       bannerColor: this.bannerColor() || null,
+      bannerGradient: this.bannerGradient() || null,
       avatarFrame: this.avatarFrame() || null,
     };
 

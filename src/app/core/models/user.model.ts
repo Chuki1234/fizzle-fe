@@ -17,6 +17,7 @@ export interface User {
   customStatusEmoji?: string | null;
   aboutMe?: string | null;
   bannerColor?: string | null;
+  bannerGradient?: string | null;
   avatarFrame?: string | null;
   presence: PresenceStatus;
   /** ISO date (YYYY-MM-DD). */

@@ -735,7 +735,7 @@
               <div class="frames-picker-grid">
                 @for (frame of avatarFrames; track frame.id) {
                 <button type="button" class="frame-picker-card" [class.active]="avatarFrame() === frame.id"
-                  (click)="avatarFrame.set(frame.id)">
+                  (click)="setAvatarFrame(frame.id)">
                   <div class="frame-demo-avatar" [class]="frame.class">FC</div>
                   <span class="frame-picker-title">{{ frame.name }}</span>
                 </button>
