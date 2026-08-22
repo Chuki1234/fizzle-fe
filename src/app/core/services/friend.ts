@@ -4,6 +4,7 @@ import { Friend, ChatMessage } from '../models/friend.model';
 import { API_CONFIG } from '../http/api.config';
 import { SocketService } from './socket';
 import { AuthStore } from '../auth/auth.store';
+import { cleanStatusString } from './profile';
 
 @Injectable({
     providedIn: 'root'
@@ -216,10 +217,68 @@ export class FriendService implements OnDestroy {
                 );
             }
         });
+
+        // User profile / status / customStatus / avatar updated via socket
+        this.socketService.registerUserStatusUpdatedHandler((data) => {
+            if (!data || (!data.userId && !data.id)) return;
+            const updatedId = data.userId || data.id;
+
+            // Update reactive friends signal array
+            this.friends.update(currentList => {
+                const existing = currentList.find(f => f.id === updatedId);
+                if (!existing) return currentList;
+
+                return currentList.map(friend => {
+                    if (friend.id === updatedId) {
+                        // Ưu tiên statusText đã được backend parse sạch
+                        const rawText = data.statusText || data.customStatus || '';
+                        const cleanText = rawText && !rawText.startsWith('{') ? rawText : cleanStatusString(rawText) || friend.statusText || '';
+                        const rawCustom = data.customStatus || '';
+                        const cleanCustom = rawCustom && !rawCustom.startsWith('{') ? rawCustom : cleanStatusString(rawCustom) || friend.customStatus || null;
+                        return {
+                            ...friend,
+                            displayName: data.displayName ?? friend.displayName,
+                            avatarUrl: data.avatarUrl !== undefined ? data.avatarUrl : friend.avatarUrl,
+                            presence: data.presence ?? friend.presence,
+                            statusText: cleanText,
+                            customStatus: cleanCustom,
+                            customStatusEmoji: data.customStatusEmoji !== undefined ? data.customStatusEmoji : friend.customStatusEmoji,
+                        };
+                    }
+                    return friend;
+                });
+            });
+        });
     }
 
     ngOnDestroy() {
         // Cleanup
+    }
+
+    // --- Helper parse status an toàn (không fallback về JSON thô) ---
+    getDisplayStatus(friend: Friend): string {
+        // 1. Ưu tiên customStatus đã được clean từ backend
+        const emoji = friend.customStatusEmoji?.trim() || '';
+        const custom = friend.customStatus?.trim() || '';
+        if (custom && !custom.startsWith('{')) {
+            return emoji ? `${emoji} ${custom}` : custom;
+        }
+        // 2. Thử parse statusText nếu là JSON
+        const rawText = friend.statusText || '';
+        if (rawText.startsWith('{')) {
+            const parsed = cleanStatusString(rawText);
+            if (parsed) return parsed;
+            // JSON không parse được => dùng presence label
+        } else if (rawText && !rawText.startsWith('{')) {
+            return rawText;
+        }
+        // 3. Fallback theo presence
+        switch (friend.presence) {
+            case 'online': return 'Trực tuyến';
+            case 'idle': return 'Chờ';
+            case 'dnd': return 'Đừng làm phiền';
+            default: return 'Ngoại tuyến';
+        }
     }
 
     // --- Load bạn bè từ backend ---
@@ -229,11 +288,19 @@ export class FriendService implements OnDestroy {
         this.http.get<Friend[]>(`${this.apiConfig.baseUrl}/friends${params}`).subscribe({
             next: (data) => {
                 if (data && data.length > 0) {
-                    // Map backend response to Friend model
-                    const mapped = data.map(u => ({
-                        ...u,
-                        relationshipStatus: u.relationshipStatus as any || 'friend'
-                    }));
+                    // Map backend response to Friend model with clean status strings
+                    const mapped = data.map(u => {
+                        // Parse statusText an toàn: không fallback về JSON raw
+                        const cleanText = cleanStatusString(u.statusText);
+                        const cleanCustom = cleanStatusString(u.customStatus);
+                        return {
+                            ...u,
+                            // Nếu parse thành công thì dùng, ngược lại để rỗng
+                            statusText: cleanText || '',
+                            customStatus: cleanCustom || null,
+                            relationshipStatus: (u.relationshipStatus as any) || 'friend'
+                        };
+                    });
                     this.friends.set(mapped);
 
                     // Auto-add current DM friends to directMessageIds
