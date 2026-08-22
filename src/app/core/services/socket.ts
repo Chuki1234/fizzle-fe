@@ -16,6 +16,7 @@ export class SocketService {
   private onFriendAccepted?: (data: any) => void;
   private onServerInviteReceived?: (data: any) => void;
   private onServerUpdated?: (data: any) => void;
+  private onUserStatusUpdated?: (data: any) => void;
 
   connect(userId: string) {
     if (this.socket?.connected && this.userId === userId) return;
@@ -145,6 +146,11 @@ export class SocketService {
         }
       });
     });
+
+    // User status/profile/avatar update
+    this.socket.on('user_status_updated', (data: any) => {
+      this.onUserStatusUpdated?.(data);
+    });
   }
 
   // --- Registration Methods ---
@@ -171,6 +177,10 @@ export class SocketService {
 
   registerServerUpdatedHandler(handler: (data: any) => void) {
     this.onServerUpdated = handler;
+  }
+
+  registerUserStatusUpdatedHandler(handler: (data: any) => void) {
+    this.onUserStatusUpdated = handler;
   }
 
   // --- Emit Methods ---

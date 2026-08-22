@@ -32,10 +32,23 @@ export class AuthStore {
   private sanitizeUser(user: User): User {
     const clean = { ...user };
     if (typeof clean.customStatus === 'string' && clean.customStatus.trim().startsWith('{')) {
-      clean.customStatus = null;
+      try {
+        const parsed = JSON.parse(clean.customStatus.trim());
+        clean.customStatus = parsed.customStatus || parsed.statusMessage || null;
+        if (!clean.customStatusEmoji && parsed.customStatusEmoji) {
+          clean.customStatusEmoji = parsed.customStatusEmoji;
+        }
+      } catch {
+        clean.customStatus = null;
+      }
     }
     if (typeof clean.statusMessage === 'string' && clean.statusMessage.trim().startsWith('{')) {
-      clean.statusMessage = null;
+      try {
+        const parsed = JSON.parse(clean.statusMessage.trim());
+        clean.statusMessage = parsed.statusMessage || parsed.customStatus || null;
+      } catch {
+        clean.statusMessage = null;
+      }
     }
     if (typeof clean.customStatusEmoji === 'string' && clean.customStatusEmoji.trim().startsWith('{')) {
       clean.customStatusEmoji = null;
