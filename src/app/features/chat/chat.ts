@@ -77,19 +77,72 @@ export class Chat implements OnInit {
         }
     }
 
+    failedAvatars = new Set<string>();
+
+    onAvatarError(event: Event, msg: ChatMessage) {
+        const img = event.target as HTMLImageElement;
+        if (img?.src) {
+            this.failedAvatars.add(img.src);
+        }
+        if (msg.id) {
+            this.failedAvatars.add(msg.id);
+        }
+    }
+
     getSenderAvatar(msg: ChatMessage): string | null {
-        const currentUserId = this.authStore.user()?.id || 'user';
-        if (msg.senderId === currentUserId || msg.senderId === 'user') {
-            return this.authStore.user()?.avatarUrl || null;
+        if (msg.id && this.failedAvatars.has(msg.id)) return null;
+
+        const candidateUrl = msg.senderAvatarUrl || msg.avatarUrl;
+        if (candidateUrl) {
+            if (this.failedAvatars.has(candidateUrl)) return null;
+            return candidateUrl;
         }
+
+        const currentUser = this.authStore.user();
+        if (currentUser) {
+            const currentUserId = currentUser.id || 'user';
+            const sName = (msg.senderName || '').trim().toLowerCase();
+            const sId = (msg.senderId || '').trim();
+            if (
+                sId === currentUserId ||
+                sId === 'user' ||
+                (currentUser.username && sId === currentUser.username) ||
+                (currentUser.displayName && sName === currentUser.displayName.toLowerCase()) ||
+                (currentUser.username && sName === currentUser.username.toLowerCase())
+            ) {
+                if (currentUser.avatarUrl && !this.failedAvatars.has(currentUser.avatarUrl)) {
+                    return currentUser.avatarUrl;
+                }
+            }
+        }
+
         const activeFriend = this.friendService.activeFriend();
-        if (activeFriend && (activeFriend.id === msg.senderId || activeFriend.username === msg.senderId) && activeFriend.avatarUrl) {
-            return activeFriend.avatarUrl;
+        if (activeFriend && activeFriend.avatarUrl && !this.failedAvatars.has(activeFriend.avatarUrl)) {
+            const sName = (msg.senderName || '').trim().toLowerCase();
+            const sId = (msg.senderId || '').trim();
+            if (
+                sId === activeFriend.id ||
+                sId === activeFriend.username ||
+                sName === activeFriend.displayName.toLowerCase() ||
+                sName === activeFriend.username.toLowerCase()
+            ) {
+                return activeFriend.avatarUrl;
+            }
         }
-        const friend = this.friendService.friends().find(f => f.id === msg.senderId || f.username === msg.senderId);
-        if (friend?.avatarUrl) {
+
+        const sName = (msg.senderName || '').trim().toLowerCase();
+        const sId = (msg.senderId || '').trim();
+        const friend = this.friendService.friends().find(f =>
+            f.id === sId ||
+            f.username === sId ||
+            (f.displayName && f.displayName.toLowerCase() === sName) ||
+            (f.username && f.username.toLowerCase() === sName)
+        );
+
+        if (friend?.avatarUrl && !this.failedAvatars.has(friend.avatarUrl)) {
             return friend.avatarUrl;
         }
+
         return null;
     }
 
