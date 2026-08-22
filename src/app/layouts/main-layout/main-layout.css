@@ -175,11 +175,27 @@
     position: absolute;
     bottom: -1px;
     right: -1px;
-    width: 8px;
-    height: 8px;
-    border-radius: var(--radius-full);
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
     background-color: var(--color-presence-online);
-    border: 2px solid var(--color-surface);
+    border: 2px solid #0e0f12;
+}
+
+.sidebar-left__status-dot--online {
+    background-color: #10b981 !important;
+}
+
+.sidebar-left__status-dot--idle {
+    background-color: #f59e0b !important;
+}
+
+.sidebar-left__status-dot--dnd {
+    background-color: #f43f5e !important;
+}
+
+.sidebar-left__status-dot--offline {
+    background-color: #71717a !important;
 }
 
 .sidebar-left__dm-info {
