@@ -349,10 +349,15 @@ export class ServerService {
         if (!text.trim()) return;
 
         const channelId = this.activeChannelId();
+        const currentUser = this.authStore.user();
+        const avatarUrl = currentUser?.avatarUrl || null;
+
         const userMsg: ChatMessage = {
             id: Date.now().toString(),
             senderId: senderId,
             senderName: senderName,
+            senderAvatarUrl: avatarUrl,
+            avatarUrl: avatarUrl,
             text: text,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
@@ -367,7 +372,8 @@ export class ServerService {
         this.http.post<ChatMessage>(`${this.apiConfig.baseUrl}/messages/channel/${channelId}`, {
             text: text,
             senderId: senderId,
-            senderName: senderName
+            senderName: senderName,
+            senderAvatarUrl: avatarUrl
         }).subscribe({
             error: (err) => console.warn('Could not persist channel message to backend:', err)
         });

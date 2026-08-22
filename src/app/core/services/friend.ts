@@ -148,6 +148,9 @@ export class FriendService implements OnDestroy {
             const fromUserId = data.fromUserId || data.relationship?.userAId;
             if (!fromUserId) return;
 
+            // Trigger backend reload to sync from Supabase
+            this.loadFriendsFromBackend();
+
             // Check if already in list
             const existing = this.friends().find(f => f.id === fromUserId);
             if (!existing) {
@@ -184,6 +187,10 @@ export class FriendService implements OnDestroy {
             if (!data) return;
             const currentUserId = this.authStore.user()?.id || 'user';
             const otherId = data.userAId === currentUserId ? data.userBId : data.userAId;
+            
+            // Reload friends from backend to reflect Supabase state immediately
+            this.loadFriendsFromBackend();
+
             if (otherId) {
                 this.friends.update(list =>
                     list.map(f => f.id === otherId ? { ...f, relationshipStatus: 'friend' } : f)
@@ -326,11 +333,15 @@ export class FriendService implements OnDestroy {
         if (!text.trim()) return;
 
         const currentChatId = this.activeChatId();
+        const currentUser = this.authStore.user();
+        const avatarUrl = currentUser?.avatarUrl || null;
 
         const userMsg: ChatMessage = {
             id: Date.now().toString(),
             senderId: senderId,
             senderName: senderName,
+            senderAvatarUrl: avatarUrl,
+            avatarUrl: avatarUrl,
             text: text,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
@@ -345,7 +356,8 @@ export class FriendService implements OnDestroy {
         this.http.post<ChatMessage>(`${this.apiConfig.baseUrl}/messages/direct/${currentChatId}`, {
             text: text,
             senderId: senderId,
-            senderName: senderName
+            senderName: senderName,
+            senderAvatarUrl: avatarUrl
         }).subscribe({
             error: (err) => console.warn('Could not persist direct message to backend:', err)
         });
@@ -398,13 +410,19 @@ export class FriendService implements OnDestroy {
         }).subscribe({
             next: () => {
                 this.friendRequestStatus.update(s => ({ ...s, [targetUserId]: 'sent' }));
-                // Update friends list to show pending_outgoing
+
+                // Reload friends from backend so Supabase state is reflected immediately
+                this.loadFriendsFromBackend();
+
+                // Optimistically update friends list to show pending_outgoing
                 const existing = this.friends().find(f => f.id === targetUserId);
                 if (!existing) {
                     const result = this.searchResults().find(r => r.id === targetUserId);
                     if (result) {
-                        this.friends.update(list => [...list, { ...result, relationshipStatus: 'pending' as any }]);
+                        this.friends.update(list => [...list, { ...result, relationshipStatus: 'pending_outgoing' as any }]);
                     }
+                } else {
+                    this.friends.update(list => list.map(f => f.id === targetUserId ? { ...f, relationshipStatus: 'pending_outgoing' as any } : f));
                 }
             },
             error: (err) => {

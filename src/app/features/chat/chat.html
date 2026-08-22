@@ -72,11 +72,14 @@
 
             @for (msg of activeMessages; track msg.id) {
             <div class="flex items-start gap-3.5 w-full">
-                <div
-                    class="w-10 h-10 rounded-full bg-[#1b1d22] text-white font-bold flex items-center justify-center shrink-0 border border-[#2a2c33]">
-                    {{ msg.senderName ? msg.senderName.charAt(0) : (msg.senderId === authStore.user()?.id ? (authStore.user()?.displayName || 'U').charAt(0) :
-                    friendService.activeFriend() ? friendService.activeFriend()!.displayName.charAt(0) : 'U') }}
-                </div>
+                @if (getSenderAvatar(msg)) {
+                    <img [src]="getSenderAvatar(msg)" (error)="onAvatarError($event, msg)" class="w-10 h-10 rounded-full object-cover shrink-0 border border-[#2a2c33]" alt="Avatar" />
+                } @else {
+                    <div
+                        class="w-10 h-10 rounded-full bg-[#1b1d22] text-white font-bold flex items-center justify-center shrink-0 border border-[#2a2c33]">
+                        {{ getSenderInitial(msg) }}
+                    </div>
+                }
 
                 <div class="flex flex-col items-start max-w-[80%] min-w-0">
                     <div class="flex items-center gap-2 mb-1">
