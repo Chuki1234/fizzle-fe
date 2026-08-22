@@ -4,6 +4,7 @@ import { ServerService } from '../../core/services/server';
 import { FriendService } from '../../core/services/friend';
 import { ModalService } from '../../core/services/modal';
 import { SocketService } from '../../core/services/socket';
+import { SupabaseRealtimeService } from '../../core/services/supabase-realtime.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { AuthStore } from '../../core/auth/auth.store';
 import { NotificationService, InAppNotification } from '../../core/services/notification.service';
@@ -31,6 +32,7 @@ export class MainLayout {
     public authStore = inject(AuthStore);
     public notificationService = inject(NotificationService);
     private socketService = inject(SocketService);
+    private supabaseRealtime = inject(SupabaseRealtimeService);
     private router = inject(Router);
 
     public userInitial = computed(() => {
@@ -68,11 +70,12 @@ export class MainLayout {
     });
 
     constructor() {
-        // Connect socket whenever user becomes authenticated
+        // Connect socket & Supabase Realtime whenever user becomes authenticated
         effect(() => {
             const user = this.authStore.user();
             if (user?.id) {
                 this.socketService.connect(user.id);
+                this.supabaseRealtime.init(user.id);
                 // Reload both friends and servers for this user
                 this.friendService.loadFriendsFromBackend();
                 this.serverService.loadServers();
@@ -89,6 +92,7 @@ export class MainLayout {
 
     public logout(): void {
         this.socketService.disconnect();
+        this.supabaseRealtime.disconnect();
         this.authService.logout().subscribe({
             next: () => {
                 void this.router.navigateByUrl('/auth/login');
@@ -99,4 +103,4 @@ export class MainLayout {
             }
         });
     }
-}
+}

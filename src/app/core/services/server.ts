@@ -5,6 +5,7 @@ import { Server, Channel } from '../models/server.model';
 import { ChatMessage } from '../models/friend.model';
 import { API_CONFIG } from '../http/api.config';
 import { SocketService } from './socket';
+import { SupabaseRealtimeService } from './supabase-realtime.service';
 import { AuthStore } from '../auth/auth.store';
 import { NotificationService } from './notification.service';
 
@@ -16,6 +17,7 @@ export class ServerService {
     private http = inject(HttpClient);
     private apiConfig = inject(API_CONFIG);
     private socketService = inject(SocketService);
+    private supabaseRealtime = inject(SupabaseRealtimeService);
     private authStore = inject(AuthStore);
     private notificationService = inject(NotificationService);
 
@@ -47,8 +49,7 @@ export class ServerService {
             this.loadChannelMessages(this.activeChannelId());
         }
 
-        // Register socket handlers
-        this.socketService.registerChannelMessageHandler((channelId, message) => {
+        const handleIncomingChannelMsg = (channelId: string, message: any) => {
             const currentUserId = this.authStore.user()?.id || 'user';
             // Don't add if it came from current user (already added optimistically)
             if (message?.senderId === currentUserId) return;
@@ -59,6 +60,15 @@ export class ServerService {
                 if (current.some((m: ChatMessage) => m.id === message.id)) return store;
                 return { ...store, [channelId]: [...current, message] };
             });
+        };
+
+        // 1. Socket handler
+        this.socketService.registerChannelMessageHandler(handleIncomingChannelMsg);
+
+        // 2. Supabase Realtime cloud handler
+        this.supabaseRealtime.registerChannelMessageHandler(handleIncomingChannelMsg);
+        this.supabaseRealtime.registerServerChangeHandler(() => {
+            this.loadServers();
         });
 
         this.socketService.registerServerUpdatedHandler((data) => {
