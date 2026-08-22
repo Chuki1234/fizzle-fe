@@ -113,14 +113,12 @@
         </div>
 
         <!-- Custom Status Pill -->
-        @if (customStatus()) {
-          <div class="card-custom-status-box">
-            @if (customStatusEmoji()) {
-              <span class="custom-status-emoji">{{ customStatusEmoji() }}</span>
-            }
-            <span>{{ customStatus() }}</span>
-          </div>
-        }
+        <div class="card-custom-status-box">
+          @if (customStatusEmoji()) {
+            <span class="custom-status-emoji">{{ customStatusEmoji() }}</span>
+          }
+          <span>{{ displayCustomStatus() }}</span>
+        </div>
 
         <!-- Navigation Tabs in Card -->
         <div class="card-nav-tabs">
