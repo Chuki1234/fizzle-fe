@@ -230,19 +230,23 @@ export class FriendService implements OnDestroy {
 
     // --- Helper parse status an toàn (không fallback về JSON thô) ---
     getDisplayStatus(friend: Friend): string {
+        const usernameTag = `@${friend.username}`;
+        const idTag = `@${friend.id}`;
+        
         // 1. Ưu tiên customStatus đã được clean từ backend
         const emoji = friend.customStatusEmoji?.trim() || '';
         const custom = friend.customStatus?.trim() || '';
-        if (custom && !custom.startsWith('{')) {
+        if (custom && !custom.startsWith('{') && custom !== usernameTag && custom !== friend.username && custom !== idTag && custom !== friend.id) {
             return emoji ? `${emoji} ${custom}` : custom;
         }
-        // 2. Thử parse statusText nếu là JSON
-        const rawText = friend.statusText || '';
+        // 2. Thử parse statusText nếu có
+        const rawText = friend.statusText?.trim() || '';
         if (rawText.startsWith('{')) {
             const parsed = cleanStatusString(rawText);
-            if (parsed) return parsed;
-            // JSON không parse được => dùng presence label
-        } else if (rawText && !rawText.startsWith('{')) {
+            if (parsed && parsed !== usernameTag && parsed !== friend.username && parsed !== idTag && parsed !== friend.id) {
+                return parsed;
+            }
+        } else if (rawText && !rawText.startsWith('{') && rawText !== usernameTag && rawText !== friend.username && rawText !== idTag && rawText !== friend.id) {
             return rawText;
         }
         // 3. Fallback theo presence
