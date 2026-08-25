@@ -407,7 +407,10 @@ export class FriendService implements OnDestroy {
             return { ...store, [currentChatId]: [...currentList, userMsg] };
         });
 
-        // Send to backend (which will broadcast via socket to the recipient)
+        // 1. Fail-safe Supabase Realtime Broadcast (direct cloud WebSocket to other machine)
+        this.supabaseRealtime.broadcastDirectMessage(senderId, currentChatId, userMsg);
+
+        // 2. Send to backend (which will persist to DB & broadcast via Socket.IO)
         const params = senderId ? `?userId=${senderId}` : '';
         this.http.post<ChatMessage>(`${this.apiConfig.baseUrl}/messages/direct/${currentChatId}${params}`, {
             text: text,

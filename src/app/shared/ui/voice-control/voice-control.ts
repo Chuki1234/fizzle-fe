@@ -13,7 +13,7 @@ import { AuthStore } from '../../../core/auth/auth.store';
       <div class="voice-panel bg-[#111214] border-t border-[#1f2023] flex flex-col shrink-0 select-none shadow-2xl transition-all duration-200">
         
         <!-- Status Header -->
-        <div class="px-3 pt-2.5 pb-1 flex items-center justify-between">
+        <div class="px-3 pt-2.5 pb-1.5 flex items-center justify-between">
           <div class="flex items-center gap-2">
             <div class="relative flex items-center justify-center">
               <span class="w-2.5 h-2.5 rounded-full bg-[#23a55a] animate-pulse"></span>
@@ -24,7 +24,7 @@ import { AuthStore } from '../../../core/auth/auth.store';
                 <span class="text-xs font-bold text-[#23a55a] leading-none tracking-wide uppercase">
                   {{ voiceService.isConnecting() ? 'Đang kết nối...' : 'Đã kết nối Voice' }}
                 </span>
-                <span class="text-[10px] px-1 py-0.2 bg-[#23a55a]/15 text-[#23a55a] rounded font-mono font-bold">RTC</span>
+                <span class="text-[9px] px-1 py-0.2 bg-[#23a55a]/15 text-[#23a55a] rounded font-mono font-bold">RTC</span>
               </div>
               <span class="text-[11px] text-zinc-400 font-medium truncate max-w-[140px] leading-tight">
                 {{ voiceService.currentChannelName() || 'Kênh thoại' }}
@@ -42,15 +42,50 @@ import { AuthStore } from '../../../core/auth/auth.store';
           </button>
         </div>
 
+        <!-- 🎙️ LIVE MIC LEVEL VU METER (TRỰC QUAN MICRO KHI NÓI) -->
+        <div class="px-3 py-1 flex flex-col gap-1 bg-[#16171b]/80 border-y border-[#1e1f24]">
+          <div class="flex items-center justify-between text-[10px]">
+            <span class="font-semibold text-zinc-400 flex items-center gap-1">
+              @if (voiceService.isMuted()) {
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span class="text-red-400">Micro: Tắt</span>
+              } @else if (voiceService.isSpeaking()) {
+                <span class="w-1.5 h-1.5 rounded-full bg-[#23a55a] animate-ping"></span>
+                <span class="text-[#23a55a] font-bold">Đang nói 🎙️</span>
+              } @else {
+                <span class="w-1.5 h-1.5 rounded-full bg-zinc-500"></span>
+                <span>Micro: Sẵn sàng</span>
+              }
+            </span>
+            <span class="font-mono text-[9px] text-zinc-500 font-bold">
+              {{ voiceService.isMuted() ? 'MUTED' : voiceService.micLevel() + '%' }}
+            </span>
+          </div>
+
+          <!-- Progress Bar VU Meter -->
+          <div class="w-full h-1.5 bg-[#202227] rounded-full overflow-hidden relative">
+            <div class="h-full rounded-full transition-all duration-75"
+                 [style.width.%]="voiceService.isMuted() ? 0 : voiceService.micLevel()"
+                 [class.bg-[#23a55a]]="!voiceService.isMuted() && voiceService.micLevel() < 70"
+                 [class.bg-amber-400]="!voiceService.isMuted() && voiceService.micLevel() >= 70 && voiceService.micLevel() < 90"
+                 [class.bg-red-400]="!voiceService.isMuted() && voiceService.micLevel() >= 90"
+                 [class.shadow-[0_0_8px_#23a55a]]="voiceService.isSpeaking() && !voiceService.isMuted()">
+            </div>
+          </div>
+        </div>
+
         <!-- Participants In Voice Room -->
         <div class="px-2.5 py-1.5 flex flex-col gap-1 max-h-36 overflow-y-auto custom-scrollbar">
           @for (user of voiceService.participants(); track user.socketId) {
-            <div class="flex items-center justify-between px-2 py-1 rounded-md bg-[#1e1f22]/60 hover:bg-[#2b2d31]/80 transition group">
+            <div class="flex items-center justify-between px-2 py-1.5 rounded-md bg-[#1e1f22]/60 hover:bg-[#2b2d31]/80 transition group"
+                 [class.ring-1]="user.isSpeaking && !user.isMuted"
+                 [class.ring-[#23a55a]/60]="user.isSpeaking && !user.isMuted"
+                 [class.bg-[#23a55a]/10]="user.isSpeaking && !user.isMuted">
               <div class="flex items-center gap-2 min-w-0">
                 <!-- Avatar with Speaking Glow -->
                 <div class="relative w-6 h-6 shrink-0 rounded-full flex items-center justify-center text-[10px] font-bold text-white transition-all duration-150"
                      [ngClass]="{
-                       'ring-2 ring-[#23a55a] shadow-[0_0_8px_#23a55a]': user.isSpeaking && !user.isMuted,
+                       'ring-2 ring-[#23a55a] shadow-[0_0_10px_#23a55a]': user.isSpeaking && !user.isMuted,
                        'bg-indigo-600': !user.avatarUrl
                      }">
                   @if (user.avatarUrl) {
@@ -65,7 +100,8 @@ import { AuthStore } from '../../../core/auth/auth.store';
 
                 <!-- Display Name -->
                 <span class="text-xs text-zinc-300 font-medium truncate group-hover:text-white"
-                      [class.text-white]="user.isSpeaking && !user.isMuted">
+                      [class.text-white]="user.isSpeaking && !user.isMuted"
+                      [class.font-bold]="user.isSpeaking && !user.isMuted">
                   {{ user.displayName || user.username || 'Người dùng' }}
                   @if (isSelf(user)) {
                     <span class="text-[10px] text-zinc-500 font-normal ml-0.5">(Bạn)</span>
@@ -73,8 +109,11 @@ import { AuthStore } from '../../../core/auth/auth.store';
                 </span>
               </div>
 
-              <!-- Indicators: Muted / Deafened -->
+              <!-- Indicators: Speaking / Muted / Deafened -->
               <div class="flex items-center gap-1 shrink-0">
+                @if (user.isSpeaking && !user.isMuted) {
+                  <span class="text-[10px] text-[#23a55a] font-bold animate-pulse">● Đang nói</span>
+                }
                 @if (user.isMuted) {
                   <span class="text-[11px] text-[#f23f43]" title="Tắt mic">🔇</span>
                 }
@@ -141,4 +180,4 @@ export class VoiceControlComponent {
     const name = user.displayName || user.username || 'U';
     return name.charAt(0).toUpperCase();
   }
-}
+}

@@ -1,5 +1,6 @@
 import { Injectable, NgZone, inject } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
+import { getDynamicBaseUrl } from '../http/api.config';
 
 export interface VoiceParticipantInfo {
   socketId: string;
@@ -13,7 +14,7 @@ export interface VoiceParticipantInfo {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class SocketService {
   private ngZone = inject(NgZone);
@@ -35,6 +36,7 @@ export class SocketService {
   private voiceUserLeftHandlers: Array<(data: { channelId: string; socketId: string; userId: string }) => void> = [];
   private voiceSignalHandlers: Array<(data: { senderSocketId: string; senderUserId: string; signal: any; type: 'offer' | 'answer' | 'ice-candidate' }) => void> = [];
   private voiceUserStateHandlers: Array<(data: { channelId: string; socketId: string; userId: string; isMuted?: boolean; isDeafened?: boolean; isSpeaking?: boolean }) => void> = [];
+  private voiceChannelsStateHandlers: Array<(states: Record<string, VoiceParticipantInfo[]>) => void> = [];
 
   connect(userId: string) {
     if (this.socket?.connected && this.userId === userId) return;
@@ -46,7 +48,10 @@ export class SocketService {
       this.socket.disconnect();
     }
 
-    this.socket = io('http://localhost:3000', {
+    const socketUrl = getDynamicBaseUrl();
+    console.log('[Socket] Connecting to socket at:', socketUrl, 'for userId:', userId);
+
+    this.socket = io(socketUrl, {
       query: { userId },
       auth: { userId },
       transports: ['websocket', 'polling'],
@@ -56,6 +61,7 @@ export class SocketService {
       this.ngZone.run(() => {
         console.log('[Socket] Connected with ID:', this.socket.id, 'userId:', userId);
         this.socket.emit('authenticate', { userId });
+        this.socket.emit('request_voice_states');
       });
     });
 
@@ -84,7 +90,7 @@ export class SocketService {
     this.socket.on('channel_message', (data: any) => {
       this.ngZone.run(() => {
         if (data?.channelId && data?.message) {
-          this.channelMessageHandlers.forEach(h => h(data.channelId, data.message));
+          this.channelMessageHandlers.forEach((h) => h(data.channelId, data.message));
         }
       });
     });
@@ -96,7 +102,7 @@ export class SocketService {
 
         // 1. Channel message
         if (data.channelId && data.message) {
-          this.channelMessageHandlers.forEach(h => h(data.channelId, data.message));
+          this.channelMessageHandlers.forEach((h) => h(data.channelId, data.message));
           return;
         }
 
@@ -104,7 +110,7 @@ export class SocketService {
         const senderId = data.senderId;
         const targetId = data.targetId || data.recipientId;
         if (senderId && targetId && data.message) {
-          this.directMessageHandlers.forEach(h => h(senderId, targetId, data.message));
+          this.directMessageHandlers.forEach((h) => h(senderId, targetId, data.message));
           return;
         }
       });
@@ -113,7 +119,7 @@ export class SocketService {
     this.socket.on('direct_message', (data: any) => {
       this.ngZone.run(() => {
         if (data?.senderId && data?.recipientId && data?.message) {
-          this.directMessageHandlers.forEach(h => h(data.senderId, data.recipientId, data.message));
+          this.directMessageHandlers.forEach((h) => h(data.senderId, data.recipientId, data.message));
         }
       });
     });
@@ -121,28 +127,28 @@ export class SocketService {
     // ---- FRIEND EVENTS ----
     this.socket.on('friend_request_received', (data: any) => {
       this.ngZone.run(() => {
-        this.friendRequestHandlers.forEach(h => h(data));
+        this.friendRequestHandlers.forEach((h) => h(data));
       });
     });
 
     this.socket.on('friend_request_event', (data: any) => {
       this.ngZone.run(() => {
         if (data?.targetUserId === this.userId) {
-          this.friendRequestHandlers.forEach(h => h(data?.requestData));
+          this.friendRequestHandlers.forEach((h) => h(data?.requestData));
         }
       });
     });
 
     this.socket.on('friend_request_accepted', (data: any) => {
       this.ngZone.run(() => {
-        this.friendAcceptedHandlers.forEach(h => h(data));
+        this.friendAcceptedHandlers.forEach((h) => h(data));
       });
     });
 
     this.socket.on('friend_accepted_event', (data: any) => {
       this.ngZone.run(() => {
         if (data?.userAId === this.userId || data?.userBId === this.userId) {
-          this.friendAcceptedHandlers.forEach(h => h(data?.data));
+          this.friendAcceptedHandlers.forEach((h) => h(data?.data));
         }
       });
     });
@@ -150,20 +156,20 @@ export class SocketService {
     // ---- SERVER EVENTS ----
     this.socket.on('server_invite_received', (data: any) => {
       this.ngZone.run(() => {
-        this.serverInviteHandlers.forEach(h => h(data));
+        this.serverInviteHandlers.forEach((h) => h(data));
       });
     });
 
     this.socket.on('server_updated', (data: any) => {
       this.ngZone.run(() => {
-        this.serverUpdatedHandlers.forEach(h => h(data));
+        this.serverUpdatedHandlers.forEach((h) => h(data));
       });
     });
 
     this.socket.on('server_invite_event', (data: any) => {
       this.ngZone.run(() => {
         if (data?.targetUserId === this.userId) {
-          this.serverInviteHandlers.forEach(h => h(data?.serverData));
+          this.serverInviteHandlers.forEach((h) => h(data?.serverData));
         }
       });
     });
@@ -171,7 +177,7 @@ export class SocketService {
     // User status/profile/avatar update
     this.socket.on('user_status_updated', (data: any) => {
       this.ngZone.run(() => {
-        this.userStatusUpdatedHandlers.forEach(h => h(data));
+        this.userStatusUpdatedHandlers.forEach((h) => h(data));
       });
     });
 
@@ -180,31 +186,39 @@ export class SocketService {
     // ==========================================
     this.socket.on('voice_room_users', (data: any) => {
       this.ngZone.run(() => {
-        this.voiceRoomUsersHandlers.forEach(h => h(data));
+        this.voiceRoomUsersHandlers.forEach((h) => h(data));
       });
     });
 
     this.socket.on('voice_user_joined', (data: any) => {
       this.ngZone.run(() => {
-        this.voiceUserJoinedHandlers.forEach(h => h(data));
+        this.voiceUserJoinedHandlers.forEach((h) => h(data));
       });
     });
 
     this.socket.on('voice_user_left', (data: any) => {
       this.ngZone.run(() => {
-        this.voiceUserLeftHandlers.forEach(h => h(data));
+        this.voiceUserLeftHandlers.forEach((h) => h(data));
       });
     });
 
     this.socket.on('voice_signal', (data: any) => {
       this.ngZone.run(() => {
-        this.voiceSignalHandlers.forEach(h => h(data));
+        this.voiceSignalHandlers.forEach((h) => h(data));
       });
     });
 
     this.socket.on('voice_user_state_updated', (data: any) => {
       this.ngZone.run(() => {
-        this.voiceUserStateHandlers.forEach(h => h(data));
+        this.voiceUserStateHandlers.forEach((h) => h(data));
+      });
+    });
+
+    this.socket.on('voice_channels_state_update', (data: any) => {
+      this.ngZone.run(() => {
+        if (data) {
+          this.voiceChannelsStateHandlers.forEach((h) => h(data));
+        }
       });
     });
   }
@@ -285,6 +299,12 @@ export class SocketService {
     }
   }
 
+  registerVoiceChannelsStateUpdatedHandler(handler: (states: Record<string, VoiceParticipantInfo[]>) => void) {
+    if (!this.voiceChannelsStateHandlers.includes(handler)) {
+      this.voiceChannelsStateHandlers.push(handler);
+    }
+  }
+
   // --- Emit Methods ---
 
   joinRoom(roomId: string) {
@@ -312,6 +332,10 @@ export class SocketService {
     this.socket?.emit('voice_state', payload);
   }
 
+  requestVoiceStates() {
+    this.socket?.emit('request_voice_states');
+  }
+
   isConnected(): boolean {
     return this.socket?.connected ?? false;
   }
@@ -319,4 +343,4 @@ export class SocketService {
   getSocketId(): string | undefined {
     return this.socket?.id;
   }
-}
+}

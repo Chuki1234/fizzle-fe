@@ -2,6 +2,7 @@ import { Component, computed, inject, effect } from '@angular/core';
 import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { ServerService } from '../../core/services/server';
 import { FriendService } from '../../core/services/friend';
+import { VoiceService } from '../../core/services/voice.service';
 import { ModalService } from '../../core/services/modal';
 import { SocketService } from '../../core/services/socket';
 import { SupabaseRealtimeService } from '../../core/services/supabase-realtime.service';
@@ -28,6 +29,7 @@ import { ModalComponent } from '../../shared/ui/modal/modal';
 export class MainLayout {
     public serverService = inject(ServerService);
     public friendService = inject(FriendService);
+    public voiceService = inject(VoiceService);
     public modalService = inject(ModalService);
     public authService = inject(AuthService);
     public authStore = inject(AuthStore);
