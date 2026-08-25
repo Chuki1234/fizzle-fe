@@ -77,7 +77,6 @@ export class Khang {
   >('account-info');
 
   // Accessibility & Language Signals
-  fontScale = signal<'compact' | 'normal' | 'large'>('normal');
   currentLang = this.languageService.currentLang;
   availableLanguages = this.languageService.availableLanguages;
 
@@ -101,9 +100,8 @@ export class Khang {
       { id: 'sec-email', section: 'account-info', sectionName: isVi ? 'Thông tin Tài khoản' : 'Account Info', sectionIcon: '👤', title: isVi ? 'Email & Số điện thoại' : 'Email & Phone Number', description: isVi ? 'Xem và chỉnh sửa email chính cũng như số điện thoại' : 'View and edit primary email and phone number', keywords: ['email', 'thư', 'sdt', 'phone', 'điện thoại'] },
       { id: 'sec-password', section: 'account-info', sectionName: isVi ? 'Thông tin Tài khoản' : 'Account Info', sectionIcon: '🔑', title: isVi ? 'Mật khẩu (Password)' : 'Password & Security', description: isVi ? 'Thay đổi mật khẩu đăng nhập định kỳ để bảo vệ tài khoản' : 'Change login password periodically to protect account', keywords: ['password', 'mật khẩu', 'pass'] },
       { id: 'sec-2fa', section: 'account-info', sectionName: isVi ? 'Thông tin Tài khoản' : 'Account Info', sectionIcon: '🛡️', title: isVi ? 'Xác thực 2 yếu tố (2FA)' : 'Two-Factor Auth (2FA)', description: isVi ? 'Thiết lập mã OTP Google Authenticator' : 'Set up Google Authenticator OTP code', keywords: ['2fa', 'otp', 'xác thực', 'bảo mật'] },
-      { id: 'sec-theme-mode', section: 'accessibility', sectionName: isVi ? 'Hỗ trợ tiếp cận & Ngôn ngữ' : 'Accessibility & Theme', sectionIcon: '♿', title: isVi ? 'Chế độ Tối / Sáng (Dark & Light Mode)' : 'Dark & Light Theme Mode', description: isVi ? 'Chuyển đổi giao diện Dark Mode và Light Mode' : 'Toggle between Dark Mode and Light Mode', keywords: ['dark mode', 'light mode', 'theme'] },
-      { id: 'sec-font-scale', section: 'accessibility', sectionName: isVi ? 'Hỗ trợ tiếp cận & Ngôn ngữ' : 'Accessibility & Theme', sectionIcon: '♿', title: isVi ? 'Kích thước chữ (Font Scaling)' : 'Font Scaling', description: isVi ? 'Tùy chỉnh phông chữ Compact, Standard, Large' : 'Customize font scale (Compact, Standard, Large)', keywords: ['font', 'scale'] },
-      { id: 'sec-language', section: 'accessibility', sectionName: isVi ? 'Hỗ trợ tiếp cận & Ngôn ngữ' : 'Accessibility & Theme', sectionIcon: '🌐', title: isVi ? 'Ngôn ngữ giao diện (Language Selection)' : 'Display Language Selection', description: isVi ? 'Thay đổi ngôn ngữ hiển thị hệ thống (Tiếng Việt / English)' : 'Select system display language (Vietnamese / English)', keywords: ['ngôn ngữ', 'language', 'lang', 'english', 'tiếng việt'] },
+      { id: 'sec-theme-mode', section: 'accessibility', sectionName: isVi ? 'Hỗ trợ tiếp cận & Ngôn ngữ' : 'Accessibility & Theme', sectionIcon: '♿', title: isVi ? 'Chế độ Tối / Sáng' : 'Dark & Light Theme Mode', description: isVi ? 'Chuyển đổi giao diện Dark Mode và Light Mode' : 'Toggle between Dark Mode and Light Mode', keywords: ['dark mode', 'light mode', 'theme'] },
+      { id: 'sec-language', section: 'accessibility', sectionName: isVi ? 'Hỗ trợ tiếp cận & Ngôn ngữ' : 'Accessibility & Theme', sectionIcon: '🌐', title: isVi ? 'Ngôn ngữ giao diện' : 'Display Language Selection', description: isVi ? 'Thay đổi ngôn ngữ hiển thị hệ thống (Tiếng Việt / English)' : 'Select system display language (Vietnamese / English)', keywords: ['ngôn ngữ', 'language', 'lang', 'english', 'tiếng việt'] },
     ];
   });
 
@@ -118,6 +116,22 @@ export class Khang {
       const matchKeywords = item.keywords.some((k) => k.toLowerCase().includes(q));
       return matchTitle || matchDesc || matchSection || matchKeywords;
     });
+  });
+
+  headerTitle = computed(() => {
+    if (this.searchQuery().trim() !== '') {
+      return this.languageService.t('settings.header.searchResults');
+    }
+    switch (this.activeSection()) {
+      case 'account-info': return this.languageService.t('settings.header.account');
+      case 'profiles': return this.languageService.t('settings.header.profiles');
+      case 'badges-presence': return this.languageService.t('settings.header.badges');
+      case 'accessibility': return this.languageService.t('settings.header.accessibility');
+      case 'privacy': return this.languageService.t('settings.header.privacy');
+      case 'messaging': return this.languageService.t('settings.header.messaging');
+      case 'notifications': return this.languageService.t('settings.header.notifications');
+      default: return this.languageService.t('settings.header.account');
+    }
   });
 
   goToSearchResult(item: SettingFeatureItem) {
@@ -470,10 +484,7 @@ export class Khang {
     this.activeSection.set(section);
   }
 
-  setFontScale(scale: 'compact' | 'normal' | 'large') {
-    this.fontScale.set(scale);
-    this.showToast(`Đã đổi kích thước phông chữ: ${scale.toUpperCase()}`);
-  }
+
 
   setLanguage(lang: AppLanguage) {
     this.languageService.setLanguage(lang);

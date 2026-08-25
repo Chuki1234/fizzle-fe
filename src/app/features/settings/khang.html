@@ -389,22 +389,7 @@
     <main class="main-content-discord">
       <!-- Top Header Bar with Close Button -->
       <div class="main-top-bar">
-        <h1 class="main-page-title">
-          @if (searchQuery().trim() !== '') {
-          {{ languageService.t('settings.header.searchResults') }}
-          } @else {
-          @switch (activeSection()) {
-          @case ('account-info') { {{ languageService.t('settings.header.account') }} }
-          @case ('profiles') { {{ languageService.t('settings.header.profiles') }} }
-          @case ('badges-presence') { {{ languageService.t('settings.header.badges') }} }
-          @case ('accessibility') { {{ languageService.t('settings.header.accessibility') }} }
-          @case ('privacy') { {{ languageService.t('settings.header.privacy') }} }
-          @case ('messaging') { {{ languageService.t('settings.header.messaging') }} }
-          @case ('notifications') { {{ languageService.t('settings.header.notifications') }} }
-          @default { {{ languageService.t('settings.header.account') }} }
-          }
-          }
-        </h1>
+        <h1 class="main-page-title">{{ headerTitle() }}</h1>
 
         <button type="button" class="btn-close-esc" (click)="closeSettings()" [title]="languageService.t('settings.closeTooltip')">
           <span class="close-x">✕</span>
@@ -520,7 +505,7 @@
 
         <!-- 2. Security & Password Section -->
         <div class="settings-block margin-top-lg">
-          <h2 class="block-title">{{ languageService.t('settings.account.password') }} & Security</h2>
+          <h2 class="block-title">{{ languageService.t('settings.account.password') }} & {{ currentLang() === 'vi' ? 'Bảo mật' : 'Security' }}</h2>
 
           <div class="account-rows-card">
             <!-- Row 1: Password -->
@@ -595,75 +580,73 @@
         <div class="profiles-customizer-shell">
           <div class="customizer-left-panel">
             <div class="settings-block">
-              <h2 class="block-title">Profiles Customizer</h2>
-              <p class="body-sm text-steel">Tùy chỉnh thông tin hiển thị, palette tông màu xám và trang trí avatar.</p>
+              <h2 class="block-title">{{ languageService.t('settings.profiles.title') }}</h2>
+              <p class="body-sm text-steel">{{ languageService.t('settings.profiles.desc') }}</p>
             </div>
 
             <div class="field-grid-2">
               <div class="form-field">
-                <label class="field-label">Display Name</label>
+                <label class="field-label">{{ currentLang() === 'vi' ? 'TÊN HIỂN THỊ' : 'DISPLAY NAME' }}</label>
                 <input type="text" class="text-input" [value]="displayName()"
                   (input)="displayName.set($any($event.target).value)" />
               </div>
 
               <div class="form-field">
-                <label class="field-label">Pronouns</label>
+                <label class="field-label">{{ currentLang() === 'vi' ? 'DANH XƯNG' : 'PRONOUNS' }}</label>
                 <input type="text" class="text-input" [value]="pronouns()"
                   (input)="pronouns.set($any($event.target).value)" />
               </div>
             </div>
 
             <div class="form-field">
-              <label class="field-label">Trạng thái trực tuyến</label>
+              <label class="field-label">{{ currentLang() === 'vi' ? 'TRẠNG THÁI HOẠT ĐỘNG' : 'ONLINE STATUS' }}</label>
               <div class="status-selector-grid">
                 <button type="button" class="status-option-card" [class.active]="status() === 'online'"
                   (click)="setStatus('online')">
                   <span class="status-dot" [style.background-color]="getStatusColor('online')"></span>
-                  <span class="status-title">Online</span>
+                  <span class="status-title">{{ currentLang() === 'vi' ? 'Trực tuyến' : 'Online' }}</span>
                 </button>
                 <button type="button" class="status-option-card" [class.active]="status() === 'idle'"
                   (click)="setStatus('idle')">
                   <span class="status-dot" [style.background-color]="getStatusColor('idle')"></span>
-                  <span class="status-title">Idle</span>
+                  <span class="status-title">{{ currentLang() === 'vi' ? 'Chờ' : 'Idle' }}</span>
                 </button>
                 <button type="button" class="status-option-card" [class.active]="status() === 'dnd'"
                   (click)="setStatus('dnd')">
                   <span class="status-dot" [style.background-color]="getStatusColor('dnd')"></span>
-                  <span class="status-title">DND</span>
+                  <span class="status-title">{{ currentLang() === 'vi' ? 'Đừng làm phiền' : 'Do Not Disturb' }}</span>
                 </button>
                 <button type="button" class="status-option-card" [class.active]="status() === 'offline'"
                   (click)="setStatus('offline')">
                   <span class="status-dot" [style.background-color]="getStatusColor('offline')"></span>
-                  <span class="status-title">Invisible</span>
+                  <span class="status-title">{{ currentLang() === 'vi' ? 'Ẩn' : 'Invisible' }}</span>
                 </button>
               </div>
             </div>
 
             <div class="form-field">
-              <label class="field-label">Ảnh đại diện (Avatar)</label>
+              <label class="field-label">{{ currentLang() === 'vi' ? 'ẢNH ĐẠI DIỆN' : 'AVATAR IMAGE' }}</label>
               <div class="avatar-settings-control">
                 <div class="avatar-current-preview clickable" (click)="openAvatarModal()"
-                  title="Bấm để thay đổi Avatar">
+                  [title]="currentLang() === 'vi' ? 'Bấm để thay đổi Avatar' : 'Click to change Avatar'">
                   @if (avatarUrl()) {
                   <img [src]="avatarUrl()" class="avatar-thumb" alt="Avatar" />
                   } @else {
                   <div class="avatar-thumb-initials">FC</div>
                   }
-                  <div class="avatar-thumb-overlay">📷 Đổi ảnh</div>
+                  <div class="avatar-thumb-overlay">📷 {{ currentLang() === 'vi' ? 'Đổi ảnh' : 'Change Photo' }}</div>
                 </div>
                 <div class="avatar-control-btns">
-                  <button type="button" class="btn-mint-secondary btn-sm" (click)="openAvatarModal()">📷 Chọn Avatar
-                    mới</button>
+                  <button type="button" class="btn-mint-secondary btn-sm" (click)="openAvatarModal()">📷 {{ currentLang() === 'vi' ? 'Chọn ảnh mới' : 'Upload New Photo' }}</button>
                   @if (avatarUrl()) {
-                  <button type="button" class="btn-mint-secondary btn-sm text-danger" (click)="removeAvatar()">Xóa
-                    ảnh</button>
+                  <button type="button" class="btn-mint-secondary btn-sm text-danger" (click)="removeAvatar()">{{ currentLang() === 'vi' ? 'Xóa ảnh' : 'Remove Photo' }}</button>
                   }
                 </div>
               </div>
             </div>
 
             <div class="form-field">
-              <label class="field-label">Custom Status</label>
+              <label class="field-label">{{ currentLang() === 'vi' ? 'TRẠNG THÁI TÙY CHỈNH' : 'CUSTOM STATUS' }}</label>
               <div class="custom-status-inputs">
                 <input type="text" class="text-input emoji-input" [value]="customStatusEmoji()"
                   (input)="customStatusEmoji.set($any($event.target).value)" />
@@ -673,13 +656,13 @@
             </div>
 
             <div class="form-field">
-              <label class="field-label">Giới thiệu (About Me)</label>
+              <label class="field-label">{{ currentLang() === 'vi' ? 'GIỚI THIỆU BẢN THÂN' : 'ABOUT ME' }}</label>
               <textarea class="text-area" rows="3" [value]="aboutMe()"
                 (input)="aboutMe.set($any($event.target).value)"></textarea>
             </div>
 
             <div class="form-field">
-              <label class="field-label">Gray Theme Color Swatches</label>
+              <label class="field-label">{{ currentLang() === 'vi' ? 'BẢNG MÀU CHỦ ĐẠO' : 'PROFILE COLOR THEME' }}</label>
               <div class="color-swatches-grid">
                 @for (preset of grayColorPresets; track preset.name) {
                 <button type="button" class="swatch-card" [class.active]="bannerColor() === preset.hex"
@@ -692,7 +675,7 @@
             </div>
 
             <div class="form-field">
-              <label class="field-label">Khung Avatar (Decoration)</label>
+              <label class="field-label">{{ currentLang() === 'vi' ? 'KHUNG TRANG TRÍ AVATAR' : 'AVATAR FRAME DECORATION' }}</label>
               <div class="frames-picker-grid">
                 @for (frame of avatarFrames; track frame.id) {
                 <button type="button" class="frame-picker-card" [class.active]="avatarFrame() === frame.id"
@@ -705,8 +688,8 @@
             </div>
 
             <div class="form-actions-row">
-              <button type="button" class="btn-mint-secondary" (click)="resetDefault()">Reset</button>
-              <button type="button" class="btn-mint-primary" (click)="saveProfileChanges()">Save Profile</button>
+              <button type="button" class="btn-mint-secondary" (click)="resetDefault()">{{ currentLang() === 'vi' ? 'Đặt lại' : 'Reset' }}</button>
+              <button type="button" class="btn-mint-primary" (click)="saveProfileChanges()">{{ currentLang() === 'vi' ? 'Lưu hồ sơ' : 'Save Profile' }}</button>
             </div>
           </div>
 
@@ -1100,30 +1083,6 @@
 
           <div class="block-divider"></div>
 
-          <!-- Font Scale -->
-          <div class="form-field">
-            <label class="field-label">{{ languageService.t('settings.fontScale.title') }}</label>
-            <div class="font-scale-grid">
-              <button type="button" class="font-scale-card" [class.active]="fontScale() === 'compact'"
-                (click)="setFontScale('compact')">
-                <span class="font-demo compact">Aa</span>
-                <span class="font-label">{{ languageService.t('settings.fontScale.compact') }}</span>
-              </button>
-              <button type="button" class="font-scale-card" [class.active]="fontScale() === 'normal'"
-                (click)="setFontScale('normal')">
-                <span class="font-demo normal">Aa</span>
-                <span class="font-label">{{ languageService.t('settings.fontScale.normal') }}</span>
-              </button>
-              <button type="button" class="font-scale-card" [class.active]="fontScale() === 'large'"
-                (click)="setFontScale('large')">
-                <span class="font-demo large">Aa</span>
-                <span class="font-label">{{ languageService.t('settings.fontScale.large') }}</span>
-              </button>
-            </div>
-          </div>
-
-          <div class="block-divider"></div>
-
           <!-- Language Selection Section -->
           <div class="form-field">
             <label class="field-label">{{ languageService.t('settings.language.title') }}</label>
@@ -1155,17 +1114,16 @@
            6. MESSAGING PERMISSIONS & SAFETY SECTION
            ==================================================================== -->
         @if (activeSection() === 'messaging') {
-        <!-- Block 1: Direct Messages & Stranger Permissions -->
         <div class="settings-block">
-          <h2 class="block-title">Direct Messages & Stranger Permissions (Quyền nhắn tin từ người lạ)</h2>
-          <p class="body-sm text-steel">Cấu hình ai có thể gửi tin nhắn trực tiếp (DM) cho bạn trên hệ thống Fizzle.</p>
+          <h2 class="block-title">{{ currentLang() === 'vi' ? 'Quyền nhắn tin từ người lạ' : 'Direct Messages & Stranger Permissions' }}</h2>
+          <p class="body-sm text-steel">{{ currentLang() === 'vi' ? 'Cấu hình ai có thể gửi tin nhắn trực tiếp (DM) cho bạn trên hệ thống Fizzle.' : 'Configure who can send direct messages (DMs) to you on Fizzle.' }}</p>
 
           <div class="toggle-cards-column margin-top-md">
             <!-- Toggle 1: Server Members DMs -->
             <div class="toggle-card-item">
               <div class="toggle-info">
-                <strong>Cho phép tin nhắn trực tiếp từ thành viên máy chủ (Server Members)</strong>
-                <p>Cho phép các thành viên thuộc cùng máy chủ nhưng chưa kết bạn gửi tin nhắn trực tiếp cho bạn.</p>
+                <strong>{{ currentLang() === 'vi' ? 'Cho phép tin nhắn trực tiếp từ thành viên máy chủ' : 'Allow direct messages from server members' }}</strong>
+                <p>{{ currentLang() === 'vi' ? 'Cho phép các thành viên thuộc cùng máy chủ nhưng chưa kết bạn gửi tin nhắn trực tiếp cho bạn.' : 'Allow members in mutual servers to send direct messages without adding as friend.' }}</p>
               </div>
               <label class="switch-toggle">
                 <input type="checkbox" [checked]="allowServerDMs()" (change)="allowServerDMs.set(!allowServerDMs())" />
@@ -1176,8 +1134,8 @@
             <!-- Toggle 2: Stranger DMs -->
             <div class="toggle-card-item">
               <div class="toggle-info">
-                <strong>Cho phép người lạ hoàn toàn (chưa có máy chủ/bạn chung) nhắn tin</strong>
-                <p>Mở nhận tin nhắn từ tất cả người dùng công khai trên nền tảng.</p>
+                <strong>{{ currentLang() === 'vi' ? 'Cho phép người lạ hoàn toàn (chưa có máy chủ/bạn chung) nhắn tin' : 'Allow DMs from complete strangers' }}</strong>
+                <p>{{ currentLang() === 'vi' ? 'Mở nhận tin nhắn từ tất cả người dùng công khai trên nền tảng.' : 'Allow receiving direct messages from any public platform user.' }}</p>
               </div>
               <label class="switch-toggle">
                 <input type="checkbox" [checked]="allowStrangerDMs()"
@@ -1189,9 +1147,8 @@
             <!-- Toggle 3: Message Requests Folder -->
             <div class="toggle-card-item">
               <div class="toggle-info">
-                <strong>Tự động đưa tin nhắn từ người lạ vào "Thư mục Yêu cầu nhắn tin"</strong>
-                <p>Tin nhắn từ người chưa là bạn bè sẽ được lọc vào hộp thư chờ và không phát tiếng thông báo phiền
-                  phức.</p>
+                <strong>{{ currentLang() === 'vi' ? 'Tự động đưa tin nhắn từ người lạ vào "Thư mục Yêu cầu nhắn tin"' : 'Filter stranger DMs into Message Requests folder' }}</strong>
+                <p>{{ currentLang() === 'vi' ? 'Tin nhắn từ người chưa là bạn bè sẽ được lọc vào hộp thư chờ và không phát tiếng thông báo.' : 'Messages from non-friends will be filtered to pending inbox without loud notifications.' }}</p>
               </div>
               <label class="switch-toggle">
                 <input type="checkbox" [checked]="filterStrangerDMsToRequests()"
