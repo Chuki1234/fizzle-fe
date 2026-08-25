@@ -73,7 +73,16 @@ export class FriendService implements OnDestroy {
 
     directMessages = computed(() => {
         const ids = this.directMessageIds();
-        return this.friends().filter(f => ids.includes(f.id));
+        const result: Friend[] = [];
+        const seen = new Set<string>();
+        for (const id of ids) {
+            const f = this.friends().find(item => item.id === id);
+            if (f && !seen.has(f.id)) {
+                seen.add(f.id);
+                result.push(f);
+            }
+        }
+        return result;
     });
 
     messages = computed(() => {
@@ -84,7 +93,7 @@ export class FriendService implements OnDestroy {
     private upsertDM(currentList: ChatMessage[], incoming: ChatMessage): ChatMessage[] {
         if (!incoming || !incoming.text) return currentList;
 
-        // 1. Nếu đã có chính xác ID này trong danh sách -> không thêm mới
+        // 1. Kiểm tra trùng ID chính xác
         const exactIdIndex = currentList.findIndex(m => m.id === incoming.id);
         if (exactIdIndex !== -1) {
             const updated = [...currentList];
@@ -92,19 +101,17 @@ export class FriendService implements OnDestroy {
             return updated;
         }
 
-        // 2. Tìm tin nhắn tạm cùng senderId và cùng text gửi trong vòng 12 giây gần nhất
-        const matchingTempIndex = currentList.findIndex(m => {
-            if (m.senderId !== incoming.senderId || m.text.trim() !== incoming.text.trim()) return false;
-            // Nếu m.id là timestamp số hoặc gần thời gian này
-            const mTime = Number(m.id);
-            if (!isNaN(mTime) && Math.abs(Date.now() - mTime) < 12000) return true;
-            if (m.timestamp === incoming.timestamp) return true;
-            return false;
-        });
+        // 2. Kiểm tra trùng nội dung + sender trong 10 tin nhắn gần nhất
+        const recentMessages = currentList.slice(-10);
+        const matchIndexInRecent = recentMessages.findIndex(m =>
+            (m.senderId === incoming.senderId || (m.senderName && m.senderName === incoming.senderName)) &&
+            m.text.trim() === incoming.text.trim()
+        );
 
-        if (matchingTempIndex !== -1) {
+        if (matchIndexInRecent !== -1) {
+            const actualIndex = currentList.length - recentMessages.length + matchIndexInRecent;
             const updated = [...currentList];
-            updated[matchingTempIndex] = { ...currentList[matchingTempIndex], ...incoming };
+            updated[actualIndex] = { ...currentList[actualIndex], ...incoming };
             return updated;
         }
 
@@ -338,7 +345,6 @@ export class FriendService implements OnDestroy {
                 if (data) {
                     // Map backend response to Friend model with clean status strings
                     const mapped = data.map(u => {
-                        // Parse statusText an toàn: không fallback về JSON raw
                         const cleanText = cleanStatusString(u.statusText);
                         const cleanCustom = cleanStatusString(u.customStatus);
                         return {
@@ -348,10 +354,19 @@ export class FriendService implements OnDestroy {
                             relationshipStatus: (u.relationshipStatus as any) || 'friend'
                         };
                     });
-                    this.friends.set(mapped);
+
+                    // Strict deduplication by friend id
+                    const uniqueMap = new Map<string, Friend>();
+                    for (const f of mapped) {
+                        if (!uniqueMap.has(f.id)) {
+                            uniqueMap.set(f.id, f);
+                        }
+                    }
+                    const cleanFriends = Array.from(uniqueMap.values());
+                    this.friends.set(cleanFriends);
 
                     // Auto-add current DM friends to directMessageIds
-                    const friendIds = mapped
+                    const friendIds = cleanFriends
                         .filter(f => f.relationshipStatus === 'friend')
                         .slice(0, 10)
                         .map(f => f.id);
@@ -376,11 +391,15 @@ export class FriendService implements OnDestroy {
                     if (!msgs || msgs.length === 0) {
                         return store;
                     }
+                    let merged = [...msgs];
                     const serverMsgIds = new Set(msgs.map(m => m.id));
                     const pendingMsgs = current.filter(m => !serverMsgIds.has(m.id) && (Date.now() - Number(m.id)) < 15000);
+                    for (const p of pendingMsgs) {
+                        merged = this.upsertDM(merged, p);
+                    }
                     return {
                         ...store,
-                        [friendId]: [...msgs, ...pendingMsgs]
+                        [friendId]: merged
                     };
                 });
             },
