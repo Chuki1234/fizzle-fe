@@ -395,7 +395,10 @@ export class ServerService {
             [channelId]: [...(store[channelId] || []), userMsg]
         }));
 
-        // Send to backend (will broadcast via socket to all in the channel)
+        // 1. Fail-safe Supabase Realtime Broadcast (direct cloud WebSocket to other machine)
+        this.supabaseRealtime.broadcastChannelMessage(channelId, userMsg);
+
+        // 2. Send to backend (will persist to DB & broadcast via Socket.IO)
         this.http.post<ChatMessage>(`${this.apiConfig.baseUrl}/messages/channel/${channelId}`, {
             text: text,
             senderId: senderId,

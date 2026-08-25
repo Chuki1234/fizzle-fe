@@ -12,6 +12,8 @@ const ICE_SERVERS: RTCConfiguration = {
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun3.l.google.com:19302' },
+    { urls: 'stun:stun4.l.google.com:19302' },
   ],
 };
 
@@ -32,12 +34,18 @@ export class VoiceService {
   readonly isMuted = signal<boolean>(false);
   readonly isDeafened = signal<boolean>(false);
   readonly isSpeaking = signal<boolean>(false);
+  readonly micLevel = signal<number>(0); // 0 to 100 for live VU Meter
+
+  // Participants in CURRENT active voice room
   readonly participants = signal<VoiceParticipant[]>([]);
-  readonly connectionPing = signal<number>(24);
+
+  // Real-time map of ALL voice channels across servers: channelId -> VoiceParticipant[]
+  readonly voiceChannelsUsers = signal<Record<string, VoiceParticipant[]>>({});
 
   // WebRTC & Audio Context
   private localStream: MediaStream | null = null;
   private peerConnections = new Map<string, RTCPeerConnection>(); // socketId -> RTCPeerConnection
+  private iceCandidateQueues = new Map<string, RTCIceCandidateInit[]>(); // socketId -> queue
   private audioElements = new Map<string, HTMLAudioElement>(); // socketId -> HTMLAudioElement
   private audioContext: AudioContext | null = null;
   private analyserNode: AnalyserNode | null = null;
@@ -47,18 +55,49 @@ export class VoiceService {
     this.registerSocketEvents();
   }
 
+  getSelfParticipant(): VoiceParticipant {
+    const currentUser = this.authStore.user();
+    const userId = currentUser?.id || 'user';
+    const displayName = currentUser?.displayName || currentUser?.username || 'Người dùng';
+    const avatarUrl = currentUser?.avatarUrl || null;
+    return {
+      socketId: this.socketService.getSocketId() || 'self',
+      userId,
+      username: currentUser?.username,
+      displayName,
+      avatarUrl,
+      isMuted: this.isMuted(),
+      isDeafened: this.isDeafened(),
+      isSpeaking: this.isSpeaking(),
+    };
+  }
+
+  getUsersInChannel(channelId: string): VoiceParticipant[] {
+    const curId = this.currentChannelId();
+    if (curId === channelId && this.participants().length > 0) {
+      return this.participants();
+    }
+    const map = this.voiceChannelsUsers();
+    return map[channelId] || [];
+  }
+
   private registerSocketEvents() {
     // 1. Nhận danh sách người dùng đã có trong phòng voice khi mới join
     this.socketService.registerVoiceRoomUsersHandler((data) => {
       this.ngZone.run(async () => {
         if (data.channelId !== this.currentChannelId()) return;
 
-        // Cập nhật danh sách
-        this.participants.set(data.users.map((u) => ({ ...u })));
+        const self = this.getSelfParticipant();
+        const otherUsers = (data.users || []).filter(
+          (u) => u.userId !== self.userId && u.socketId !== this.socketService.getSocketId()
+        );
 
-        // Tạo WebRTC Offer tới từng người đã có trong phòng
-        for (const user of data.users) {
-          if (user.socketId && user.socketId !== this.socketService.getSocketId()) {
+        // Luôn giữ selfParticipant và gộp thêm các remote peers khác
+        this.participants.set([self, ...otherUsers.map((u) => ({ ...u }))]);
+
+        // Người mới vào tạo WebRTC Offer tới từng người đang có mặt
+        for (const user of otherUsers) {
+          if (user.socketId) {
             await this.createOfferToPeer(user.socketId);
           }
         }
@@ -70,8 +109,13 @@ export class VoiceService {
       this.ngZone.run(() => {
         if (data.channelId !== this.currentChannelId()) return;
 
+        const currentUserId = this.authStore.user()?.id;
+        if (data.user.userId === currentUserId || data.user.socketId === this.socketService.getSocketId()) {
+          return;
+        }
+
         this.participants.update((list) => {
-          if (list.some((p) => p.socketId === data.user.socketId)) return list;
+          if (list.some((p) => p.socketId === data.user.socketId || p.userId === data.user.userId)) return list;
           return [...list, { ...data.user }];
         });
 
@@ -85,7 +129,7 @@ export class VoiceService {
         if (data.channelId !== this.currentChannelId()) return;
 
         this.closePeer(data.socketId);
-        this.participants.update((list) => list.filter((p) => p.socketId !== data.socketId));
+        this.participants.update((list) => list.filter((p) => p.socketId !== data.socketId && p.userId !== data.userId));
         this.playAudioCue('leave');
       });
     });
@@ -108,21 +152,28 @@ export class VoiceService {
     // 5. Cập nhật trạng thái người dùng (mute / deafen / speaking)
     this.socketService.registerVoiceUserStateUpdatedHandler((data) => {
       this.ngZone.run(() => {
-        if (data.channelId !== this.currentChannelId()) return;
+        if (data.channelId === this.currentChannelId()) {
+          this.participants.update((list) =>
+            list.map((p) => {
+              if (p.socketId === data.socketId || p.userId === data.userId) {
+                return {
+                  ...p,
+                  isMuted: data.isMuted !== undefined ? data.isMuted : p.isMuted,
+                  isDeafened: data.isDeafened !== undefined ? data.isDeafened : p.isDeafened,
+                  isSpeaking: data.isSpeaking !== undefined ? data.isSpeaking : p.isSpeaking,
+                };
+              }
+              return p;
+            }),
+          );
+        }
+      });
+    });
 
-        this.participants.update((list) =>
-          list.map((p) => {
-            if (p.socketId === data.socketId || p.userId === data.userId) {
-              return {
-                ...p,
-                isMuted: data.isMuted !== undefined ? data.isMuted : p.isMuted,
-                isDeafened: data.isDeafened !== undefined ? data.isDeafened : p.isDeafened,
-                isSpeaking: data.isSpeaking !== undefined ? data.isSpeaking : p.isSpeaking,
-              };
-            }
-            return p;
-          }),
-        );
+    // 6. Cập nhật trạng thái TẤT CẢ các voice channels theo thời gian thực (cho danh sách kênh bên trái)
+    this.socketService.registerVoiceChannelsStateUpdatedHandler((states) => {
+      this.ngZone.run(() => {
+        this.voiceChannelsUsers.set(states || {});
       });
     });
   }
@@ -132,7 +183,7 @@ export class VoiceService {
   // ==========================================
 
   async joinChannel(serverId: string, channelId: string, channelName: string) {
-    if (this.currentChannelId() === channelId) return;
+    if (this.currentChannelId() === channelId && this.isConnected()) return;
 
     // Nếu đang ở kênh khác, rời kênh đó trước
     if (this.isConnected() || this.currentChannelId()) {
@@ -190,7 +241,7 @@ export class VoiceService {
       this.playAudioCue('connected');
     } catch (err) {
       console.warn('[VoiceService] Could not access microphone, entering listen-only mode:', err);
-      // Fallback: Kết nối chế độ chỉ nghe (không có mic track)
+      // Fallback: Kết nối chế độ chỉ nghe
       const currentUser = this.authStore.user();
       const userId = currentUser?.id || 'user-' + Date.now();
       const displayName = currentUser?.displayName || currentUser?.username || 'Người dùng';
@@ -221,13 +272,20 @@ export class VoiceService {
       this.localStream = null;
     }
 
-    // Đóng toàn bộ PeerConnections & Audio Elements
+    // Đóng toàn bộ PeerConnections
     this.peerConnections.forEach((pc) => pc.close());
     this.peerConnections.clear();
+    this.iceCandidateQueues.clear();
 
+    // Hủy các Audio elements khỏi DOM
     this.audioElements.forEach((audio) => {
-      audio.pause();
-      audio.srcObject = null;
+      try {
+        audio.pause();
+        audio.srcObject = null;
+        if (audio.parentNode) {
+          audio.parentNode.removeChild(audio);
+        }
+      } catch {}
     });
     this.audioElements.clear();
 
@@ -327,7 +385,7 @@ export class VoiceService {
 
     // Thêm Local Audio Tracks vào PeerConnection
     if (this.localStream) {
-      this.localStream.getTracks().forEach((track) => {
+      this.localStream.getAudioTracks().forEach((track) => {
         pc.addTrack(track, this.localStream!);
       });
     }
@@ -351,14 +409,18 @@ export class VoiceService {
 
         let audioElement = this.audioElements.get(peerSocketId);
         if (!audioElement) {
-          audioElement = new Audio();
+          audioElement = document.createElement('audio');
           audioElement.autoplay = true;
+          audioElement.controls = false;
+          audioElement.style.display = 'none';
+          audioElement.id = `remote-audio-${peerSocketId}`;
+          document.body.appendChild(audioElement);
           this.audioElements.set(peerSocketId, audioElement);
         }
 
         audioElement.srcObject = remoteStream;
         audioElement.muted = this.isDeafened();
-        void audioElement.play().catch((e) => console.log('[WebRTC] Auto-play prevented:', e));
+        void audioElement.play().catch((e) => console.log('[WebRTC] Auto-play status:', e));
       });
     };
 
@@ -395,6 +457,10 @@ export class VoiceService {
     try {
       const pc = this.getOrCreatePeerConnection(peerSocketId);
       await pc.setRemoteDescription(new RTCSessionDescription(offer));
+
+      // Drain pending ICE candidates
+      await this.drainIceCandidateQueue(peerSocketId, pc);
+
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
 
@@ -413,6 +479,8 @@ export class VoiceService {
       const pc = this.peerConnections.get(peerSocketId);
       if (pc && pc.signalingState !== 'stable') {
         await pc.setRemoteDescription(new RTCSessionDescription(answer));
+        // Drain pending ICE candidates
+        await this.drainIceCandidateQueue(peerSocketId, pc);
       }
     } catch (e) {
       console.warn('[WebRTC] Failed to handle answer:', e);
@@ -422,11 +490,31 @@ export class VoiceService {
   private async handleIceCandidateFromPeer(peerSocketId: string, candidate: RTCIceCandidateInit) {
     try {
       const pc = this.peerConnections.get(peerSocketId);
-      if (pc) {
+      if (pc && pc.remoteDescription && pc.remoteDescription.type) {
         await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      } else {
+        // Queue candidate until remote description is set
+        if (!this.iceCandidateQueues.has(peerSocketId)) {
+          this.iceCandidateQueues.set(peerSocketId, []);
+        }
+        this.iceCandidateQueues.get(peerSocketId)!.push(candidate);
       }
     } catch (e) {
       console.warn('[WebRTC] Failed to add ICE candidate:', e);
+    }
+  }
+
+  private async drainIceCandidateQueue(peerSocketId: string, pc: RTCPeerConnection) {
+    const queue = this.iceCandidateQueues.get(peerSocketId);
+    if (queue && queue.length > 0) {
+      for (const candidate of queue) {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (err) {
+          console.warn('[WebRTC] Failed to drain candidate:', err);
+        }
+      }
+      this.iceCandidateQueues.delete(peerSocketId);
     }
   }
 
@@ -437,10 +525,17 @@ export class VoiceService {
       this.peerConnections.delete(peerSocketId);
     }
 
+    this.iceCandidateQueues.delete(peerSocketId);
+
     const audio = this.audioElements.get(peerSocketId);
     if (audio) {
-      audio.pause();
-      audio.srcObject = null;
+      try {
+        audio.pause();
+        audio.srcObject = null;
+        if (audio.parentNode) {
+          audio.parentNode.removeChild(audio);
+        }
+      } catch {}
       this.audioElements.delete(peerSocketId);
     }
   }
@@ -467,10 +562,13 @@ export class VoiceService {
 
       this.audioIntervalId = setInterval(() => {
         if (!this.analyserNode || this.isMuted()) {
-          if (wasSpeaking) {
-            wasSpeaking = false;
-            this.setSpeakingState(false);
-          }
+          this.ngZone.run(() => {
+            this.micLevel.set(0);
+            if (wasSpeaking) {
+              wasSpeaking = false;
+              this.setSpeakingState(false);
+            }
+          });
           return;
         }
 
@@ -481,14 +579,20 @@ export class VoiceService {
         }
         const averageVolume = sum / bufferLength;
 
-        // Ngưỡng phát hiện tiếng nói
-        const isSpeakingNow = averageVolume > 14;
+        // Tính % mức âm lượng (0% -> 100%)
+        const level = Math.min(100, Math.round((averageVolume / 45) * 100));
 
-        if (isSpeakingNow !== wasSpeaking) {
-          wasSpeaking = isSpeakingNow;
-          this.setSpeakingState(isSpeakingNow);
-        }
-      }, 100);
+        // Ngưỡng phát hiện tiếng nói
+        const isSpeakingNow = level > 12;
+
+        this.ngZone.run(() => {
+          this.micLevel.set(level);
+          if (isSpeakingNow !== wasSpeaking) {
+            wasSpeaking = isSpeakingNow;
+            this.setSpeakingState(isSpeakingNow);
+          }
+        });
+      }, 50);
     } catch (e) {
       console.warn('[VoiceService] Could not initialize voice activity detection:', e);
     }

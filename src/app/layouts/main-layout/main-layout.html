@@ -54,19 +54,52 @@
                     </div>
 
                     @for (channel of serverService.activeServer()?.channels; track channel.id) {
-                    <div class="sidebar-left__channel-wrapper">
-                        <button (click)="serverService.selectChannel(channel)" class="sidebar-left__channel-item"
-                            [class.sidebar-left__channel-item--active]="serverService.activeChannelId() === channel.id">
-                            <span class="sidebar-left__channel-prefix">{{ channel.type === 'text' ? '#' : '🎙️' }}</span>
-                            <span class="sidebar-left__channel-name">{{ channel.name }}</span>
-                        </button>
-                        <button (click)="serverService.deleteChannel(channel.id); $event.stopPropagation()"
-                            class="sidebar-left__channel-delete-btn" [title]="languageService.t('nav.deleteChannel')" [attr.aria-label]="languageService.t('nav.deleteChannel')">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M3 6h18"></path>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                            </svg>
-                        </button>
+                    <div class="sidebar-left__channel-group">
+                        <div class="sidebar-left__channel-wrapper">
+                            <button (click)="serverService.selectChannel(channel)" class="sidebar-left__channel-item"
+                                [class.sidebar-left__channel-item--active]="channel.type === 'text' ? serverService.activeChannelId() === channel.id : voiceService.currentChannelId() === channel.id">
+                                <span class="sidebar-left__channel-prefix">{{ channel.type === 'text' ? '#' : '🔊' }}</span>
+                                <span class="sidebar-left__channel-name">{{ channel.name }}</span>
+                                @if (channel.type === 'voice' && voiceService.getUsersInChannel(channel.id).length > 0) {
+                                    <span class="sidebar-left__voice-count">{{ voiceService.getUsersInChannel(channel.id).length }}</span>
+                                }
+                            </button>
+                            <button (click)="serverService.deleteChannel(channel.id); $event.stopPropagation()"
+                                class="sidebar-left__channel-delete-btn" [title]="languageService.t('nav.deleteChannel')" [attr.aria-label]="languageService.t('nav.deleteChannel')">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 6h18"></path>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <!-- LIVE PARTICIPANTS IN VOICE CHANNEL (DISCORD STYLE) -->
+                        @if (channel.type === 'voice' && voiceService.getUsersInChannel(channel.id).length > 0) {
+                            <div class="sidebar-left__voice-members">
+                                @for (vUser of voiceService.getUsersInChannel(channel.id); track vUser.socketId) {
+                                    <div class="sidebar-left__voice-member-item" [class.sidebar-left__voice-member-item--speaking]="vUser.isSpeaking && !vUser.isMuted">
+                                        <div class="sidebar-left__voice-member-avatar" [class.sidebar-left__voice-member-avatar--speaking]="vUser.isSpeaking && !vUser.isMuted">
+                                            @if (vUser.avatarUrl) {
+                                                <img [src]="vUser.avatarUrl" alt="avatar" class="sidebar-left__voice-img" />
+                                            } @else {
+                                                <span>{{ (vUser.displayName || vUser.username || 'U').charAt(0).toUpperCase() }}</span>
+                                            }
+                                        </div>
+                                        <span class="sidebar-left__voice-member-name" [class.text-white]="vUser.isSpeaking && !vUser.isMuted">
+                                            {{ vUser.displayName || vUser.username || 'Người dùng' }}
+                                        </span>
+                                        <div class="sidebar-left__voice-member-icons">
+                                            @if (vUser.isMuted) {
+                                                <span class="sidebar-left__voice-icon" title="Tắt mic">🔇</span>
+                                            }
+                                            @if (vUser.isDeafened) {
+                                                <span class="sidebar-left__voice-icon" title="Tắt âm thanh">🎧</span>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
                     </div>
                     }
                 </div>
