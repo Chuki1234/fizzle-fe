@@ -5,20 +5,20 @@
             [class.text-white]="friendService.activeTab() === 'online'"
             [class.font-bold]="friendService.activeTab() === 'online'"
             class="text-sm text-[var(--color-steel)] hover:text-white transition cursor-pointer">
-            Trực tuyến ({{ friendService.onlineCount() }})
+            {{ languageService.t('friends.online') }} ({{ friendService.onlineCount() }})
         </button>
 
         <button (click)="friendService.activeTab.set('all')" [class.text-white]="friendService.activeTab() === 'all'"
             [class.font-bold]="friendService.activeTab() === 'all'"
             class="text-sm text-[var(--color-steel)] hover:text-white transition cursor-pointer">
-            Tất cả
+            {{ languageService.t('friends.all') }}
         </button>
 
         <button (click)="friendService.activeTab.set('pending')"
             [class.text-white]="friendService.activeTab() === 'pending'"
             [class.font-bold]="friendService.activeTab() === 'pending'"
             class="text-sm text-[var(--color-steel)] hover:text-white transition flex items-center gap-2 cursor-pointer">
-            Đang chờ
+            {{ languageService.t('friends.pending') }}
             @if (friendService.pendingCount() > 0) {
             <span class="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">
                 {{ friendService.pendingCount() }}
@@ -31,15 +31,15 @@
             [class.font-bold]="friendService.activeTab() === 'add'"
             class="text-sm text-[var(--color-steel)] hover:text-white transition cursor-pointer ml-auto px-3 py-1 bg-[var(--color-surface)] border border-[var(--color-hairline)] rounded-lg hover:border-[var(--color-accent)] flex items-center gap-2">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" y1="8" x2="19" y2="14"></line><line x1="22" y1="11" x2="16" y2="11"></line></svg>
-            Thêm bạn bè
+            {{ languageService.t('friends.add') }}
         </button>
     </div>
 
     <!-- TAB: THÊM BẠN BÈ - TÌM KIẾM -->
     @if (friendService.activeTab() === 'add') {
     <div class="add-friend-panel">
-        <h3 class="text-base font-bold text-white mb-1">Thêm bạn bè</h3>
-        <p class="text-xs text-[var(--color-steel)] mb-4">Tìm kiếm bạn bè theo tên người dùng hoặc tên hiển thị</p>
+        <h3 class="text-base font-bold text-white mb-1">{{ languageService.t('friends.addTitle') }}</h3>
+        <p class="text-xs text-[var(--color-steel)] mb-4">{{ languageService.t('friends.addSubtitle') }}</p>
 
         <div class="flex gap-3 mb-5">
             <div class="relative flex-1">
@@ -49,7 +49,7 @@
                     [value]="friendService.searchQuery()"
                     (input)="onSearch($event)"
                     (keydown.enter)="onSearch($event)"
-                    placeholder="Nhập username hoặc tên hiển thị..."
+                    [placeholder]="languageService.t('friends.searchPlaceholder')"
                     class="w-full px-4 py-3 bg-[var(--color-surface)] border border-[var(--color-hairline)] rounded-xl text-sm text-white placeholder-[var(--color-steel)] outline-none focus:border-[var(--color-accent)] transition" />
                 @if (friendService.isSearching()) {
                 <div class="absolute right-3 top-1/2 -translate-y-1/2">

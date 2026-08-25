@@ -5,6 +5,7 @@ import { Router, RouterModule } from '@angular/router';
 import { AuthStore } from '../../core/auth/auth.store';
 import { AuthService } from '../../core/auth/auth.service';
 import { ProfileService, Badge, MutualServer, MutualFriend } from '../../core/services/profile';
+import { LanguageService, AppLanguage } from '../../core/services/language.service';
 
 export interface SettingFeatureItem {
   id: string;
@@ -26,6 +27,7 @@ export interface SettingFeatureItem {
 export class Khang {
   private authService = inject(AuthService);
   public profileService = inject(ProfileService);
+  public languageService = inject(LanguageService);
 
   // Signal điều khiển ẩn/hiện Modal đăng xuất
   showLogoutConfirm = signal<boolean>(false);
@@ -74,10 +76,10 @@ export class Khang {
     'account-info' | 'profiles' | 'badges-presence' | 'accessibility' | 'privacy' | 'messaging' | 'notifications'
   >('account-info');
 
-  // Accessibility & Display Signals
+  // Accessibility & Language Signals
   fontScale = signal<'compact' | 'normal' | 'large'>('normal');
-  reducedMotion = signal<boolean>(false);
-  highContrast = signal<boolean>(false);
+  currentLang = this.languageService.currentLang;
+  availableLanguages = this.languageService.availableLanguages;
 
   activeCardTab = signal<'user-info' | 'mutual-servers' | 'mutual-friends' | 'activity'>('user-info');
 
@@ -92,39 +94,24 @@ export class Khang {
   searchQuery = signal<string>('');
 
   // Search Index Database
-  searchableFeatures: SettingFeatureItem[] = [
-    { id: 'sec-username', section: 'account-info', sectionName: 'Account Info', sectionIcon: '👤', title: 'Username & Tên người dùng', description: 'Thay đổi username và thông tin tài khoản công khai', keywords: ['username', 'tên', 'tài khoản', 'account', 'user'] },
-    { id: 'sec-email', section: 'account-info', sectionName: 'Account Info', sectionIcon: '👤', title: 'Email & Số điện thoại', description: 'Xem và chỉnh sửa email chính cũng như số điện thoại liên lạc', keywords: ['email', 'thư', 'sdt', 'phone', 'điện thoại'] },
-    { id: 'sec-password', section: 'account-info', sectionName: 'Account Info', sectionIcon: '🔑', title: 'Mật khẩu (Password)', description: 'Thay đổi mật khẩu đăng nhập định kỳ để bảo vệ tài khoản', keywords: ['password', 'mật khẩu', 'đổi mật khẩu', 'pass', 'khóa'] },
-    { id: 'sec-2fa', section: 'account-info', sectionName: 'Account Info', sectionIcon: '🛡️', title: 'Xác thực 2 yếu tố (2FA)', description: 'Thiết lập mã OTP Google Authenticator / Authy để tăng cường bảo mật', keywords: ['2fa', 'otp', 'xác thực', 'bảo mật', 'authenticator', 'security'] },
-    { id: 'sec-login-alerts', section: 'account-info', sectionName: 'Account Info', sectionIcon: '🔔', title: 'Cảnh báo đăng nhập lạ & Sudo Mode', description: 'Nhận email cảnh báo khi có thiết bị lạ hoặc yêu cầu mã khi thao tác nhạy cảm', keywords: ['cảnh báo', 'alert', 'sudo', 'login', 'đăng nhập'] },
-    { id: 'sec-devices', section: 'account-info', sectionName: 'Account Info', sectionIcon: '💻', title: 'Thiết bị đang hoạt động (Active Sessions)', description: 'Xem danh sách các trình duyệt/ứng dụng và đăng xuất từ xa', keywords: ['thiết bị', 'device', 'session', 'đăng xuất', 'session', 'chrome', 'iphone'] },
-
-    { id: 'sec-avatar', section: 'profiles', sectionName: 'Profiles & Appearance', sectionIcon: '🎨', title: 'Ảnh đại diện (Avatar)', description: 'Tải ảnh đại diện từ máy tính hoặc chọn các mẫu avatar có sẵn', keywords: ['avatar', 'ảnh đại diện', 'ảnh', 'hình', 'profile picture'] },
-    { id: 'sec-decor', section: 'profiles', sectionName: 'Profiles & Appearance', sectionIcon: '🎨', title: 'Khung Avatar & Trang trí (Decoration)', description: 'Chọn hiệu ứng hào quang Cyber Glow, Nitro Boost, Vương miện', keywords: ['khung', 'decor', 'frame', 'hào quang', 'nitro', 'crown'] },
-    { id: 'sec-banner', section: 'profiles', sectionName: 'Profiles & Appearance', sectionIcon: '🎨', title: 'Tông màu Banner (Profile Color)', description: 'Tùy chỉnh dải màu Gradient xám và phong cách thẻ cá nhân', keywords: ['banner', 'màu', 'color', 'gradient', 'theme'] },
-    { id: 'sec-status', section: 'profiles', sectionName: 'Profiles & Appearance', sectionIcon: '🎨', title: 'Trạng thái tùy chỉnh (Custom Status)', description: 'Nhập emoji và dòng trạng thái suy nghĩ cá nhân', keywords: ['custom status', 'trạng thái', 'emoji', 'tiểu sử', 'about me'] },
-
-    { id: 'sec-badges', section: 'badges-presence', sectionName: 'Badges & Rich Presence', sectionIcon: '👾', title: 'Huy hiệu Discord (Badges)', description: 'Bật/tắt các huy hiệu Developer, HypeSquad, Supporter, Nitro Boost', keywords: ['badge', 'huy hiệu', 'hypesquad', 'developer', 'nitro'] },
-    { id: 'sec-presence', section: 'badges-presence', sectionName: 'Badges & Rich Presence', sectionIcon: '🎮', title: 'Hoạt động Rich Presence (Playing Status)', description: 'Cấu hình hiển thị game đang chơi: VS Code, Spotify, League of Legends', keywords: ['presence', 'rich presence', 'game', 'playing', 'vs code', 'spotify', 'lol'] },
-
-    { id: 'sec-theme-mode', section: 'accessibility', sectionName: 'Accessibility & Theme', sectionIcon: '♿', title: 'Chế độ Tối / Sáng (Dark & Light Mode)', description: 'Chuyển đổi giao diện Dark Mode và Light Mode mượt mà', keywords: ['dark mode', 'light mode', 'giao diện', 'tối', 'sáng', 'theme'] },
-    { id: 'sec-font-scale', section: 'accessibility', sectionName: 'Accessibility & Theme', sectionIcon: '♿', title: 'Kích thước chữ (Font Scaling)', description: 'Tùy chỉnh phông chữ theo các cấp độ Compact, Standard, Large', keywords: ['font', 'chữ', 'scale', 'kích thước', 'compact', 'large'] },
-
-    { id: 'sec-dms', section: 'messaging', sectionName: 'Messaging Permissions', sectionIcon: '💬', title: 'Quyền nhắn tin từ người lạ (Direct Messages)', description: 'Bật/tắt nhận tin nhắn từ thành viên cùng máy chủ hoặc người lạ', keywords: ['dm', 'tin nhắn', 'người lạ', 'stranger', 'nhắn tin', 'message'] },
-    { id: 'sec-filter', section: 'messaging', sectionName: 'Messaging Permissions', sectionIcon: '💬', title: 'Bộ lọc từ ngữ cấm & Nội dung độc hại', description: 'Cài đặt cấp độ lọc tin nhắn thô tục và quản lý danh sách từ cấm', keywords: ['lọc', 'filter', 'từ cấm', 'banned words', 'thô tục', 'explicit'] },
-    { id: 'sec-anti-scam', section: 'messaging', sectionName: 'Messaging Permissions', sectionIcon: '🛡️', title: 'Chống tin nhắn Lừa đảo & Spam (Anti-Scam)', description: 'Tự động chặn link phishing, lừa đảo Nitro giả mạo và bot spam', keywords: ['scam', 'phishing', 'lừa đảo', 'spam', 'bot', 'link'] },
-
-    { id: 'sec-quiet-hours', section: 'notifications', sectionName: 'Notifications', sectionIcon: '🔔', title: 'Giờ yên tĩnh & Tắt thông báo (Quiet Hours)', description: 'Hẹn giờ tự động tắt âm thông báo và tắt popup khi ở chế độ Fullscreen', keywords: ['quiet hours', 'dnd', 'giờ yên tĩnh', 'tắt thông báo', 'hẹn giờ'] },
-    { id: 'sec-sounds', section: 'notifications', sectionName: 'Notifications', sectionIcon: '🔔', title: 'Âm thanh & Nhạc chuông thông báo', description: 'Tùy chỉnh và nghe thử âm báo tin nhắn mới và nhạc chuông cuộc gọi', keywords: ['âm thanh', 'sound', 'nhạc chuông', 'nghe thử', 'ringtone', 'bell'] },
-    { id: 'sec-email-digest', section: 'notifications', sectionName: 'Notifications', sectionIcon: '🔔', title: 'Thông báo Push & Email Digest', description: 'Cấu hình nhận thông báo qua desktop, di động và tần suất gộp email', keywords: ['email', 'push', 'desktop', 'digest', 'thông báo'] },
-  ];
+  searchableFeatures = computed<SettingFeatureItem[]>(() => {
+    const isVi = this.currentLang() === 'vi';
+    return [
+      { id: 'sec-username', section: 'account-info', sectionName: isVi ? 'Thông tin Tài khoản' : 'Account Info', sectionIcon: '👤', title: isVi ? 'Username & Tên người dùng' : 'Username & Display Name', description: isVi ? 'Thay đổi username và thông tin tài khoản công khai' : 'Change username and public account details', keywords: ['username', 'tên', 'tài khoản', 'account', 'user'] },
+      { id: 'sec-email', section: 'account-info', sectionName: isVi ? 'Thông tin Tài khoản' : 'Account Info', sectionIcon: '👤', title: isVi ? 'Email & Số điện thoại' : 'Email & Phone Number', description: isVi ? 'Xem và chỉnh sửa email chính cũng như số điện thoại' : 'View and edit primary email and phone number', keywords: ['email', 'thư', 'sdt', 'phone', 'điện thoại'] },
+      { id: 'sec-password', section: 'account-info', sectionName: isVi ? 'Thông tin Tài khoản' : 'Account Info', sectionIcon: '🔑', title: isVi ? 'Mật khẩu (Password)' : 'Password & Security', description: isVi ? 'Thay đổi mật khẩu đăng nhập định kỳ để bảo vệ tài khoản' : 'Change login password periodically to protect account', keywords: ['password', 'mật khẩu', 'pass'] },
+      { id: 'sec-2fa', section: 'account-info', sectionName: isVi ? 'Thông tin Tài khoản' : 'Account Info', sectionIcon: '🛡️', title: isVi ? 'Xác thực 2 yếu tố (2FA)' : 'Two-Factor Auth (2FA)', description: isVi ? 'Thiết lập mã OTP Google Authenticator' : 'Set up Google Authenticator OTP code', keywords: ['2fa', 'otp', 'xác thực', 'bảo mật'] },
+      { id: 'sec-theme-mode', section: 'accessibility', sectionName: isVi ? 'Hỗ trợ tiếp cận & Ngôn ngữ' : 'Accessibility & Theme', sectionIcon: '♿', title: isVi ? 'Chế độ Tối / Sáng (Dark & Light Mode)' : 'Dark & Light Theme Mode', description: isVi ? 'Chuyển đổi giao diện Dark Mode và Light Mode' : 'Toggle between Dark Mode and Light Mode', keywords: ['dark mode', 'light mode', 'theme'] },
+      { id: 'sec-font-scale', section: 'accessibility', sectionName: isVi ? 'Hỗ trợ tiếp cận & Ngôn ngữ' : 'Accessibility & Theme', sectionIcon: '♿', title: isVi ? 'Kích thước chữ (Font Scaling)' : 'Font Scaling', description: isVi ? 'Tùy chỉnh phông chữ Compact, Standard, Large' : 'Customize font scale (Compact, Standard, Large)', keywords: ['font', 'scale'] },
+      { id: 'sec-language', section: 'accessibility', sectionName: isVi ? 'Hỗ trợ tiếp cận & Ngôn ngữ' : 'Accessibility & Theme', sectionIcon: '🌐', title: isVi ? 'Ngôn ngữ giao diện (Language Selection)' : 'Display Language Selection', description: isVi ? 'Thay đổi ngôn ngữ hiển thị hệ thống (Tiếng Việt / English)' : 'Select system display language (Vietnamese / English)', keywords: ['ngôn ngữ', 'language', 'lang', 'english', 'tiếng việt'] },
+    ];
+  });
 
   searchResults = computed(() => {
     const q = this.searchQuery().trim().toLowerCase();
     if (!q) return [];
 
-    return this.searchableFeatures.filter((item) => {
+    return this.searchableFeatures().filter((item) => {
       const matchTitle = item.title.toLowerCase().includes(q);
       const matchDesc = item.description.toLowerCase().includes(q);
       const matchSection = item.sectionName.toLowerCase().includes(q);
@@ -156,9 +143,8 @@ export class Khang {
     return '********' + phone.slice(-4);
   });
 
-  // Multi-Factor Auth & Devices
+  // Multi-Factor Auth
   mfaEnabled = signal<boolean>(true);
-  loggedInDevicesCount = signal<number>(11);
 
   // Edit Modal State
   editingField = signal<'username' | 'email' | 'phone' | 'password' | null>(null);
@@ -222,11 +208,6 @@ export class Khang {
   twoFAStep = signal<'qr' | 'verify' | 'success'>('qr');
   twoFAVerificationCode = signal<string>('');
 
-  activeDevices = signal([
-    { id: 'dev-1', icon: '💻', name: 'Windows PC (Chrome Browser)', location: 'Hà Nội, Việt Nam • IP: 113.190.14.88', lastActive: 'Đang hoạt động (Trình duyệt này)', isCurrent: true },
-    { id: 'dev-2', icon: '📱', name: 'iPhone 15 Pro (Discord Mobile)', location: 'TP. Hồ Chí Minh, Việt Nam', lastActive: '2 giờ trước', isCurrent: false },
-    { id: 'dev-3', icon: '🌐', name: 'MacBook Pro (Safari App)', location: 'Đà Nẵng, Việt Nam', lastActive: '3 ngày trước', isCurrent: false },
-  ]);
 
   // Messaging Permissions Signals & State
   allowServerDMs = signal<boolean>(true);
@@ -448,13 +429,6 @@ export class Khang {
     this.sudoModeEnabled.set(!this.sudoModeEnabled());
   }
 
-  revokeDevice(deviceId: string) {
-    this.activeDevices.update((list) => list.filter((d) => d.id !== deviceId));
-  }
-
-  revokeAllOtherDevices() {
-    this.activeDevices.update((list) => list.filter((d) => d.isCurrent));
-  }
 
   // Messaging Permissions Methods
   addCustomBannedWord() {
@@ -501,14 +475,10 @@ export class Khang {
     this.showToast(`Đã đổi kích thước phông chữ: ${scale.toUpperCase()}`);
   }
 
-  toggleReducedMotion() {
-    this.reducedMotion.set(!this.reducedMotion());
-    this.showToast(this.reducedMotion() ? 'Đã bật giảm chuyển động' : 'Đã tắt giảm chuyển động');
-  }
-
-  toggleHighContrast() {
-    this.highContrast.set(!this.highContrast());
-    this.showToast(this.highContrast() ? 'Đã bật chế độ tương phản cao' : 'Đã tắt chế độ tương phản cao');
+  setLanguage(lang: AppLanguage) {
+    this.languageService.setLanguage(lang);
+    const msg = lang === 'vi' ? 'Đã đổi ngôn ngữ sang Tiếng Việt' : 'Language changed to English (US)';
+    this.showToast(msg);
   }
 
   toggleRevealEmail() {

@@ -2,9 +2,9 @@
   <!-- CỘT GIỮA: Danh sách Server thực tế -->
   <div class="dashboard-main">
     <div class="flex items-center justify-between mb-6">
-      <h1 class="dashboard-title">Các server bạn đang tham gia</h1>
+      <h1 class="dashboard-title">{{ languageService.t('dashboard.title') }}</h1>
       <button (click)="modalService.open('CREATE_SERVER')" class="dashboard-add-btn">
-        + Tạo máy chủ
+        {{ languageService.t('dashboard.createServer') }}
       </button>
     </div>
 
@@ -21,7 +21,7 @@
         <div class="server-card__info">
           <h2 class="server-card__title">{{ server.name }}</h2>
           <p class="server-card__desc">
-            {{ getTextChannelCount(server) }} kênh trò chuyện • {{ getVoiceChannelCount(server) }} kênh thoại
+            {{ getTextChannelCount(server) }} {{ languageService.t('dashboard.textChannelsCount') }} • {{ getVoiceChannelCount(server) }} {{ languageService.t('dashboard.voiceChannelsCount') }}
           </p>
         </div>
 
@@ -31,9 +31,9 @@
       </div>
       } @empty {
       <div class="dashboard-empty">
-        <p class="text-zinc-400 text-sm mb-3">Bạn chưa tham gia máy chủ nào.</p>
+        <p class="text-zinc-400 text-sm mb-3">{{ languageService.t('dashboard.noServers') }}</p>
         <button (click)="modalService.open('CREATE_SERVER')" class="dashboard-add-btn">
-          Tạo máy chủ đầu tiên
+          {{ languageService.t('dashboard.createFirstServer') }}
         </button>
       </div>
       }
@@ -43,7 +43,7 @@
   <!-- CỘT PHẢI: Livestream & Kênh thoại ở các Server -->
   <aside class="sidebar-right">
     <header class="sidebar-right__header">
-      <h2 class="sidebar-right__title">KÊNH THOẠI & PHÒNG CHỜ TRỰC TUYẾN 🔥</h2>
+      <h2 class="sidebar-right__title">{{ languageService.t('dashboard.voiceHeader') }}</h2>
     </header>
 
     <div class="sidebar-right__stream-list">
@@ -60,7 +60,7 @@
       </div>
       } @empty {
       <div class="p-4 text-center text-zinc-500 text-xs">
-        Chưa có phòng thoại nào đang mở.
+        {{ languageService.currentLang() === 'vi' ? 'Chưa có phòng thoại nào đang mở.' : 'No active voice channels.' }}
       </div>
       }
     </div>
