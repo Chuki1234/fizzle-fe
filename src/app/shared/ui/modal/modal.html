@@ -123,12 +123,16 @@
             <label class="form-label">Liên kết mời</label>
             <div class="invite-link-row">
                 <input type="text" [value]="inviteCode() || 'Đang tạo liên kết...'" readonly class="form-input invite-link-input" />
-                <button (click)="copyInviteLink()" type="button" class="btn-copy" [disabled]="!inviteCode()">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                    </svg>
-                    Sao chép
+                <button (click)="copyInviteLink()" type="button" class="btn-copy" [class.btn-copy--copied]="copied()" [disabled]="!inviteCode()">
+                    @if (copied()) {
+                        <span>✓ Đã sao chép!</span>
+                    } @else {
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        <span>Sao chép</span>
+                    }
                 </button>
             </div>
         </div>
@@ -139,7 +143,7 @@
             <div class="invite-friends-list">
                 @for (friend of getFriends(); track friend.id) {
                 <div class="invite-friend-row">
-                    <div class="invite-friend-avatar">{{ friend.displayName.charAt(0) }}</div>
+                    <div class="invite-friend-avatar">{{ (friend.displayName || friend.username || 'U').charAt(0).toUpperCase() }}</div>
                     <div class="invite-friend-info">
                         <span class="invite-friend-name">{{ friend.displayName }}</span>
                         <span class="invite-friend-username">@{{ friend.username }}</span>
@@ -148,15 +152,17 @@
                         (click)="inviteFriend(friend.id)"
                         type="button"
                         class="btn-invite"
-                        [class.btn-invite--invited]="getInviteStatus(friend.id) === 'invited'"
-                        [class.btn-invite--inviting]="getInviteStatus(friend.id) === 'inviting'"
-                        [disabled]="getInviteStatus(friend.id) !== 'idle'">
-                        @if (getInviteStatus(friend.id) === 'invited') {
-                            ✓ Đã gửi
-                        } @else if (getInviteStatus(friend.id) === 'inviting') {
-                            Đang gửi...
+                        [class.btn-invite--invited]="isInvited(friend.id) || isMember(friend.id)"
+                        [class.btn-invite--inviting]="isInviting(friend.id)"
+                        [disabled]="isInvited(friend.id) || isMember(friend.id) || isInviting(friend.id)">
+                        @if (isMember(friend.id)) {
+                            <span>✓ Đã tham gia</span>
+                        } @else if (isInvited(friend.id)) {
+                            <span>✓ Đã mời</span>
+                        } @else if (isInviting(friend.id)) {
+                            <span>⏳ Đang gửi...</span>
                         } @else {
-                            Mời
+                            <span>Mời</span>
                         }
                     </button>
                 </div>

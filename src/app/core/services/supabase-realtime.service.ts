@@ -129,6 +129,20 @@ export class SupabaseRealtimeService {
           });
         },
       )
+      // 5b. Server Invite Broadcast
+      .on(
+        'broadcast',
+        { event: 'server_invite_broadcast' },
+        (payload: any) => {
+          this.ngZone.run(() => {
+            const data = payload && payload['payload'] ? payload['payload'] : payload;
+            if (!data) return;
+            if (data.targetUserId === this.currentUserId) {
+              this.serverInviteHandlers.forEach(h => h(data.serverData));
+            }
+          });
+        },
+      )
       // 6. Friendships
       .on(
         'postgres_changes',
@@ -179,6 +193,7 @@ export class SupabaseRealtimeService {
 
   // Multi-handler callback arrays
   private voiceRoomEventHandlers: Array<(data: any) => void> = [];
+  private serverInviteHandlers: Array<(data: any) => void> = [];
 
   // --- Broadcast Send Helpers ---
   broadcastDirectMessage(senderId: string, recipientId: string, message: any) {
@@ -206,6 +221,21 @@ export class SupabaseRealtimeService {
       event: 'voice_room_event',
       payload: data,
     });
+  }
+
+  broadcastServerInvite(targetUserId: string, serverData: any) {
+    if (!this.channel) return;
+    this.channel.send({
+      type: 'broadcast',
+      event: 'server_invite_broadcast',
+      payload: { targetUserId, serverData },
+    });
+  }
+
+  registerServerInviteHandler(handler: (data: any) => void) {
+    if (!this.serverInviteHandlers.includes(handler)) {
+      this.serverInviteHandlers.push(handler);
+    }
   }
 
   registerVoiceRoomEventHandler(handler: (data: any) => void) {

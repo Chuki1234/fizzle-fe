@@ -339,6 +339,12 @@
     color: #949ba4;
 }
 
+.btn-copy--copied {
+    background-color: #23a55a !important;
+    color: #000000 !important;
+    font-weight: 700 !important;
+}
+
 .btn-invite {
     padding: 6px 14px;
     background-color: #23a55a;
@@ -354,17 +360,19 @@
 
 .btn-invite:hover:not(:disabled) {
     background-color: #1f9450;
+    transform: scale(1.02);
 }
 
 .btn-invite--invited {
-    background-color: #3f4147 !important;
-    color: #949ba4 !important;
+    background-color: #2b2d31 !important;
+    color: #23a55a !important;
+    border: 1px solid #23a55a/40 !important;
     cursor: default !important;
 }
 
 .btn-invite--inviting {
-    background-color: #2b2d31 !important;
-    color: #949ba4 !important;
+    background-color: #3f4147 !important;
+    color: #ffffff !important;
     cursor: wait !important;
 }
 

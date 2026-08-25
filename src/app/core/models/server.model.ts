@@ -10,4 +10,6 @@ export interface Server {
     name: string;
     icon: string;
     channels: Channel[];
+    members?: string[];
+    creatorId?: string;
 }

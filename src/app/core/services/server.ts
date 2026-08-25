@@ -57,7 +57,7 @@ export class ServerService {
     private upsertChannelMsg(currentList: ChatMessage[], incoming: ChatMessage): ChatMessage[] {
         if (!incoming || !incoming.text) return currentList;
 
-        // 1. Kiểm tra ID chính xác
+        // 1. Kiểm tra trùng ID chính xác
         const exactIdIndex = currentList.findIndex(m => m.id === incoming.id);
         if (exactIdIndex !== -1) {
             const updated = [...currentList];
@@ -65,18 +65,17 @@ export class ServerService {
             return updated;
         }
 
-        // 2. Tìm tin nhắn tạm cùng senderId và text trong 12s
-        const matchingTempIndex = currentList.findIndex(m => {
-            if (m.senderId !== incoming.senderId || m.text.trim() !== incoming.text.trim()) return false;
-            const mTime = Number(m.id);
-            if (!isNaN(mTime) && Math.abs(Date.now() - mTime) < 12000) return true;
-            if (m.timestamp === incoming.timestamp) return true;
-            return false;
-        });
+        // 2. Kiểm tra trùng nội dung + sender trong 10 tin nhắn gần nhất
+        const recentMessages = currentList.slice(-10);
+        const matchIndexInRecent = recentMessages.findIndex(m =>
+            m.senderId === incoming.senderId &&
+            m.text.trim() === incoming.text.trim()
+        );
 
-        if (matchingTempIndex !== -1) {
+        if (matchIndexInRecent !== -1) {
+            const actualIndex = currentList.length - recentMessages.length + matchIndexInRecent;
             const updated = [...currentList];
-            updated[matchingTempIndex] = { ...currentList[matchingTempIndex], ...incoming };
+            updated[actualIndex] = { ...currentList[actualIndex], ...incoming };
             return updated;
         }
 
@@ -90,7 +89,6 @@ export class ServerService {
         }
 
         const handleIncomingChannelMsg = (channelId: string, message: any) => {
-            // Update immediately in real time with deduplication
             this.channelMessages.update(store => {
                 const current = store[channelId] || [];
                 return { ...store, [channelId]: this.upsertChannelMsg(current, message) };
@@ -106,60 +104,41 @@ export class ServerService {
             this.loadServers();
         });
 
+        const handleServerInvite = (data: any) => {
+            if (!data) return;
+            const server = data.server || data;
+            if (!server || !server.id) return;
+
+            const exists = this.servers().some(s => s.id === server.id);
+            if (!exists) {
+                this.servers.update(list => [...list, server]);
+            }
+            this.notificationService.show({
+                type: 'server_invite',
+                title: 'Lời mời máy chủ mới 🚀',
+                message: `Bạn đã được thêm vào máy chủ "${server.name}"!`,
+                actionLabel: 'Mở máy chủ',
+                actionRoute: ['/channels', server.id, server.channels?.[0]?.id || '']
+            });
+            this.loadServers();
+        };
+
+        this.socketService.registerServerInviteHandler(handleServerInvite);
+        this.supabaseRealtime.registerServerInviteHandler(handleServerInvite);
+
         this.socketService.registerServerUpdatedHandler((data) => {
             if (!data) return;
 
-            if (data.type === 'CHANNEL_ADDED' && data.serverId && data.channel) {
-                this.servers.update(list => list.map(s => {
-                    if (s.id === data.serverId) {
-                        const already = s.channels.some(c => c.id === data.channel.id);
-                        if (!already) {
-                            return { ...s, channels: [...s.channels, data.channel] };
-                        }
-                    }
-                    return s;
-                }));
-            }
-
-            if (data.type === 'CHANNEL_DELETED' && data.serverId && data.channelId) {
-                this.servers.update(list => list.map(s => {
-                    if (s.id === data.serverId) {
-                        return { ...s, channels: s.channels.filter(c => c.id !== data.channelId) };
-                    }
-                    return s;
-                }));
-            }
-
-            if (data.type === 'SERVER_CREATED' && data.server) {
+            if (data.type === 'CHANNEL_ADDED' || data.type === 'CHANNEL_DELETED' || data.type === 'SERVER_CREATED') {
                 this.loadServers();
             }
 
             if (data.type === 'MEMBER_ADDED' && data.server) {
                 const currentUserId = this.authStore.user()?.id;
                 if (data.userId === currentUserId || (data.server.members && data.server.members.includes(currentUserId))) {
-                    const exists = this.servers().some(s => s.id === data.server.id);
-                    if (!exists) {
-                        this.servers.update(list => [...list, data.server]);
-                    }
+                    this.loadServers();
                 }
-                this.loadServers();
             }
-        });
-
-        this.socketService.registerServerInviteHandler((data) => {
-            if (!data || !data.server) return;
-            const exists = this.servers().some(s => s.id === data.server.id);
-            if (!exists) {
-                this.servers.update(list => [...list, data.server]);
-            }
-            this.notificationService.show({
-                type: 'server_invite',
-                title: 'Lời mời máy chủ mới 🚀',
-                message: `Bạn đã được thêm vào máy chủ "${data.server.name}"!`,
-                actionLabel: 'Mở máy chủ',
-                actionRoute: ['/channels', data.server.id, data.server.channels?.[0]?.id || '']
-            });
-            this.loadServers();
         });
     }
 
@@ -170,10 +149,23 @@ export class ServerService {
         this.http.get<Server[]>(`${this.apiConfig.baseUrl}/servers${params}`).subscribe({
             next: (data) => {
                 if (data && data.length > 0) {
-                    this.servers.set(data);
+                    // Deduplicate channels within each server
+                    const cleanedServers = data.map(s => {
+                        const uniqueChannels: Channel[] = [];
+                        const seenIds = new Set<string>();
+                        for (const ch of s.channels || []) {
+                            if (!seenIds.has(ch.id)) {
+                                seenIds.add(ch.id);
+                                uniqueChannels.push(ch);
+                            }
+                        }
+                        return { ...s, channels: uniqueChannels };
+                    });
+
+                    this.servers.set(cleanedServers);
                     const currentServerId = this.activeServerId();
                     if (currentServerId) {
-                        const currentServer = data.find(s => s.id === currentServerId);
+                        const currentServer = cleanedServers.find(s => s.id === currentServerId);
                         if (currentServer) {
                             const hasChannel = currentServer.channels.some(c => c.id === this.activeChannelId());
                             if (!hasChannel && currentServer.channels.length > 0) {
@@ -197,11 +189,15 @@ export class ServerService {
                     if (!msgs || msgs.length === 0) {
                         return store;
                     }
+                    let merged = [...msgs];
                     const serverMsgIds = new Set(msgs.map(m => m.id));
                     const pendingMsgs = current.filter(m => !serverMsgIds.has(m.id) && (Date.now() - Number(m.id)) < 15000);
+                    for (const p of pendingMsgs) {
+                        merged = this.upsertChannelMsg(merged, p);
+                    }
                     return {
                         ...store,
-                        [channelId]: [...msgs, ...pendingMsgs]
+                        [channelId]: merged
                     };
                 });
                 // Join socket room for this channel
@@ -269,34 +265,31 @@ export class ServerService {
         this.voiceService.toggleDeafen();
     }
 
-    // --- HÀM TẠO SERVER MỚI ---
-    addServer(name: string, icon: string) {
+    // --- HÀM TẠO SERVER ---
+    createServer(name: string) {
         if (!name.trim()) return;
 
-        const userId = this.authStore.user()?.id;
+        const currentUserId = this.authStore.user()?.id;
         const payload = {
-            name: name.trim(),
-            icon: icon.trim() || '🔥',
-            creatorId: userId || 'user'
+            name: name,
+            icon: '🔥',
+            userId: currentUserId || 'user'
         };
 
         this.http.post<Server>(`${this.apiConfig.baseUrl}/servers`, payload).subscribe({
-            next: (newServer) => {
-                // Add server directly from response (do NOT rely on socket SERVER_CREATED to avoid duplicate)
-                const exists = this.servers().some(s => s.id === newServer.id);
-                if (!exists) {
-                    this.servers.update(list => [...list, newServer]);
-                }
-                this.selectServer(newServer.id);
+            next: (createdServer) => {
+                this.loadServers();
+                this.selectServer(createdServer.id);
             },
             error: () => {
-                const newServerId = 'server-' + Date.now();
+                const newServerId = 's-' + Date.now();
                 const defaultTextChannelId = 'c-' + Date.now() + '-1';
                 const defaultVoiceChannelId = 'c-' + Date.now() + '-2';
+
                 const fallbackServer: Server = {
                     id: newServerId,
-                    name: payload.name,
-                    icon: payload.icon,
+                    name: name,
+                    icon: '🔥',
                     channels: [
                         { id: defaultTextChannelId, name: 'thảo-luận-chung', type: 'text' },
                         { id: defaultVoiceChannelId, name: 'Phòng Chờ 🎙️', type: 'voice' }
@@ -320,32 +313,13 @@ export class ServerService {
 
         this.http.post<Channel>(`${this.apiConfig.baseUrl}/servers/${serverId}/channels`, payload).subscribe({
             next: (newChannel) => {
-                this.servers.update(list => list.map(s => {
-                    if (s.id === serverId) {
-                        return { ...s, channels: [...s.channels, newChannel] };
-                    }
-                    return s;
-                }));
-
+                this.loadServers();
                 if (type === 'text') {
                     this.selectChannel(newChannel);
                 }
             },
             error: () => {
-                const fallbackChannel: Channel = {
-                    id: 'c-' + Date.now(),
-                    name: payload.name,
-                    type: type
-                };
-                this.servers.update(list => list.map(s => {
-                    if (s.id === serverId) {
-                        return { ...s, channels: [...s.channels, fallbackChannel] };
-                    }
-                    return s;
-                }));
-                if (type === 'text') {
-                    this.selectChannel(fallbackChannel);
-                }
+                this.loadServers();
             }
         });
     }
@@ -444,6 +418,16 @@ export class ServerService {
 
     inviteFriendToServer(serverId: string, friendId: string): Promise<{ success: boolean }> {
         const userId = this.authStore.user()?.id || 'user';
+        const server = this.activeServer() || this.servers().find(s => s.id === serverId);
+
+        if (server) {
+            this.supabaseRealtime.broadcastServerInvite(friendId, {
+                type: 'SERVER_INVITE',
+                server: server,
+                inviterId: userId,
+            });
+        }
+
         return this.http.post<{ success: boolean }>(
             `${this.apiConfig.baseUrl}/servers/${serverId}/invite-friend`,
             { friendId, inviterId: userId }
