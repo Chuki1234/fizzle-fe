@@ -32,7 +32,10 @@ export class OtpVerify {
   /** The address the code was sent to. */
   readonly email = input.required<string>();
 
-  /** The assembled OTP code from the 8-box input */
+  /** The phone number the code was optionally sent to. */
+  readonly phone = input<string>('');
+
+  /** The assembled OTP code from the 6-box input */
   protected readonly otpCode = signal('');
 
   /** OTP length from schema constants */
@@ -44,9 +47,35 @@ export class OtpVerify {
   protected readonly notice = signal<string | null>(null);
   protected readonly cooldown = signal(0);
 
+  /** Detect email provider for quick webmail / mobile mail opening */
+  protected readonly mailAppUrl = computed(() => {
+    const em = this.email().toLowerCase();
+    if (em.endsWith('@gmail.com')) return 'https://mail.google.com/mail/u/0/#inbox';
+    if (em.endsWith('@outlook.com') || em.endsWith('@hotmail.com')) return 'https://outlook.live.com/mail/0/inbox';
+    if (em.endsWith('@yahoo.com')) return 'https://mail.yahoo.com';
+    return 'mailto:';
+  });
+
+  protected readonly mailAppLabel = computed(() => {
+    const em = this.email().toLowerCase();
+    if (em.endsWith('@gmail.com')) return 'Mở Gmail';
+    if (em.endsWith('@outlook.com') || em.endsWith('@hotmail.com')) return 'Mở Outlook';
+    if (em.endsWith('@yahoo.com')) return 'Mở Yahoo Mail';
+    return 'Mở Ứng dụng Email';
+  });
+
   protected readonly canResend = computed(
     () => this.cooldown() === 0 && !this.resending(),
   );
+
+  protected openMailApp(): void {
+    const url = this.mailAppUrl();
+    if (url.startsWith('mailto:')) {
+      window.location.href = url;
+    } else {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  }
 
   protected submit(): void {
     if (this.submitting()) return;
@@ -66,7 +95,7 @@ export class OtpVerify {
       .subscribe({
         next: () => {
           this.submitting.set(false);
-          void this.router.navigateByUrl('/app');
+          void this.router.navigateByUrl('/');
         },
         error: (err: ApiError) => {
           this.submitting.set(false);

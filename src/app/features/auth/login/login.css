@@ -1,91 +1,77 @@
 :host {
   display: block;
   width: 100%;
+  max-width: 460px;
+  margin: 0 auto;
 }
 
-.login-card {
+.discord-card {
   width: 100%;
-  padding: var(--space-xxl) var(--space-xl);
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--elevation-2);
+  background-color: #161b2e;
+  border-radius: 12px;
+  padding: 32px 28px;
+  border: 1px solid rgba(88, 101, 242, 0.18);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.45),
+    0 1px 0 rgba(255, 255, 255, 0.05) inset;
   display: flex;
   flex-direction: column;
-  gap: var(--space-xl);
-  transition: background-color var(--duration-base) var(--ease-standard),
-              border-color var(--duration-base) var(--ease-standard);
+  animation: cardFadeIn 0.25s cubic-bezier(0.1, 0.9, 0.2, 1);
 }
 
-.login-card__header {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-/* Mintlify-style badge: small dot + label */
-.login-card__badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  width: fit-content;
-  font-family: var(--font-sans);
-  font-size: var(--text-caption);
-  font-weight: 500;
-  color: var(--color-accent);
-  margin-bottom: 2px;
-}
-
-.login-card__badge::before {
-  content: '';
-  display: block;
-  width: 6px;
-  height: 6px;
-  border-radius: var(--radius-full);
-  background-color: var(--color-accent);
-  flex-shrink: 0;
-}
-
-.login-card__title {
-  color: var(--color-ink);
-  font-size: var(--text-heading-4);
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: -0.5px;
-}
-
-.login-card__subtitle {
-  font-size: var(--text-body-sm);
-  color: var(--color-steel);
-  line-height: var(--leading-body);
-  margin-top: 2px;
-}
-
-.login-card__footer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-xs);
-  font-size: var(--text-body-sm);
-  color: var(--color-steel);
-  padding-top: var(--space-xs);
-  border-top: 1px solid var(--color-hairline-soft);
-}
-
-.login-card__link {
-  color: var(--color-accent);
-  font-weight: 500;
-  transition: color var(--duration-fast) var(--ease-standard);
-}
-
-.login-card__link:hover {
-  text-decoration: underline;
-  color: var(--color-accent-deep);
-}
-
-@media (max-width: 479px) {
-  .login-card {
-    padding: var(--space-xl) var(--space-md);
-    border-radius: var(--radius-md);
+@keyframes cardFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
   }
 }
+
+/* --- Left Form Column ---------------------------------------------------- */
+.discord-card__form-col {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.discord-card__header {
+  text-align: center;
+  margin-bottom: 22px;
+}
+
+.discord-card__title {
+  color: #f2f3f5;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.3px;
+  font-family: var(--font-sans);
+}
+
+.discord-card__subtitle {
+  color: #949ba4;
+  font-size: 14px;
+  line-height: 1.4;
+  margin-top: 6px;
+  font-family: var(--font-sans);
+}
+
+/* --- Mobile / Tablet Adaptations ---------------------------------------- */
+@media (max-width: 479px) {
+  .discord-card {
+    padding: 24px 18px;
+    border-radius: 10px;
+  }
+
+  .discord-card__title {
+    font-size: 20px;
+  }
+
+  .discord-card__subtitle {
+    font-size: 13px;
+  }
+}
+

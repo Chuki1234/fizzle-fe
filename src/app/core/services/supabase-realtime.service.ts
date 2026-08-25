@@ -48,7 +48,7 @@ export class SupabaseRealtimeService {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'direct_messages' },
-        (payload) => {
+        (payload: { new: any }) => {
           this.ngZone.run(() => {
             const row = payload.new as any;
             if (!row) return;
@@ -86,7 +86,7 @@ export class SupabaseRealtimeService {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'channel_messages' },
-        (payload) => {
+        (payload: { new: any }) => {
           this.ngZone.run(() => {
             const row = (payload as any)['new'] || payload.new;
             if (!row) return;
@@ -117,11 +117,23 @@ export class SupabaseRealtimeService {
           });
         },
       )
-      // 5. Friendships
+      // 5. Cloud Voice Signaling via Supabase Broadcast (100% Cross-machine / Cross-network voice sync)
+      .on(
+        'broadcast',
+        { event: 'voice_room_event' },
+        (payload: any) => {
+          this.ngZone.run(() => {
+            const data = payload && payload['payload'] ? payload['payload'] : payload;
+            if (!data) return;
+            this.voiceRoomEventHandlers.forEach(h => h(data));
+          });
+        },
+      )
+      // 6. Friendships
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'friendships' },
-        (payload) => {
+        (payload: { new?: any; old?: any }) => {
           this.ngZone.run(() => {
             const row = (payload.new || payload.old) as any;
             if (!row) return;
@@ -131,11 +143,11 @@ export class SupabaseRealtimeService {
           });
         },
       )
-      // 6. Servers & Channels
+      // 7. Servers & Channels
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'servers' },
-        (payload) => {
+        (payload: any) => {
           this.ngZone.run(() => {
             this.serverChangeHandlers.forEach(h => h(payload));
           });
@@ -144,26 +156,29 @@ export class SupabaseRealtimeService {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'channels' },
-        (payload) => {
+        (payload: any) => {
           this.ngZone.run(() => {
             this.serverChangeHandlers.forEach(h => h(payload));
           });
         },
       )
-      // 7. Profiles (Avatar, Status, Presence)
+      // 8. Profiles (Avatar, Status, Presence)
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'profiles' },
-        (payload) => {
+        (payload: { new: any }) => {
           this.ngZone.run(() => {
             this.profileChangeHandlers.forEach(h => h(payload.new));
           });
         },
       )
-      .subscribe((status) => {
+      .subscribe((status: string) => {
         console.log('[SupabaseRealtime] Subscription status:', status);
       });
   }
+
+  // Multi-handler callback arrays
+  private voiceRoomEventHandlers: Array<(data: any) => void> = [];
 
   // --- Broadcast Send Helpers ---
   broadcastDirectMessage(senderId: string, recipientId: string, message: any) {
@@ -182,6 +197,21 @@ export class SupabaseRealtimeService {
       event: 'channel_message',
       payload: { channelId, message },
     });
+  }
+
+  broadcastVoiceEvent(data: any) {
+    if (!this.channel) return;
+    this.channel.send({
+      type: 'broadcast',
+      event: 'voice_room_event',
+      payload: data,
+    });
+  }
+
+  registerVoiceRoomEventHandler(handler: (data: any) => void) {
+    if (!this.voiceRoomEventHandlers.includes(handler)) {
+      this.voiceRoomEventHandlers.push(handler);
+    }
   }
 
   registerDirectMessageHandler(handler: (senderId: string, recipientId: string, message: any) => void) {

@@ -16,9 +16,11 @@ type Step = 'form' | 'verify';
 export class Register {
   protected readonly step = signal<Step>('form');
   protected readonly pendingEmail = signal<string>('');
+  protected readonly pendingPhone = signal<string>('');
 
   protected onRegistered(result: RegisterResult): void {
     this.pendingEmail.set(result.email);
+    this.pendingPhone.set(result.phone || '');
     // A backend configured without email confirmation returns a usable session
     // straight away; only gate on the verify step when it asks for one.
     this.step.set(result.verificationRequired ? 'verify' : 'form');

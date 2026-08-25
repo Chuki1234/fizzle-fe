@@ -1,19 +1,13 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../../core/auth/auth.service';
+import { ApiError } from '../../../core/http/api-error.model';
+import { emailField } from '../../../shared/validators/auth.schema';
 import { NewPasswordForm } from './components/new-password-form/new-password-form';
 import { VerifyCodeForm } from './components/verify-code-form/verify-code-form';
 
-type Step = 'verify' | 'password' | 'done';
+type Step = 'email' | 'verify' | 'password' | 'done';
 
-/**
- * Password recovery, resumed from the login page.
- *
- * The address is not asked for here: the login form already had it and sent
- * the code before navigating, so this page opens straight on the code step.
- * That address arrives in the navigation state — deliberately not the URL,
- * which would put an email address into browser history and server logs, and
- * would let anyone retarget the flow by editing it.
- */
 @Component({
   selector: 'fz-forgot-password',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -23,28 +17,64 @@ type Step = 'verify' | 'password' | 'done';
 })
 export class ForgotPassword {
   private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
 
   protected readonly step = signal<Step>('verify');
   protected readonly email = signal<string>('');
   protected readonly resetToken = signal<string>('');
 
+  protected readonly inputEmailValue = signal('');
+  protected readonly emailError = signal<string | null>(null);
+  protected readonly sendingCode = signal(false);
+
   constructor() {
-    // Read before the first render: navigation state is only readable while
-    // the navigation that carried it is still current.
     const state = this.router.getCurrentNavigation()?.extras.state as
       | { email?: string }
       | undefined;
 
-    const email = state?.email ?? '';
+    const initialEmail = state?.email ?? '';
 
-    // Reached by typing the URL, a bookmark, or a reload — there is no address
-    // and therefore no code in flight. Start the flow where it belongs.
-    if (!email) {
-      void this.router.navigate(['/auth/login'], { replaceUrl: true });
+    if (initialEmail) {
+      this.email.set(initialEmail);
+      this.inputEmailValue.set(initialEmail);
+      this.step.set('verify');
+    } else {
+      this.step.set('email');
+    }
+  }
+
+  protected onEmailInput(event: Event): void {
+    this.inputEmailValue.set((event.target as HTMLInputElement).value);
+    this.emailError.set(null);
+  }
+
+  protected requestOtp(): void {
+    const emailVal = this.inputEmailValue().trim();
+    const parseRes = emailField.safeParse(emailVal);
+
+    if (!parseRes.success) {
+      this.emailError.set('Vui lòng nhập địa chỉ email hợp lệ.');
       return;
     }
 
-    this.email.set(email);
+    this.sendingCode.set(true);
+    this.emailError.set(null);
+
+    this.auth.forgotPassword(emailVal).subscribe({
+      next: () => {
+        this.sendingCode.set(false);
+        this.email.set(emailVal);
+        this.step.set('verify');
+      },
+      error: (err: ApiError) => {
+        this.sendingCode.set(false);
+        this.emailError.set(err.message || 'Không thể gửi mã. Vui lòng thử lại.');
+      },
+    });
+  }
+
+  protected backToEmail(): void {
+    this.step.set('email');
   }
 
   protected onVerified(resetToken: string): void {
@@ -63,3 +93,4 @@ export class ForgotPassword {
     this.step.set('verify');
   }
 }
+

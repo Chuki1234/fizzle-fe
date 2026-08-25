@@ -1,20 +1,32 @@
 :host {
   display: block;
   width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
 }
 
 .register-card {
   width: 100%;
-  padding: var(--space-xxl) var(--space-xl);
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--elevation-2);
+  padding: 32px 28px;
+  background-color: #161b2e;
+  border-radius: 10px;
+  border: 1px solid rgba(88, 101, 242, 0.15);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
   display: flex;
   flex-direction: column;
   gap: var(--space-xl);
-  transition: background-color var(--duration-base) var(--ease-standard),
-              border-color var(--duration-base) var(--ease-standard);
+  animation: discordFadeIn 0.25s cubic-bezier(0.1, 0.9, 0.2, 1);
+}
+
+@keyframes discordFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 /* Step Indicator — Mintlify horizontal tracker */

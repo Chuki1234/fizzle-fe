@@ -127,7 +127,7 @@ export const OTP_MAX_LENGTH = 10;
 export const otpCodeField = z
   .string()
   .regex(new RegExp(`^[0-9]{${OTP_MIN_LENGTH},${OTP_MAX_LENGTH}}$`), {
-    error: `Mã xác thực chỉ gồm chữ số (${OTP_MIN_LENGTH}–${OTP_MAX_LENGTH} ký tự).`,
+    error: `Mã xác thực gồm ${OTP_MIN_LENGTH} chữ số.`,
   });
 
 /** POST /auth/verify-otp */

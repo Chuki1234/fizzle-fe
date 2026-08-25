@@ -54,6 +54,35 @@ export class ServerService {
     });
 
 
+    private upsertChannelMsg(currentList: ChatMessage[], incoming: ChatMessage): ChatMessage[] {
+        if (!incoming || !incoming.text) return currentList;
+
+        // 1. Kiểm tra ID chính xác
+        const exactIdIndex = currentList.findIndex(m => m.id === incoming.id);
+        if (exactIdIndex !== -1) {
+            const updated = [...currentList];
+            updated[exactIdIndex] = { ...currentList[exactIdIndex], ...incoming };
+            return updated;
+        }
+
+        // 2. Tìm tin nhắn tạm cùng senderId và text trong 12s
+        const matchingTempIndex = currentList.findIndex(m => {
+            if (m.senderId !== incoming.senderId || m.text.trim() !== incoming.text.trim()) return false;
+            const mTime = Number(m.id);
+            if (!isNaN(mTime) && Math.abs(Date.now() - mTime) < 12000) return true;
+            if (m.timestamp === incoming.timestamp) return true;
+            return false;
+        });
+
+        if (matchingTempIndex !== -1) {
+            const updated = [...currentList];
+            updated[matchingTempIndex] = { ...currentList[matchingTempIndex], ...incoming };
+            return updated;
+        }
+
+        return [...currentList, incoming];
+    }
+
     constructor() {
         this.loadServers();
         if (this.activeChannelId()) {
@@ -61,21 +90,10 @@ export class ServerService {
         }
 
         const handleIncomingChannelMsg = (channelId: string, message: any) => {
-            const currentUserId = this.authStore.user()?.id;
-            // Update immediately in real time
+            // Update immediately in real time with deduplication
             this.channelMessages.update(store => {
                 const current = store[channelId] || [];
-                // Check duplicate by id
-                if (current.some((m: ChatMessage) => m.id === message.id)) return store;
-                // If message from current user, avoid duplicate with recent optimistic message with same text
-                if (currentUserId && message?.senderId === currentUserId && current.some(m => m.text === message.text && (Date.now() - Number(m.id)) < 8000)) {
-                    // Update optimistic message with real message
-                    return {
-                        ...store,
-                        [channelId]: current.map(m => m.text === message.text ? { ...m, ...message } : m)
-                    };
-                }
-                return { ...store, [channelId]: [...current, message] };
+                return { ...store, [channelId]: this.upsertChannelMsg(current, message) };
             });
         };
 
@@ -390,10 +408,10 @@ export class ServerService {
         };
 
         // Optimistic update
-        this.channelMessages.update(store => ({
-            ...store,
-            [channelId]: [...(store[channelId] || []), userMsg]
-        }));
+        this.channelMessages.update(store => {
+            const currentList = store[channelId] || [];
+            return { ...store, [channelId]: this.upsertChannelMsg(currentList, userMsg) };
+        });
 
         // 1. Fail-safe Supabase Realtime Broadcast (direct cloud WebSocket to other machine)
         this.supabaseRealtime.broadcastChannelMessage(channelId, userMsg);
@@ -409,13 +427,7 @@ export class ServerService {
                 if (savedMsg?.id) {
                     this.channelMessages.update(store => {
                         const currentList = store[channelId] || [];
-                        const index = currentList.findIndex(m => m.id === userMsg.id);
-                        if (index !== -1) {
-                            const updated = [...currentList];
-                            updated[index] = { ...userMsg, ...savedMsg };
-                            return { ...store, [channelId]: updated };
-                        }
-                        return store;
+                        return { ...store, [channelId]: this.upsertChannelMsg(currentList, { ...userMsg, ...savedMsg }) };
                     });
                 }
             },
