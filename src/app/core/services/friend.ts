@@ -90,16 +90,26 @@ export class FriendService implements OnDestroy {
         }
 
         const handleIncomingDM = (senderId: string, targetId: string, message: any) => {
-            const currentUserId = this.authStore.user()?.id || 'user';
-            const partnerId = senderId === currentUserId ? targetId : senderId;
+            const currentUserId = this.authStore.user()?.id;
+            // Identify conversation partner
+            let partnerId = '';
+            if (currentUserId) {
+                partnerId = (senderId === currentUserId) ? targetId : senderId;
+            } else {
+                partnerId = senderId;
+            }
 
-            // Don't add if it came from current user (already added optimistically)
-            if (senderId === currentUserId) return;
+            if (!partnerId) return;
 
+            // Don't duplicate if message is already present
             this.messagesByFriend.update(store => {
                 const current = store[partnerId] || [];
-                // Avoid duplicates by message id
+                // Check if message ID already exists
                 if (current.some(m => m.id === message.id)) return store;
+                // If message from current user, avoid duplicating optimistic message with same text sent recently
+                if (senderId === currentUserId && current.some(m => m.text === message.text && (Date.now() - Number(m.id)) < 8000)) {
+                    return store;
+                }
                 return { ...store, [partnerId]: [...current, message] };
             });
 
@@ -115,7 +125,7 @@ export class FriendService implements OnDestroy {
                             id: partnerId,
                             username: partnerId,
                             displayName: message.senderName || partnerId,
-                            avatarUrl: null,
+                            avatarUrl: message.senderAvatarUrl || message.avatarUrl || null,
                             presence: 'online' as const,
                             statusText: '',
                             relationshipStatus: 'friend' as const
@@ -125,7 +135,7 @@ export class FriendService implements OnDestroy {
             }
 
             // Track unread if partner is not currently active chat
-            if (this.activeChatId() !== partnerId) {
+            if (this.activeChatId() !== partnerId && senderId !== currentUserId) {
                 this.unreadCounts.update(counts => ({
                     ...counts,
                     [partnerId]: (counts[partnerId] || 0) + 1
@@ -340,10 +350,18 @@ export class FriendService implements OnDestroy {
         const params = userId ? `?userId=${userId}` : '';
         this.http.get<ChatMessage[]>(`${this.apiConfig.baseUrl}/messages/direct/${friendId}${params}`).subscribe({
             next: (msgs) => {
-                this.messagesByFriend.update(store => ({
-                    ...store,
-                    [friendId]: msgs || []
-                }));
+                this.messagesByFriend.update(store => {
+                    const current = store[friendId] || [];
+                    if (!msgs || msgs.length === 0) {
+                        return store;
+                    }
+                    const serverMsgIds = new Set(msgs.map(m => m.id));
+                    const pendingMsgs = current.filter(m => !serverMsgIds.has(m.id) && (Date.now() - Number(m.id)) < 15000);
+                    return {
+                        ...store,
+                        [friendId]: [...msgs, ...pendingMsgs]
+                    };
+                });
             },
             error: (err) => console.warn(`Could not load direct messages for friend ${friendId}:`, err)
         });
@@ -394,6 +412,20 @@ export class FriendService implements OnDestroy {
             senderName: senderName,
             senderAvatarUrl: avatarUrl
         }).subscribe({
+            next: (savedMsg) => {
+                if (savedMsg?.id) {
+                    this.messagesByFriend.update(store => {
+                        const currentList = store[currentChatId] || [];
+                        const index = currentList.findIndex(m => m.id === userMsg.id);
+                        if (index !== -1) {
+                            const updated = [...currentList];
+                            updated[index] = { ...userMsg, ...savedMsg };
+                            return { ...store, [currentChatId]: updated };
+                        }
+                        return store;
+                    });
+                }
+            },
             error: (err) => console.warn('Could not persist direct message to backend:', err)
         });
     }

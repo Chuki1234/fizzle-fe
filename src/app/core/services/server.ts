@@ -50,14 +50,16 @@ export class ServerService {
         }
 
         const handleIncomingChannelMsg = (channelId: string, message: any) => {
-            const currentUserId = this.authStore.user()?.id || 'user';
-            // Don't add if it came from current user (already added optimistically)
-            if (message?.senderId === currentUserId) return;
-
+            const currentUserId = this.authStore.user()?.id;
+            // Don't duplicate if message is already in store
             this.channelMessages.update(store => {
                 const current = store[channelId] || [];
-                // Avoid duplicates
+                // Check duplicate by id
                 if (current.some((m: ChatMessage) => m.id === message.id)) return store;
+                // If message from current user, avoid duplicate with recent optimistic message
+                if (currentUserId && message?.senderId === currentUserId && current.some(m => m.text === message.text && (Date.now() - Number(m.id)) < 8000)) {
+                    return store;
+                }
                 return { ...store, [channelId]: [...current, message] };
             });
         };
@@ -162,10 +164,18 @@ export class ServerService {
         if (!channelId) return;
         this.http.get<ChatMessage[]>(`${this.apiConfig.baseUrl}/messages/channel/${channelId}`).subscribe({
             next: (msgs) => {
-                this.channelMessages.update(store => ({
-                    ...store,
-                    [channelId]: msgs
-                }));
+                this.channelMessages.update(store => {
+                    const current = store[channelId] || [];
+                    if (!msgs || msgs.length === 0) {
+                        return store;
+                    }
+                    const serverMsgIds = new Set(msgs.map(m => m.id));
+                    const pendingMsgs = current.filter(m => !serverMsgIds.has(m.id) && (Date.now() - Number(m.id)) < 15000);
+                    return {
+                        ...store,
+                        [channelId]: [...msgs, ...pendingMsgs]
+                    };
+                });
                 // Join socket room for this channel
                 this.socketService.joinRoom(channelId);
             },
@@ -385,6 +395,20 @@ export class ServerService {
             senderName: senderName,
             senderAvatarUrl: avatarUrl
         }).subscribe({
+            next: (savedMsg) => {
+                if (savedMsg?.id) {
+                    this.channelMessages.update(store => {
+                        const currentList = store[channelId] || [];
+                        const index = currentList.findIndex(m => m.id === userMsg.id);
+                        if (index !== -1) {
+                            const updated = [...currentList];
+                            updated[index] = { ...userMsg, ...savedMsg };
+                            return { ...store, [channelId]: updated };
+                        }
+                        return store;
+                    });
+                }
+            },
             error: (err) => console.warn('Could not persist channel message to backend:', err)
         });
     }
