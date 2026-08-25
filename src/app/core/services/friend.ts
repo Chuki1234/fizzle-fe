@@ -7,6 +7,8 @@ import { SupabaseRealtimeService } from './supabase-realtime.service';
 import { AuthStore } from '../auth/auth.store';
 import { NotificationService } from './notification.service';
 import { cleanStatusString } from './profile';
+import { normalizeMessage, isSameMessage } from './server';
+
 
 @Injectable({
     providedIn: 'root'
@@ -90,26 +92,27 @@ export class FriendService implements OnDestroy {
         return this.messagesByFriend()[activeId] || [];
     });
 
-    private upsertDM(currentList: ChatMessage[], incoming: ChatMessage): ChatMessage[] {
-        if (!incoming || !incoming.text) return currentList;
+    private upsertDM(currentList: ChatMessage[], incomingRaw: any): ChatMessage[] {
+        const incoming = normalizeMessage(incomingRaw);
+        if (!incoming || (!incoming.text && !incoming.mediaUrl && !incoming.attachments?.length)) {
+            return currentList;
+        }
 
         // 1. Kiểm tra trùng ID chính xác
-        const exactIdIndex = currentList.findIndex(m => m.id === incoming.id);
+        const exactIdIndex = currentList.findIndex(m => String(m.id) === String(incoming.id));
         if (exactIdIndex !== -1) {
             const updated = [...currentList];
             updated[exactIdIndex] = { ...currentList[exactIdIndex], ...incoming };
             return updated;
         }
 
-        // 2. Kiểm tra trùng nội dung + sender trong 10 tin nhắn gần nhất
-        const recentMessages = currentList.slice(-10);
-        const matchIndexInRecent = recentMessages.findIndex(m =>
-            (m.senderId === incoming.senderId || (m.senderName && m.senderName === incoming.senderName)) &&
-            m.text.trim() === incoming.text.trim()
-        );
+        // 2. Kiểm tra trùng nội dung / media / sender trong 20 tin nhắn gần nhất
+        const recentSliceIndex = Math.max(0, currentList.length - 20);
+        const recentMessages = currentList.slice(recentSliceIndex);
+        const matchIndexInRecent = recentMessages.findIndex(m => isSameMessage(m, incoming));
 
         if (matchIndexInRecent !== -1) {
-            const actualIndex = currentList.length - recentMessages.length + matchIndexInRecent;
+            const actualIndex = recentSliceIndex + matchIndexInRecent;
             const updated = [...currentList];
             updated[actualIndex] = { ...currentList[actualIndex], ...incoming };
             return updated;
@@ -386,14 +389,15 @@ export class FriendService implements OnDestroy {
         const params = userId ? `?userId=${userId}` : '';
         this.http.get<ChatMessage[]>(`${this.apiConfig.baseUrl}/messages/direct/${friendId}${params}`).subscribe({
             next: (msgs) => {
+                if (!msgs) return;
+                const normalized = msgs.map(m => normalizeMessage(m));
                 this.messagesByFriend.update(store => {
                     const current = store[friendId] || [];
-                    if (!msgs || msgs.length === 0) {
-                        return store;
+                    let merged: ChatMessage[] = [];
+                    for (const sMsg of normalized) {
+                        merged = this.upsertDM(merged, sMsg);
                     }
-                    let merged = [...msgs];
-                    const serverMsgIds = new Set(msgs.map(m => m.id));
-                    const pendingMsgs = current.filter(m => !serverMsgIds.has(m.id) && (Date.now() - Number(m.id)) < 15000);
+                    const pendingMsgs = current.filter(m => !merged.some(existing => isSameMessage(existing, m)) && (Date.now() - Number(m.id)) < 15000);
                     for (const p of pendingMsgs) {
                         merged = this.upsertDM(merged, p);
                     }
@@ -419,8 +423,18 @@ export class FriendService implements OnDestroy {
     }
 
     // --- Gửi tin nhắn ---
-    sendMessage(text: string, senderName: string = 'Người dùng', senderId: string = 'user') {
-        if (!text.trim()) return;
+    sendMessage(
+        text: string,
+        senderName: string = 'Người dùng',
+        senderId: string = 'user',
+        options?: {
+            type?: 'text' | 'image' | 'gif' | 'sticker' | 'file' | 'video' | 'audio';
+            attachments?: any[];
+            mediaUrl?: string | null;
+            metadata?: Record<string, any> | null;
+        }
+    ) {
+        if (!text?.trim() && !options?.mediaUrl && !options?.attachments?.length) return;
 
         const currentChatId = this.activeChatId();
         if (!currentChatId) return;
@@ -434,7 +448,11 @@ export class FriendService implements OnDestroy {
             senderName: senderName,
             senderAvatarUrl: avatarUrl,
             avatarUrl: avatarUrl,
-            text: text,
+            text: text || '',
+            type: options?.type || 'text',
+            attachments: options?.attachments || [],
+            mediaUrl: options?.mediaUrl || null,
+            metadata: options?.metadata || null,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
 
@@ -450,10 +468,14 @@ export class FriendService implements OnDestroy {
         // 2. Send to backend (which will persist to DB & broadcast via Socket.IO)
         const params = senderId ? `?userId=${senderId}` : '';
         this.http.post<ChatMessage>(`${this.apiConfig.baseUrl}/messages/direct/${currentChatId}${params}`, {
-            text: text,
+            text: text || '',
             senderId: senderId,
             senderName: senderName,
-            senderAvatarUrl: avatarUrl
+            senderAvatarUrl: avatarUrl,
+            type: userMsg.type,
+            attachments: userMsg.attachments,
+            mediaUrl: userMsg.mediaUrl,
+            metadata: userMsg.metadata
         }).subscribe({
             next: (savedMsg) => {
                 if (savedMsg?.id) {

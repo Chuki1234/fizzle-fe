@@ -10,6 +10,132 @@ import { VoiceService } from './voice.service';
 import { AuthStore } from '../auth/auth.store';
 import { NotificationService } from './notification.service';
 
+const KNOWN_STICKERS: Record<string, string> = {
+    'mèo vui vẻ': 'https://assets5.lottiefiles.com/packages/lf20_tr1pjkop.json',
+    'tiệc tùng': 'https://assets2.lottiefiles.com/packages/lf20_u4yrau.json',
+    'vịt quẩy': 'https://assets9.lottiefiles.com/packages/lf20_m59b6h5q.json',
+    'cháy quá': 'https://assets7.lottiefiles.com/packages/lf20_usmfx6bp.json',
+    'thả tim': 'https://assets9.lottiefiles.com/packages/lf20_4kpomtpr.json',
+    'cười bể bụng': 'https://assets4.lottiefiles.com/packages/lf20_ydo1amjm.json',
+    'chiến game': 'https://assets10.lottiefiles.com/packages/lf20_jcikwtux.json',
+    'tuyệt vời': 'https://assets1.lottiefiles.com/packages/lf20_touohxv0.json',
+    'bay lên nào': 'https://assets1.lottiefiles.com/packages/lf20_x62chJ.json',
+    'chờ xíu': 'https://assets3.lottiefiles.com/packages/lf20_a2chheio.json',
+    'hù dọa': 'https://assets10.lottiefiles.com/packages/lf20_rgsng1vv.json',
+    'chill cà phê': 'https://assets3.lottiefiles.com/packages/lf20_tijb25x0.json'
+};
+
+const KNOWN_GIFS: Record<string, string> = {
+    'applause leonardo': 'https://media.giphy.com/media/g9582DNuQppxC/giphy.gif',
+    'happy dance cat': 'https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif',
+    'anime popcorn': 'https://media.giphy.com/media/pUeXcg80cO8I8/giphy.gif',
+    'pikachu excited': 'https://media.giphy.com/media/13G7hmmFr9yuxG/giphy.gif',
+    'gamer victory': 'https://media.giphy.com/media/artj92V8o75VPL7AeQ/giphy.gif',
+    'mind blown': 'https://media.giphy.com/media/26ufdipQqU2lhNA4g/giphy.gif',
+    'dog vibing': 'https://media.giphy.com/media/blSTtZehjAZ8I/giphy.gif',
+    'gg well played': 'https://media.giphy.com/media/3o7abKhOpu0NwenH3O/giphy.gif',
+    'dance party celebration': 'https://media.giphy.com/media/blSTtZehjAZ8I/giphy.gif',
+    'anime cry tears': 'https://media.giphy.com/media/L95W4wv8nnb9K/giphy.gif',
+    'confused travolta': 'https://media.giphy.com/media/g01ZnwEHvCUCA4yCwT/giphy.gif',
+    'k-pop heart love': 'https://media.giphy.com/media/M90mJvfWfd5mbUuULX/giphy.gif',
+    'delicious pizza mukbang': 'https://media.giphy.com/media/1108D2tVaUN3eo/giphy.gif',
+    'lofi girl studying': 'https://media.giphy.com/media/13HgwGsXF0aiGY/giphy.gif',
+    'cat typing fast': 'https://media.giphy.com/media/unQ3IJU2RG7DO/giphy.gif',
+    'snoop dogg vibe': 'https://media.giphy.com/media/DhstvI3zZ598A/giphy.gif'
+};
+
+export function normalizeMessage(rawMsg: any): ChatMessage {
+    if (!rawMsg) return rawMsg;
+    let text = rawMsg.text || '';
+    let type = rawMsg.type || 'text';
+    let mediaUrl = rawMsg.mediaUrl || null;
+    let attachments = rawMsg.attachments || [];
+    let metadata = rawMsg.metadata || null;
+
+    if (typeof text === 'string' && (text.startsWith('{"__isRichMessage":true') || text.includes('"__isRichMessage":true'))) {
+        try {
+            const parsed = JSON.parse(text);
+            text = parsed.text || '';
+            type = parsed.type || type || 'text';
+            mediaUrl = parsed.mediaUrl || mediaUrl;
+            attachments = parsed.attachments || attachments;
+            metadata = parsed.metadata || metadata;
+        } catch {
+            // ignore
+        }
+    }
+
+    // Auto-detect sticker or GIF from text if type/mediaUrl is missing
+    const cleanText = (text || '').trim().toLowerCase();
+    if (!mediaUrl || type === 'text') {
+        if (KNOWN_STICKERS[cleanText]) {
+            type = 'sticker';
+            mediaUrl = KNOWN_STICKERS[cleanText];
+        } else if (KNOWN_GIFS[cleanText]) {
+            type = 'gif';
+            mediaUrl = KNOWN_GIFS[cleanText];
+        } else if (cleanText.startsWith('http') && (cleanText.includes('.json') || cleanText.includes('lottiefiles.com'))) {
+            type = 'sticker';
+            mediaUrl = text.trim();
+        } else if (cleanText.startsWith('http') && (cleanText.includes('.gif') || cleanText.includes('giphy.com') || cleanText.includes('tenor.com'))) {
+            type = 'gif';
+            mediaUrl = text.trim();
+        }
+    }
+
+    return {
+        ...rawMsg,
+        id: String(rawMsg.id || Date.now()),
+        senderId: rawMsg.senderId || rawMsg.sender_id || 'user',
+        senderName: rawMsg.senderName || rawMsg.sender_name || 'Người dùng',
+        senderAvatarUrl: rawMsg.senderAvatarUrl || rawMsg.avatarUrl || rawMsg.avatar_url || null,
+        avatarUrl: rawMsg.avatarUrl || rawMsg.senderAvatarUrl || rawMsg.avatar_url || null,
+        text,
+        type,
+        mediaUrl,
+        attachments,
+        metadata,
+        timestamp: rawMsg.timestamp || (rawMsg.created_at ? new Date(rawMsg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
+    };
+}
+
+export function isSameMessage(a: ChatMessage, b: ChatMessage): boolean {
+    if (!a || !b) return false;
+    if (a.id && b.id && String(a.id) === String(b.id)) return true;
+
+    // Check mediaUrl (GIF, Sticker, Image)
+    if (a.mediaUrl && b.mediaUrl && a.mediaUrl === b.mediaUrl) return true;
+
+    // Check attachments
+    if (a.attachments?.length && b.attachments?.length && a.attachments[0].name === b.attachments[0].name) {
+        return true;
+    }
+
+    // Sender flexible check
+    const senderMatches = !a.senderId || !b.senderId ||
+        a.senderId === b.senderId ||
+        a.senderId === 'user' || b.senderId === 'user' ||
+        (a.senderName && b.senderName && a.senderName.trim().toLowerCase() === b.senderName.trim().toLowerCase());
+
+    if (!senderMatches) return false;
+
+    // Both are stickers with same text or id
+    if (a.type === 'sticker' && b.type === 'sticker') {
+        return (a.text || '').trim() === (b.text || '').trim() ||
+               (a.metadata?.['stickerId'] && a.metadata?.['stickerId'] === b.metadata?.['stickerId']);
+    }
+
+    // Both are GIFs with same text/name
+    if (a.type === 'gif' && b.type === 'gif') {
+        return (a.text || '').trim() === (b.text || '').trim();
+    }
+
+    // Text comparison
+    const aText = (a.text || '').trim();
+    const bText = (b.text || '').trim();
+    return aText.length > 0 && aText === bText;
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -54,26 +180,27 @@ export class ServerService {
     });
 
 
-    private upsertChannelMsg(currentList: ChatMessage[], incoming: ChatMessage): ChatMessage[] {
-        if (!incoming || !incoming.text) return currentList;
+    private upsertChannelMsg(currentList: ChatMessage[], incomingRaw: any): ChatMessage[] {
+        const incoming = normalizeMessage(incomingRaw);
+        if (!incoming || (!incoming.text && !incoming.mediaUrl && !incoming.attachments?.length)) {
+            return currentList;
+        }
 
         // 1. Kiểm tra trùng ID chính xác
-        const exactIdIndex = currentList.findIndex(m => m.id === incoming.id);
+        const exactIdIndex = currentList.findIndex(m => String(m.id) === String(incoming.id));
         if (exactIdIndex !== -1) {
             const updated = [...currentList];
             updated[exactIdIndex] = { ...currentList[exactIdIndex], ...incoming };
             return updated;
         }
 
-        // 2. Kiểm tra trùng nội dung + sender trong 10 tin nhắn gần nhất
-        const recentMessages = currentList.slice(-10);
-        const matchIndexInRecent = recentMessages.findIndex(m =>
-            m.senderId === incoming.senderId &&
-            m.text.trim() === incoming.text.trim()
-        );
+        // 2. Kiểm tra trùng nội dung / media / sender trong 20 tin nhắn gần nhất
+        const recentSliceIndex = Math.max(0, currentList.length - 20);
+        const recentMessages = currentList.slice(recentSliceIndex);
+        const matchIndexInRecent = recentMessages.findIndex(m => isSameMessage(m, incoming));
 
         if (matchIndexInRecent !== -1) {
-            const actualIndex = currentList.length - recentMessages.length + matchIndexInRecent;
+            const actualIndex = recentSliceIndex + matchIndexInRecent;
             const updated = [...currentList];
             updated[actualIndex] = { ...currentList[actualIndex], ...incoming };
             return updated;
@@ -184,14 +311,15 @@ export class ServerService {
         if (!channelId) return;
         this.http.get<ChatMessage[]>(`${this.apiConfig.baseUrl}/messages/channel/${channelId}`).subscribe({
             next: (msgs) => {
+                if (!msgs) return;
+                const normalized = msgs.map(m => normalizeMessage(m));
                 this.channelMessages.update(store => {
                     const current = store[channelId] || [];
-                    if (!msgs || msgs.length === 0) {
-                        return store;
+                    let merged: ChatMessage[] = [];
+                    for (const sMsg of normalized) {
+                        merged = this.upsertChannelMsg(merged, sMsg);
                     }
-                    let merged = [...msgs];
-                    const serverMsgIds = new Set(msgs.map(m => m.id));
-                    const pendingMsgs = current.filter(m => !serverMsgIds.has(m.id) && (Date.now() - Number(m.id)) < 15000);
+                    const pendingMsgs = current.filter(m => !merged.some(existing => isSameMessage(existing, m)) && (Date.now() - Number(m.id)) < 15000);
                     for (const p of pendingMsgs) {
                         merged = this.upsertChannelMsg(merged, p);
                     }
@@ -364,8 +492,18 @@ export class ServerService {
     }
 
     // --- GỬI TIN NHẮN ---
-    sendMessage(text: string, senderName: string = 'Thiện Phúc', senderId: string = 'user') {
-        if (!text.trim()) return;
+    sendMessage(
+        text: string,
+        senderName: string = 'Thiện Phúc',
+        senderId: string = 'user',
+        options?: {
+            type?: 'text' | 'image' | 'gif' | 'sticker' | 'file' | 'video' | 'audio';
+            attachments?: any[];
+            mediaUrl?: string | null;
+            metadata?: Record<string, any> | null;
+        }
+    ) {
+        if (!text?.trim() && !options?.mediaUrl && !options?.attachments?.length) return;
 
         const channelId = this.activeChannelId();
         const currentUser = this.authStore.user();
@@ -377,7 +515,11 @@ export class ServerService {
             senderName: senderName,
             senderAvatarUrl: avatarUrl,
             avatarUrl: avatarUrl,
-            text: text,
+            text: text || '',
+            type: options?.type || 'text',
+            attachments: options?.attachments || [],
+            mediaUrl: options?.mediaUrl || null,
+            metadata: options?.metadata || null,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
 
@@ -392,10 +534,14 @@ export class ServerService {
 
         // 2. Send to backend (will persist to DB & broadcast via Socket.IO)
         this.http.post<ChatMessage>(`${this.apiConfig.baseUrl}/messages/channel/${channelId}`, {
-            text: text,
+            text: text || '',
             senderId: senderId,
             senderName: senderName,
-            senderAvatarUrl: avatarUrl
+            senderAvatarUrl: avatarUrl,
+            type: userMsg.type,
+            attachments: userMsg.attachments,
+            mediaUrl: userMsg.mediaUrl,
+            metadata: userMsg.metadata
         }).subscribe({
             next: (savedMsg) => {
                 if (savedMsg?.id) {
