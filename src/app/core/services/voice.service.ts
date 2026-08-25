@@ -5,6 +5,7 @@ import {
   RoomEvent,
   RemoteParticipant,
   LocalParticipant,
+  Participant,
   Track,
   RemoteTrackPublication,
   RemoteTrack,
@@ -249,15 +250,15 @@ export class VoiceService {
       RoomEvent.TrackUnsubscribed,
       (track: RemoteTrack, publication: RemoteTrackPublication, participant: RemoteParticipant) => {
         if (track.kind === Track.Kind.Audio) {
-          track.detach().forEach((el) => el.remove());
+          track.detach().forEach((el: HTMLMediaElement) => el.remove());
         }
       }
     );
 
     // 5. Khi có người nói chuyện (LiveKit SFU ActiveSpeakers)
-    room.on(RoomEvent.ActiveSpeakersChanged, (speakers) => {
+    room.on(RoomEvent.ActiveSpeakersChanged, (speakers: Participant[]) => {
       this.ngZone.run(() => {
-        const speakingIds = new Set(speakers.map((s) => s.identity));
+        const speakingIds = new Set(speakers.map((s: Participant) => s.identity));
 
         // Kiểm tra xem bản thân có đang nói không
         const selfId = this.authStore.user()?.id;
@@ -304,7 +305,7 @@ export class VoiceService {
     const self = this.getSelfParticipant();
     const remoteList: VoiceParticipant[] = [];
 
-    this.room.remoteParticipants.forEach((p) => {
+    this.room.remoteParticipants.forEach((p: RemoteParticipant) => {
       remoteList.push({
         socketId: p.sid,
         userId: p.identity,

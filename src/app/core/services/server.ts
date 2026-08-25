@@ -133,6 +133,19 @@ export class ServerService {
                 this.loadServers();
             }
 
+            if (data.type === 'SERVER_UPDATED' && data.serverId) {
+                this.loadServers();
+            }
+
+            if (data.type === 'SERVER_DELETED' && data.serverId) {
+                this.servers.update(list => list.filter(s => s.id !== data.serverId));
+                if (this.activeServerId() === data.serverId) {
+                    this.activeServerId.set('');
+                    this.activeChannelId.set('');
+                    this.router.navigate(['/friends']);
+                }
+            }
+
             if (data.type === 'MEMBER_ADDED' && data.server) {
                 const currentUserId = this.authStore.user()?.id;
                 if (data.userId === currentUserId || (data.server.members && data.server.members.includes(currentUserId))) {
@@ -433,4 +446,45 @@ export class ServerService {
             { friendId, inviterId: userId }
         ).toPromise() as any;
     }
-}
+
+    // --- CẬP NHẬT SERVER (tên / icon) ---
+    updateServer(serverId: string, name?: string, icon?: string): Promise<any> {
+        const userId = this.authStore.user()?.id || 'user';
+        const payload: Record<string, string> = {};
+        if (name) payload['name'] = name;
+        if (icon !== undefined) payload['icon'] = icon;
+
+        return this.http.patch<any>(
+            `${this.apiConfig.baseUrl}/servers/${serverId}`,
+            payload,
+            { headers: { 'x-user-id': userId } }
+        ).toPromise().then((updatedServer) => {
+            this.servers.update(list =>
+                list.map(s => s.id === serverId ? { ...s, ...payload } : s)
+            );
+            return updatedServer;
+        });
+    }
+
+    // --- XÓA SERVER (password chỉ truyền qua HTTP body, không lưu) ---
+    deleteServer(serverId: string): Promise<{ success: boolean }> {
+        const userId = this.authStore.user()?.id || 'user';
+
+        return this.http.delete<{ success: boolean }>(
+            `${this.apiConfig.baseUrl}/servers/${serverId}`,
+            {
+                body: { userId },
+                headers: { 'x-user-id': userId },
+            }
+        ).toPromise().then((res) => {
+            // Remove locally immediately
+            this.servers.update(list => list.filter(s => s.id !== serverId));
+            if (this.activeServerId() === serverId) {
+                this.activeServerId.set('');
+                this.activeChannelId.set('');
+                this.router.navigate(['/friends']);
+            }
+            return res as { success: boolean };
+        });
+    }
+}

@@ -377,6 +377,24 @@
 
         <div class="sidebar-divider margin-top-md margin-bottom-sm"></div>
 
+        <!-- Server Settings Nav Group -->
+        <div class="nav-group">
+          <div class="group-header-label">🖥️ {{ currentLang() === 'vi' ? 'Máy chủ của tôi' : 'My Servers' }}</div>
+          @if (servers().length === 0) {
+          <p class="nav-no-servers">{{ currentLang() === 'vi' ? 'Chưa có máy chủ nào' : 'No servers yet' }}</p>
+          }
+          @for (srv of servers(); track srv.id) {
+          <button type="button" class="sub-nav-item server-nav-item"
+            [class.active]="activeSection() === 'server-settings' && selectedServerForSettings()?.id === srv.id"
+            (click)="openServerSettings(srv)">
+            <span class="server-nav-icon">{{ srv.icon || '🔥' }}</span>
+            <span class="server-nav-name">{{ srv.name }}</span>
+          </button>
+          }
+        </div>
+
+        <div class="sidebar-divider margin-top-md margin-bottom-sm"></div>
+
         <div class="nav-group">
           <button type="button" class="group-header-btn btn-logout-danger" (click)="logout()">
             {{ languageService.t('settings.nav.logout') }}
