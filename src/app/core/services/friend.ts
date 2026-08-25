@@ -81,13 +81,40 @@ export class FriendService implements OnDestroy {
         return this.messagesByFriend()[activeId] || [];
     });
 
+    private upsertDM(currentList: ChatMessage[], incoming: ChatMessage): ChatMessage[] {
+        if (!incoming || !incoming.text) return currentList;
+
+        // 1. Nếu đã có chính xác ID này trong danh sách -> không thêm mới
+        const exactIdIndex = currentList.findIndex(m => m.id === incoming.id);
+        if (exactIdIndex !== -1) {
+            const updated = [...currentList];
+            updated[exactIdIndex] = { ...currentList[exactIdIndex], ...incoming };
+            return updated;
+        }
+
+        // 2. Tìm tin nhắn tạm cùng senderId và cùng text gửi trong vòng 12 giây gần nhất
+        const matchingTempIndex = currentList.findIndex(m => {
+            if (m.senderId !== incoming.senderId || m.text.trim() !== incoming.text.trim()) return false;
+            // Nếu m.id là timestamp số hoặc gần thời gian này
+            const mTime = Number(m.id);
+            if (!isNaN(mTime) && Math.abs(Date.now() - mTime) < 12000) return true;
+            if (m.timestamp === incoming.timestamp) return true;
+            return false;
+        });
+
+        if (matchingTempIndex !== -1) {
+            const updated = [...currentList];
+            updated[matchingTempIndex] = { ...currentList[matchingTempIndex], ...incoming };
+            return updated;
+        }
+
+        // 3. Nếu chưa có -> thêm vào danh sách
+        return [...currentList, incoming];
+    }
+
     constructor() {
         // Load friends from backend
         this.loadFriendsFromBackend();
-
-        if (this.activeChatId()) {
-            this.loadDirectMessages(this.activeChatId());
-        }
 
         const handleIncomingDM = (senderId: string, targetId: string, message: any) => {
             const currentUserId = this.authStore.user()?.id;
@@ -101,19 +128,10 @@ export class FriendService implements OnDestroy {
 
             if (!partnerId) return;
 
-            // Update messages store immediately in real-time
+            // Update messages store with deduplication
             this.messagesByFriend.update(store => {
                 const current = store[partnerId] || [];
-                // Check if message ID already exists
-                if (current.some(m => m.id === message.id)) return store;
-                // If message is from current user, replace the optimistic message or deduplicate
-                if (senderId === currentUserId && current.some(m => m.text === message.text && (Date.now() - Number(m.id)) < 8000)) {
-                    return {
-                        ...store,
-                        [partnerId]: current.map(m => m.text === message.text ? { ...m, ...message } : m)
-                    };
-                }
-                return { ...store, [partnerId]: [...current, message] };
+                return { ...store, [partnerId]: this.upsertDM(current, message) };
             });
 
             // Auto add to DM sidebar
@@ -404,7 +422,7 @@ export class FriendService implements OnDestroy {
         // Optimistic update
         this.messagesByFriend.update(store => {
             const currentList = store[currentChatId] || [];
-            return { ...store, [currentChatId]: [...currentList, userMsg] };
+            return { ...store, [currentChatId]: this.upsertDM(currentList, userMsg) };
         });
 
         // 1. Fail-safe Supabase Realtime Broadcast (direct cloud WebSocket to other machine)
@@ -422,13 +440,7 @@ export class FriendService implements OnDestroy {
                 if (savedMsg?.id) {
                     this.messagesByFriend.update(store => {
                         const currentList = store[currentChatId] || [];
-                        const index = currentList.findIndex(m => m.id === userMsg.id);
-                        if (index !== -1) {
-                            const updated = [...currentList];
-                            updated[index] = { ...userMsg, ...savedMsg };
-                            return { ...store, [currentChatId]: updated };
-                        }
-                        return store;
+                        return { ...store, [currentChatId]: this.upsertDM(currentList, { ...userMsg, ...savedMsg }) };
                     });
                 }
             },

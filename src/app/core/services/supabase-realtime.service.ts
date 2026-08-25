@@ -117,7 +117,19 @@ export class SupabaseRealtimeService {
           });
         },
       )
-      // 5. Friendships
+      // 5. Cloud Voice Signaling via Supabase Broadcast (100% Cross-machine / Cross-network voice sync)
+      .on(
+        'broadcast',
+        { event: 'voice_room_event' },
+        (payload: any) => {
+          this.ngZone.run(() => {
+            const data = payload && payload['payload'] ? payload['payload'] : payload;
+            if (!data) return;
+            this.voiceRoomEventHandlers.forEach(h => h(data));
+          });
+        },
+      )
+      // 6. Friendships
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'friendships' },
@@ -131,7 +143,7 @@ export class SupabaseRealtimeService {
           });
         },
       )
-      // 6. Servers & Channels
+      // 7. Servers & Channels
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'servers' },
@@ -150,7 +162,7 @@ export class SupabaseRealtimeService {
           });
         },
       )
-      // 7. Profiles (Avatar, Status, Presence)
+      // 8. Profiles (Avatar, Status, Presence)
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'profiles' },
@@ -164,6 +176,9 @@ export class SupabaseRealtimeService {
         console.log('[SupabaseRealtime] Subscription status:', status);
       });
   }
+
+  // Multi-handler callback arrays
+  private voiceRoomEventHandlers: Array<(data: any) => void> = [];
 
   // --- Broadcast Send Helpers ---
   broadcastDirectMessage(senderId: string, recipientId: string, message: any) {
@@ -182,6 +197,21 @@ export class SupabaseRealtimeService {
       event: 'channel_message',
       payload: { channelId, message },
     });
+  }
+
+  broadcastVoiceEvent(data: any) {
+    if (!this.channel) return;
+    this.channel.send({
+      type: 'broadcast',
+      event: 'voice_room_event',
+      payload: data,
+    });
+  }
+
+  registerVoiceRoomEventHandler(handler: (data: any) => void) {
+    if (!this.voiceRoomEventHandlers.includes(handler)) {
+      this.voiceRoomEventHandlers.push(handler);
+    }
   }
 
   registerDirectMessageHandler(handler: (senderId: string, recipientId: string, message: any) => void) {
