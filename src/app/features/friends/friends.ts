@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FriendService } from '../../core/services/friend';
 
+import { LanguageService } from '../../core/services/language.service';
+
 @Component({
     selector: 'fz-friends',
     standalone: true,
@@ -13,6 +15,7 @@ import { FriendService } from '../../core/services/friend';
 })
 export class Friends implements OnInit {
     public friendService = inject(FriendService);
+    public languageService = inject(LanguageService);
 
     ngOnInit() {
         this.friendService.loadFriendsFromBackend();

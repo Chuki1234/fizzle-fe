@@ -4,6 +4,8 @@ import { ServerService } from '../../core/services/server';
 import { ModalService } from '../../core/services/modal';
 import { Server, Channel } from '../../core/models/server.model';
 
+import { LanguageService } from '../../core/services/language.service';
+
 @Component({
   selector: 'fz-dashboard',
   standalone: true,
@@ -15,6 +17,7 @@ import { Server, Channel } from '../../core/models/server.model';
 export class Dashboard {
   public serverService = inject(ServerService);
   public modalService = inject(ModalService);
+  public languageService = inject(LanguageService);
 
   // Danh sách các luồng thoại/livestream từ các server thực tế
   public voiceChannels = computed(() => {

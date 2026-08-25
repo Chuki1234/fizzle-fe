@@ -8,6 +8,7 @@ import { SupabaseRealtimeService } from '../../core/services/supabase-realtime.s
 import { AuthService } from '../../core/auth/auth.service';
 import { AuthStore } from '../../core/auth/auth.store';
 import { NotificationService, InAppNotification } from '../../core/services/notification.service';
+import { LanguageService } from '../../core/services/language.service';
 import { VoiceControlComponent } from '../../shared/ui/voice-control/voice-control';
 import { ModalComponent } from '../../shared/ui/modal/modal';
 
@@ -31,6 +32,7 @@ export class MainLayout {
     public authService = inject(AuthService);
     public authStore = inject(AuthStore);
     public notificationService = inject(NotificationService);
+    public languageService = inject(LanguageService);
     private socketService = inject(SocketService);
     private supabaseRealtime = inject(SupabaseRealtimeService);
     private router = inject(Router);
@@ -42,7 +44,7 @@ export class MainLayout {
 
     public userStatusText = computed(() => {
         const user = this.authStore.user();
-        if (!user) return 'Trực tuyến';
+        if (!user) return this.languageService.t('status.online');
         const custom = user.customStatus?.trim();
         if (custom) {
             return `${user.customStatusEmoji ? user.customStatusEmoji + ' ' : ''}${custom}`;
@@ -51,11 +53,11 @@ export class MainLayout {
             return user.statusMessage.trim();
         }
         switch (user.presence) {
-            case 'online': return 'Trực tuyến';
-            case 'idle': return 'Chờ';
-            case 'dnd': return 'Đừng làm phiền';
-            case 'offline': return 'Ngoại tuyến';
-            default: return 'Trực tuyến';
+            case 'online': return this.languageService.t('status.online');
+            case 'idle': return this.languageService.t('status.idle');
+            case 'dnd': return this.languageService.t('status.dnd');
+            case 'offline': return this.languageService.t('status.offline');
+            default: return this.languageService.t('status.online');
         }
     });
 
