@@ -149,4 +149,57 @@ export class AuthService {
       .post<void>(`${this.baseUrl}/auth/logout`, {}, { withCredentials: true })
       .pipe(tap(() => this.store.clear()));
   }
+
+  updateProfile(payload: Partial<User>): Observable<User> {
+    return this.http
+      .patch<{ user: User }>(`${this.baseUrl}/auth/me`, payload, {
+        withCredentials: true,
+      })
+      .pipe(
+        map((res) => res.user),
+        tap((updatedUser) => this.store.patchUser(updatedUser)),
+      );
+  }
+
+  changeUsername(newUsername: string, password: string): Observable<User> {
+    return this.http
+      .post<{ user: User }>(
+        `${this.baseUrl}/auth/change-username`,
+        { newUsername, password },
+        { withCredentials: true },
+      )
+      .pipe(
+        map((res) => res.user),
+        tap((updatedUser) => this.store.patchUser(updatedUser)),
+      );
+  }
+
+  changePassword(currentPassword: string, newPassword: string): Observable<void> {
+    return this.http.post<void>(
+      `${this.baseUrl}/auth/change-password`,
+      { currentPassword, newPassword },
+      { withCredentials: true },
+    );
+  }
+
+  requestEmailChange(newEmail: string, password: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(
+      `${this.baseUrl}/auth/request-email-change`,
+      { newEmail, password },
+      { withCredentials: true },
+    );
+  }
+
+  verifyEmailChange(newEmail: string, code: string): Observable<User> {
+    return this.http
+      .post<{ user: User }>(
+        `${this.baseUrl}/auth/verify-email-change`,
+        { newEmail, code },
+        { withCredentials: true },
+      )
+      .pipe(
+        map((res) => res.user),
+        tap((updatedUser) => this.store.patchUser(updatedUser)),
+      );
+  }
 }

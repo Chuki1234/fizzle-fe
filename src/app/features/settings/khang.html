@@ -103,74 +103,180 @@
     <div class="modal-header">
       <h3>
         @switch (editingField()) {
-        @case ('username') { Thay đổi Username }
-        @case ('email') { Thay đổi Email }
-        @case ('phone') { Thay đổi Số điện thoại }
-        @case ('password') { Thay đổi Mật khẩu }
+        @case ('username') { ✏️ Thay đổi Username }
+        @case ('email') { 📧 Thay đổi Email }
+        @case ('phone') { 📱 Thay đổi Số điện thoại }
+        @case ('password') { 🔑 Thay đổi Mật khẩu }
         }
       </h3>
       <button type="button" class="btn-icon-close" (click)="closeEditModal()">✕</button>
     </div>
 
-    <form [formGroup]="settingsForm" (ngSubmit)="saveFieldEdit()">
-      <div class="modal-body">
-        @if (editingField() === 'username') {
-        <label class="modal-field">
-          <span>Username mới</span>
-          <input formControlName="username" type="text" class="text-input code-font" placeholder="enderman1154" />
-        </label>
-        }
+    <div class="modal-body">
+      <!-- USERNAME FIELD — Requires password confirmation & calls BE -->
+      @if (editingField() === 'username') {
+      <label class="modal-field">
+        <span>Username mới</span>
+        <input type="text" class="text-input code-font" placeholder="username_moi"
+          [value]="usernameChangePendingName()"
+          (input)="usernameChangePendingName.set($any($event.target).value)" />
+      </label>
+      <label class="modal-field" style="margin-top:12px;">
+        <span>Mật khẩu hiện tại (để xác nhận)</span>
+        <input type="password" class="text-input" placeholder="Nhập mật khẩu của bạn"
+          [value]="usernameChangePassword()"
+          (input)="usernameChangePassword.set($any($event.target).value)"
+          (keydown.enter)="saveUsernameChange()" />
+      </label>
+      @if (usernameChangeError()) {
+      <div class="modal-error-msg">⚠️ {{ usernameChangeError() }}</div>
+      }
+      <div class="modal-actions" style="margin-top:20px;">
+        <button type="button" class="btn-mint-secondary" (click)="closeEditModal()">Hủy</button>
+        <button type="button" class="btn-mint-primary"
+          [disabled]="usernameChangeLoading() || !usernameChangePendingName() || !usernameChangePassword()"
+          (click)="saveUsernameChange()">
+          {{ usernameChangeLoading() ? 'Đang cập nhật...' : '✅ Lưu Username' }}
+        </button>
+      </div>
+      }
 
-        @if (editingField() === 'email') {
+      <!-- EMAIL FIELD — 2-step OTP flow with password confirmation -->
+      @if (editingField() === 'email') {
+        @if (emailChangeStep() === 'input') {
+        <p class="body-sm text-steel" style="margin-bottom:12px;">Nhập email mới và mật khẩu hiện tại để nhận mã xác thực OTP.</p>
         <label class="modal-field">
           <span>Email mới</span>
-          <input formControlName="email" type="email" class="text-input" placeholder="name@example.com" />
+          <input type="email" class="text-input" placeholder="email_moi@example.com"
+            [value]="emailChangePendingEmail()"
+            (input)="emailChangePendingEmail.set($any($event.target).value)" />
         </label>
+        <label class="modal-field" style="margin-top:12px;">
+          <span>Mật khẩu hiện tại (để xác nhận)</span>
+          <input type="password" class="text-input" placeholder="Nhập mật khẩu của bạn"
+            [value]="emailChangePassword()"
+            (input)="emailChangePassword.set($any($event.target).value)"
+            (keydown.enter)="requestEmailChangeOtp()" />
+        </label>
+        @if (emailChangeError()) {
+        <div class="modal-error-msg">⚠️ {{ emailChangeError() }}</div>
         }
-
-        @if (editingField() === 'phone') {
+        <div class="modal-actions" style="margin-top:20px;">
+          <button type="button" class="btn-mint-secondary" (click)="closeEditModal()">Hủy</button>
+          <button type="button" class="btn-mint-primary"
+            [disabled]="emailChangeLoading() || !emailChangePendingEmail() || !emailChangePassword()"
+            (click)="requestEmailChangeOtp()">
+            {{ emailChangeLoading() ? 'Đang xử lý...' : 'Tiếp theo →' }}
+          </button>
+        </div>
+        } @else {
+        <div class="otp-step-info" style="text-align:center; margin-bottom:16px;">
+          <div style="font-size:2.5rem; margin-bottom:8px;">📬</div>
+          <p class="body-sm text-steel">Nhập mã OTP để xác nhận đổi email thành</p>
+          <strong style="color:var(--text-primary)">{{ emailChangePendingEmail() }}</strong>
+          <p class="body-sm text-steel" style="margin-top:8px; font-size:0.75rem;">
+            Mã OTP có sẵn trong cấu hình server (<code>.env → EMAIL_CHANGE_OTP</code>)
+          </p>
+        </div>
         <label class="modal-field">
-          <span>Số điện thoại mới</span>
-          <input formControlName="phone" type="text" class="text-input" placeholder="+84 987 654 327" />
+          <span>Mã OTP xác thực</span>
+          <input type="text" class="text-input code-font center-text" placeholder="123456" maxlength="10"
+            style="letter-spacing:0.4em; font-size:1.4rem; text-align:center;"
+            [value]="emailChangeOtp()"
+            (input)="emailChangeOtp.set($any($event.target).value)"
+            (keydown.enter)="confirmEmailChange()" />
         </label>
+        @if (emailChangeError()) {
+        <div class="modal-error-msg">⚠️ {{ emailChangeError() }}</div>
         }
+        <div class="modal-actions" style="margin-top:20px;">
+          <button type="button" class="btn-mint-secondary" (click)="emailChangeStep.set('input')">← Quay lại</button>
+          <button type="button" class="btn-mint-primary"
+            [disabled]="emailChangeLoading() || !emailChangeOtp()"
+            (click)="confirmEmailChange()">
+            {{ emailChangeLoading() ? 'Đang xác thực...' : '✅ Xác nhận đổi Email' }}
+          </button>
+        </div>
+        }
+      }
 
-        @if (editingField() === 'password') {
+      <!-- PHONE FIELD -->
+      @if (editingField() === 'phone') {
+      <label class="modal-field">
+        <span>Số điện thoại mới</span>
+        <input [formControl]="$any(settingsForm.get('phone'))" type="text" class="text-input" placeholder="+84 987 654 327" />
+      </label>
+      <div class="modal-actions" style="margin-top:20px;">
+        <button type="button" class="btn-mint-secondary" (click)="closeEditModal()">Hủy</button>
+        <button type="button" class="btn-mint-primary" (click)="saveFieldEdit()">Lưu thay đổi</button>
+      </div>
+      }
+
+      <!-- PASSWORD CHANGE — via BE with currentPassword check -->
+      @if (editingField() === 'password') {
+        @if (passwordChangeSuccess()) {
+        <div style="text-align:center; padding:24px 0;">
+          <div style="font-size:3rem;">✅</div>
+          <h4 style="margin:12px 0 8px; color:var(--text-primary)">Mật khẩu đã được thay đổi!</h4>
+          <p class="body-sm text-steel">Phiên đang tự đóng...</p>
+        </div>
+        } @else {
         <label class="modal-field">
           <span>Mật khẩu hiện tại</span>
-          <input formControlName="currentPassword" type="password" class="text-input" placeholder="••••••••" />
+          <input [formControl]="$any(settingsForm.get('currentPassword'))" type="password" class="text-input"
+            placeholder="Nhập mật khẩu hiện tại" />
         </label>
-        <label class="modal-field" style="margin-top: 12px;">
+        <label class="modal-field" style="margin-top:12px;">
           <span>Mật khẩu mới</span>
-          <input formControlName="newPassword" type="password" class="text-input" placeholder="••••••••" />
+          <input [formControl]="$any(settingsForm.get('newPassword'))" type="password" class="text-input"
+            placeholder="Ít nhất 8 ký tự, có chữ hoa, chữ thường và số" />
         </label>
+        <label class="modal-field" style="margin-top:12px;">
+          <span>Xác nhận mật khẩu mới</span>
+          <input [formControl]="$any(settingsForm.get('confirmPassword'))" type="password" class="text-input"
+            placeholder="Nhập lại mật khẩu mới" />
+        </label>
+        @if (passwordChangeError()) {
+        <div class="modal-error-msg">⚠️ {{ passwordChangeError() }}</div>
         }
-      </div>
-
-      <div class="modal-actions">
-        <button type="button" class="btn-mint-secondary" (click)="closeEditModal()">Hủy</button>
-        <button type="submit" class="btn-mint-primary">Lưu thay đổi</button>
-      </div>
-    </form>
+        <div class="modal-actions" style="margin-top:20px;">
+          <button type="button" class="btn-mint-secondary" (click)="closeEditModal()">Hủy</button>
+          <button type="button" class="btn-mint-primary"
+            [disabled]="passwordChangeLoading()"
+            (click)="savePasswordChange()">
+            {{ passwordChangeLoading() ? 'Đang xử lý...' : '🔑 Đổi Mật khẩu' }}
+          </button>
+        </div>
+        }
+      }
+    </div>
   </div>
 </div>
 }
+
+<!-- Toast Notification -->
+@if (toastMessage()) {
+<div class="toast-notification">
+  {{ toastMessage() }}
+</div>
+}
+
 
 <!-- Logout Confirmation Modal -->
 @if (showLogoutConfirm()) {
 <div class="modal-backdrop" (click)="cancelLogout()">
   <div class="modal-card logout-confirm-card" (click)="$event.stopPropagation()">
     <div class="logout-confirm-icon">🚪</div>
-    <h3 class="modal-title">Đăng xuất khỏi Fizzle?</h3>
+    <h3 class="modal-title">{{ languageService.t('settings.logoutConfirm.title') }}</h3>
     <p class="logout-confirm-desc">
-      Bạn sẽ cần đăng nhập lại để tiếp tục sử dụng. Phiên làm việc hiện tại của bạn sẽ bị kết thúc.
+      {{ languageService.t('settings.logoutConfirm.desc') }}
     </p>
     <div class="modal-actions">
       <button type="button" class="btn-mint-secondary" (click)="cancelLogout()">
-        Ở lại
+        {{ languageService.t('settings.logoutConfirm.stay') }}
       </button>
       <button type="button" class="btn-logout-confirm-ok" (click)="confirmLogout()">
-        Đăng xuất
+        {{ languageService.t('settings.logoutConfirm.confirm') }}
       </button>
     </div>
   </div>
@@ -205,7 +311,7 @@
       <!-- Search Pill (Matching Screenshot) -->
       <div class="search-pill-box">
         <span class="search-icon">🔍</span>
-        <input type="text" class="search-input" placeholder="Tìm kiếm tính năng..." [value]="searchQuery()"
+        <input type="text" class="search-input" [placeholder]="languageService.t('settings.searchPlaceholder')" [value]="searchQuery()"
           (input)="searchQuery.set($any($event.target).value)" />
         @if (searchQuery()) {
         <button type="button" class="btn-clear-search" (click)="searchQuery.set('')" title="Xóa tìm kiếm">✕</button>
@@ -217,7 +323,7 @@
         <div class="nav-group">
           <button type="button" class="group-header-btn" [class.active]="activeSection() === 'account-info'"
             (click)="toggleAccountExpand()">
-            <span>👤 Account Info</span>
+            <span>{{ languageService.t('settings.nav.accountGroup') }}</span>
             <span class="chevron-arrow">{{ isAccountExpanded() ? '▾' : '▸' }}</span>
           </button>
 
@@ -225,17 +331,17 @@
           <div class="sub-nav-group">
             <button type="button" class="sub-nav-item" [class.active]="activeSection() === 'account-info'"
               (click)="setSection('account-info')">
-              Overview & Details
+              {{ languageService.t('settings.nav.accountOverview') }}
             </button>
 
             <button type="button" class="sub-nav-item" [class.active]="activeSection() === 'profiles'"
               (click)="setSection('profiles')">
-              Profiles & Appearance
+              {{ languageService.t('settings.nav.profiles') }}
             </button>
 
             <button type="button" class="sub-nav-item" [class.active]="activeSection() === 'badges-presence'"
               (click)="setSection('badges-presence')">
-              Badges & Presence
+              {{ languageService.t('settings.nav.badges') }}
             </button>
           </div>
           }
@@ -244,28 +350,28 @@
         <div class="nav-group">
           <button type="button" class="group-header-btn" [class.active]="activeSection() === 'accessibility'"
             (click)="setSection('accessibility')">
-            ♿ Accessibility & Theme
+            {{ languageService.t('settings.nav.accessibilityGroup') }}
           </button>
         </div>
 
         <div class="nav-group">
           <button type="button" class="group-header-btn" [class.active]="activeSection() === 'privacy'"
             (click)="setSection('privacy')">
-            🛡️ Data & Privacy
+            {{ languageService.t('settings.nav.privacyGroup') }}
           </button>
         </div>
 
         <div class="nav-group">
           <button type="button" class="group-header-btn" [class.active]="activeSection() === 'messaging'"
             (click)="setSection('messaging')">
-            💬 Messaging Permissions
+            {{ languageService.t('settings.nav.messagingGroup') }}
           </button>
         </div>
 
         <div class="nav-group">
           <button type="button" class="group-header-btn" [class.active]="activeSection() === 'notifications'"
             (click)="setSection('notifications')">
-            🔔 Notifications
+            {{ languageService.t('settings.nav.notificationsGroup') }}
           </button>
         </div>
 
@@ -273,7 +379,7 @@
 
         <div class="nav-group">
           <button type="button" class="group-header-btn btn-logout-danger" (click)="logout()">
-            🚪 Đăng xuất
+            {{ languageService.t('settings.nav.logout') }}
           </button>
         </div>
       </nav>
@@ -285,22 +391,22 @@
       <div class="main-top-bar">
         <h1 class="main-page-title">
           @if (searchQuery().trim() !== '') {
-          🔍 Search Results
+          {{ languageService.t('settings.header.searchResults') }}
           } @else {
           @switch (activeSection()) {
-          @case ('account-info') { Account }
-          @case ('profiles') { Profiles & Appearance }
-          @case ('badges-presence') { Badges & Rich Presence }
-          @case ('accessibility') { Accessibility & Theme }
-          @case ('privacy') { Data & Privacy }
-          @case ('messaging') { Messaging Permissions }
-          @case ('notifications') { Notifications }
-          @default { Account }
+          @case ('account-info') { {{ languageService.t('settings.header.account') }} }
+          @case ('profiles') { {{ languageService.t('settings.header.profiles') }} }
+          @case ('badges-presence') { {{ languageService.t('settings.header.badges') }} }
+          @case ('accessibility') { {{ languageService.t('settings.header.accessibility') }} }
+          @case ('privacy') { {{ languageService.t('settings.header.privacy') }} }
+          @case ('messaging') { {{ languageService.t('settings.header.messaging') }} }
+          @case ('notifications') { {{ languageService.t('settings.header.notifications') }} }
+          @default { {{ languageService.t('settings.header.account') }} }
           }
           }
         </h1>
 
-        <button type="button" class="btn-close-esc" (click)="closeSettings()" title="Thoát Cài đặt (Về Dashboard)">
+        <button type="button" class="btn-close-esc" (click)="closeSettings()" [title]="languageService.t('settings.closeTooltip')">
           <span class="close-x">✕</span>
           <span class="esc-label">ESC</span>
         </button>
@@ -370,79 +476,78 @@
         @if (activeSection() === 'account-info') {
         <!-- 1. Basic Account Overview -->
         <div class="settings-block">
-          <h2 class="block-title">Account Info (Thông tin Tài khoản)</h2>
+          <h2 class="block-title">{{ languageService.t('settings.account.overviewTitle') }}</h2>
 
           <div class="account-rows-card">
             <!-- Row 1: Username -->
             <div class="account-row-item">
-              <div class="row-label">Username</div>
+              <div class="row-label">{{ languageService.t('settings.account.username') }}</div>
               <div class="row-value-wrap">
                 <span class="row-value code-font">{{ username() }}</span>
               </div>
-              <button type="button" class="btn-row-edit" (click)="openEditModal('username')">Edit</button>
+              <button type="button" class="btn-row-edit" (click)="openEditModal('username')">{{ languageService.t('settings.account.edit') }}</button>
             </div>
 
             <!-- Row 2: Email -->
             <div class="account-row-item">
-              <div class="row-label">Email</div>
+              <div class="row-label">{{ languageService.t('settings.account.email') }}</div>
               <div class="row-value-wrap">
                 <span class="row-value code-font">
                   {{ revealEmail() ? actualEmail() : maskedEmail() }}
                 </span>
                 <button type="button" class="link-reveal" (click)="toggleRevealEmail()">
-                  {{ revealEmail() ? 'Hide' : 'Reveal' }}
+                  {{ revealEmail() ? languageService.t('settings.account.hide') : languageService.t('settings.account.reveal') }}
                 </button>
               </div>
-              <button type="button" class="btn-row-edit" (click)="openEditModal('email')">Edit</button>
+              <button type="button" class="btn-row-edit" (click)="openEditModal('email')">{{ languageService.t('settings.account.edit') }}</button>
             </div>
 
             <!-- Row 3: Phone Number -->
             <div class="account-row-item">
-              <div class="row-label">Phone Number</div>
+              <div class="row-label">{{ languageService.t('settings.account.phone') }}</div>
               <div class="row-value-wrap">
                 <span class="row-value code-font">
                   {{ revealPhone() ? actualPhone() : maskedPhone() }}
                 </span>
                 <button type="button" class="link-reveal" (click)="toggleRevealPhone()">
-                  {{ revealPhone() ? 'Hide' : 'Reveal' }}
+                  {{ revealPhone() ? languageService.t('settings.account.hide') : languageService.t('settings.account.reveal') }}
                 </button>
               </div>
-              <button type="button" class="btn-row-edit" (click)="openEditModal('phone')">Edit</button>
+              <button type="button" class="btn-row-edit" (click)="openEditModal('phone')">{{ languageService.t('settings.account.edit') }}</button>
             </div>
           </div>
         </div>
 
         <!-- 2. Security & Password Section -->
         <div class="settings-block margin-top-lg">
-          <h2 class="block-title">Password & Security (Mật khẩu & Bảo mật)</h2>
+          <h2 class="block-title">{{ languageService.t('settings.account.password') }} & Security</h2>
 
           <div class="account-rows-card">
             <!-- Row 1: Password -->
             <div class="account-row-item">
               <div>
-                <div class="row-label">Mật khẩu (Password)</div>
-                <div class="row-desc">Thay đổi mật khẩu đăng nhập định kỳ để bảo vệ tài khoản khỏi truy cập trái phép
+                <div class="row-label">{{ languageService.t('settings.account.password') }}</div>
+                <div class="row-desc">{{ currentLang() === 'vi' ? 'Thay đổi mật khẩu đăng nhập định kỳ để bảo vệ tài khoản khỏi truy cập trái phép.' : 'Change login password periodically to protect your account.' }}
                 </div>
               </div>
-              <button type="button" class="btn-row-edit primary-btn" (click)="openEditModal('password')">🔑 Đổi Mật
-                Khẩu</button>
+              <button type="button" class="btn-row-edit primary-btn" (click)="openEditModal('password')">🔑 {{ languageService.t('settings.account.password') }}</button>
             </div>
 
             <!-- Row 2: 2FA Status -->
             <div class="account-row-item">
               <div>
-                <div class="row-label">Xác thực 2 yếu tố (2FA)</div>
+                <div class="row-label">{{ languageService.t('settings.account.2fa') }}</div>
                 <div class="row-desc">
                   @if (twoFactorEnabled()) {
-                  <span class="badge-status-on">🛡️ Đã bật 2FA (Authenticator App)</span>
+                  <span class="badge-status-on">🛡️ {{ currentLang() === 'vi' ? 'Đã bật 2FA (Authenticator App)' : '2FA Enabled (Authenticator App)' }}</span>
                   } @else {
-                  <span class="badge-status-off">⚠️ Chưa bật 2FA</span>
+                  <span class="badge-status-off">⚠️ {{ currentLang() === 'vi' ? 'Chưa bật 2FA' : '2FA Disabled' }}</span>
                   }
                 </div>
               </div>
               <div class="row-actions">
                 <button type="button" class="btn-row-edit" (click)="toggle2FA()">
-                  {{ twoFactorEnabled() ? 'Quản lý / Tắt 2FA' : '🛡️ Bật 2FA ngay' }}
+                  {{ twoFactorEnabled() ? (currentLang() === 'vi' ? 'Quản lý / Tắt 2FA' : 'Manage / Disable 2FA') : (currentLang() === 'vi' ? '🛡️ Bật 2FA ngay' : '🛡️ Enable 2FA Now') }}
                 </button>
               </div>
             </div>
@@ -451,14 +556,14 @@
 
         <!-- 3. Security Preferences & Alerts -->
         <div class="settings-block margin-top-lg">
-          <h2 class="block-title">Cảnh báo An ninh & Quyền riêng tư</h2>
+          <h2 class="block-title">{{ languageService.t('settings.account.loginAlerts') }}</h2>
 
           <div class="toggle-cards-column">
             <!-- Toggle 1: Login Alerts -->
             <div class="toggle-card-item">
               <div class="toggle-info">
-                <strong>Cảnh báo đăng nhập lạ qua Email</strong>
-                <p>Nhận ngay thông báo email khi có thiết bị hoặc vị trí địa lý lạ truy cập tài khoản.</p>
+                <strong>{{ languageService.t('settings.account.loginAlerts') }}</strong>
+                <p>{{ currentLang() === 'vi' ? 'Nhận thông báo qua email khi tài khoản đăng nhập từ trình duyệt hoặc vị trí mới.' : 'Receive email alerts when signing in from new browsers or locations.' }}</p>
               </div>
               <label class="switch-toggle">
                 <input type="checkbox" [checked]="loginAlertsEnabled()" (change)="toggleLoginAlerts()" />
@@ -469,8 +574,8 @@
             <!-- Toggle 2: Sudo Mode -->
             <div class="toggle-card-item">
               <div class="toggle-info">
-                <strong>Yêu cầu mã 2FA cho thao tác nhạy cảm (Sudo Mode)</strong>
-                <p>Yêu cầu xác minh lại mật khẩu/mã OTP khi đổi email, mật khẩu hoặc số điện thoại.</p>
+                <strong>{{ languageService.t('settings.account.sudoMode') }}</strong>
+                <p>{{ languageService.t('settings.account.sudoModeDesc') }}</p>
               </div>
               <label class="switch-toggle">
                 <input type="checkbox" [checked]="sudoModeEnabled()" (change)="toggleSudoMode()" />
@@ -480,45 +585,7 @@
           </div>
         </div>
 
-        <!-- 4. Active Devices & Sessions -->
-        <div class="settings-block margin-top-lg">
-          <div class="block-header-flex">
-            <div>
-              <h2 class="block-title">Thiết bị đang hoạt động (Active Sessions)</h2>
-              <p class="body-sm text-steel">Danh sách các thiết bị và trình duyệt hiện đang đăng nhập tài khoản của bạn.
-              </p>
-            </div>
-            @if (activeDevices().length > 1) {
-            <button type="button" class="btn-danger-link" (click)="revokeAllOtherDevices()">
-              🚪 Đăng xuất khỏi tất cả thiết bị khác
-            </button>
-            }
-          </div>
 
-          <div class="active-devices-list">
-            @for (dev of activeDevices(); track dev.id) {
-            <div class="device-card-item" [class.current-device]="dev.isCurrent">
-              <div class="device-icon">{{ dev.icon }}</div>
-              <div class="device-details">
-                <div class="device-name-wrap">
-                  <span class="device-name">{{ dev.name }}</span>
-                  @if (dev.isCurrent) {
-                  <span class="current-badge">Thiết bị này</span>
-                  }
-                </div>
-                <div class="device-location">{{ dev.location }}</div>
-                <div class="device-time">Hoạt động: {{ dev.lastActive }}</div>
-              </div>
-              @if (!dev.isCurrent) {
-              <button type="button" class="btn-revoke-session" (click)="revokeDevice(dev.id)"
-                title="Đăng xuất thiết bị này">
-                Đăng xuất
-              </button>
-              }
-            </div>
-            }
-          </div>
-        </div>
         }
 
         <!-- ====================================================================
@@ -629,7 +696,7 @@
               <div class="frames-picker-grid">
                 @for (frame of avatarFrames; track frame.id) {
                 <button type="button" class="frame-picker-card" [class.active]="avatarFrame() === frame.id"
-                  (click)="avatarFrame.set(frame.id)">
+                  (click)="setAvatarFrame(frame.id)">
                   <div class="frame-demo-avatar" [class]="frame.class">FC</div>
                   <span class="frame-picker-title">{{ frame.name }}</span>
                 </button>
@@ -693,14 +760,12 @@
                   </div>
                 </div>
 
-                @if (customStatus()) {
                 <div class="card-custom-status-box">
                   @if (customStatusEmoji()) {
                   <span class="custom-status-emoji">{{ customStatusEmoji() }}</span>
                   }
-                  <span>{{ customStatus() }}</span>
+                  <span>{{ displayCustomStatus() }}</span>
                 </div>
-                }
 
                 <!-- Card Nav Tabs -->
                 <div class="card-nav-tabs">
@@ -770,8 +835,11 @@
                     <div class="friend-item">
                       <div class="friend-left">
                         <div class="friend-avatar-wrap">
-                          <div class="friend-avatar" [style.background-color]="friend.avatarBg">{{ friend.avatarText }}
-                          </div>
+                          @if (friend.avatarUrl) {
+                            <img [src]="friend.avatarUrl" class="friend-avatar" style="object-fit: cover;" alt="Avatar" />
+                          } @else {
+                            <div class="friend-avatar" [style.background-color]="friend.avatarBg">{{ friend.avatarText }}</div>
+                          }
                           <div class="friend-status-dot" [style.background-color]="getStatusColor(friend.status)"></div>
                         </div>
                         <div>
@@ -962,14 +1030,12 @@
                   </div>
                 </div>
 
-                @if (customStatus()) {
                 <div class="card-custom-status-box">
                   @if (customStatusEmoji()) {
                   <span class="custom-status-emoji">{{ customStatusEmoji() }}</span>
                   }
-                  <span>{{ customStatus() }}</span>
+                  <span>{{ displayCustomStatus() }}</span>
                 </div>
-                }
 
                 <!-- Rich Presence Activity Card in Preview -->
                 @if (isPlayingGame()) {
@@ -1002,13 +1068,11 @@
            ==================================================================== -->
         @if (activeSection() === 'accessibility') {
         <div class="settings-block">
-          <h2 class="block-title">Accessibility & Theme</h2>
-          <p class="body-sm text-steel">Tùy chỉnh chế độ giao diện tối/sáng, kích thước phông chữ và tùy chọn hỗ trợ
-            tiếp cận.</p>
+          <h2 class="block-title">{{ languageService.t('settings.header.accessibility') }}</h2>
 
           <!-- Theme Mode Cards -->
           <div class="form-field">
-            <label class="field-label">Giao diện ứng dụng (Theme Mode)</label>
+            <label class="field-label">{{ languageService.t('settings.theme.title') }}</label>
             <div class="theme-mode-grid">
               <button type="button" class="theme-mode-card" [class.active]="isDarkMode" (click)="toggleTheme()">
                 <div class="theme-preview-box dark-preview">
@@ -1016,7 +1080,7 @@
                   <span class="theme-badge">Dark</span>
                 </div>
                 <div class="theme-info-row">
-                  <span class="theme-title">Chế độ Tối (Dark Mode)</span>
+                  <span class="theme-title">{{ languageService.t('settings.theme.dark') }}</span>
                   <span class="theme-dot" [class.active]="isDarkMode"></span>
                 </div>
               </button>
@@ -1027,7 +1091,7 @@
                   <span class="theme-badge">Light</span>
                 </div>
                 <div class="theme-info-row">
-                  <span class="theme-title">Chế độ Sáng (Light Mode)</span>
+                  <span class="theme-title">{{ languageService.t('settings.theme.light') }}</span>
                   <span class="theme-dot" [class.active]="!isDarkMode"></span>
                 </div>
               </button>
@@ -1038,51 +1102,50 @@
 
           <!-- Font Scale -->
           <div class="form-field">
-            <label class="field-label">Kích thước phông chữ (Font Scaling)</label>
+            <label class="field-label">{{ languageService.t('settings.fontScale.title') }}</label>
             <div class="font-scale-grid">
               <button type="button" class="font-scale-card" [class.active]="fontScale() === 'compact'"
                 (click)="setFontScale('compact')">
                 <span class="font-demo compact">Aa</span>
-                <span class="font-label">Nhỏ (Compact)</span>
+                <span class="font-label">{{ languageService.t('settings.fontScale.compact') }}</span>
               </button>
               <button type="button" class="font-scale-card" [class.active]="fontScale() === 'normal'"
                 (click)="setFontScale('normal')">
                 <span class="font-demo normal">Aa</span>
-                <span class="font-label">Mặc định (Standard)</span>
+                <span class="font-label">{{ languageService.t('settings.fontScale.normal') }}</span>
               </button>
               <button type="button" class="font-scale-card" [class.active]="fontScale() === 'large'"
                 (click)="setFontScale('large')">
                 <span class="font-demo large">Aa</span>
-                <span class="font-label">Lớn (Large)</span>
+                <span class="font-label">{{ languageService.t('settings.fontScale.large') }}</span>
               </button>
             </div>
           </div>
 
           <div class="block-divider"></div>
 
-          <!-- Accessibility Toggles -->
+          <!-- Language Selection Section -->
           <div class="form-field">
-            <label class="field-label">Tùy chọn Hỗ trợ tiếp cận</label>
-            <div class="security-toggles-box">
-              <div class="toggle-card-item" (click)="toggleReducedMotion()">
-                <div class="toggle-info">
-                  <strong>Giảm chuyển động (Reduced Motion)</strong>
-                  <p>Tắt hiệu ứng chuyển động và hoạt ảnh không cần thiết trên giao diện</p>
+            <label class="field-label">{{ languageService.t('settings.language.title') }}</label>
+            <p class="body-sm text-steel margin-bottom-sm">
+              {{ languageService.t('settings.language.desc') }}
+            </p>
+            <div class="lang-grid">
+              @for (lang of availableLanguages; track lang.code) {
+              <button type="button" class="lang-card" [class.active]="currentLang() === lang.code"
+                (click)="setLanguage(lang.code)">
+                <div class="lang-flag">{{ lang.flag }}</div>
+                <div class="lang-info">
+                  <div class="lang-name">{{ lang.code === 'vi' ? languageService.t('settings.language.vi') : languageService.t('settings.language.en') }}</div>
+                  <div class="lang-desc">{{ lang.code === 'vi' ? languageService.t('settings.language.viDesc') : languageService.t('settings.language.enDesc') }}</div>
                 </div>
-                <div class="mint-switch" [class.on]="reducedMotion()">
-                  <div class="switch-thumb"></div>
+                @if (currentLang() === lang.code) {
+                <div class="lang-active-badge">
+                  <span>✓</span>
                 </div>
-              </div>
-
-              <div class="toggle-card-item" (click)="toggleHighContrast()">
-                <div class="toggle-info">
-                  <strong>Độ tương phản cao (High Contrast Text)</strong>
-                  <p>Tăng cường viền và độ rõ nét của chữ hiển thị</p>
-                </div>
-                <div class="mint-switch" [class.on]="highContrast()">
-                  <div class="switch-thumb"></div>
-                </div>
-              </div>
+                }
+              </button>
+              }
             </div>
           </div>
         </div>

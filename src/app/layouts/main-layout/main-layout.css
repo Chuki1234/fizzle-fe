@@ -175,11 +175,27 @@
     position: absolute;
     bottom: -1px;
     right: -1px;
-    width: 8px;
-    height: 8px;
-    border-radius: var(--radius-full);
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
     background-color: var(--color-presence-online);
-    border: 2px solid var(--color-surface);
+    border: 2px solid #0e0f12;
+}
+
+.sidebar-left__status-dot--online {
+    background-color: #10b981 !important;
+}
+
+.sidebar-left__status-dot--idle {
+    background-color: #f59e0b !important;
+}
+
+.sidebar-left__status-dot--dnd {
+    background-color: #f43f5e !important;
+}
+
+.sidebar-left__status-dot--offline {
+    background-color: #71717a !important;
 }
 
 .sidebar-left__dm-info {
@@ -211,6 +227,33 @@
     border: 1px solid var(--color-hairline);
 }
 
+.sidebar-left__avatar-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: all 0.3s ease;
+}
+
+.sidebar-left__avatar-wrapper.frame-cyber-glow .sidebar-left__avatar {
+    box-shadow: 0 0 0 2px #00d4a4, 0 0 10px rgba(0, 212, 164, 0.7);
+}
+
+.sidebar-left__avatar-wrapper.frame-nitro-boost .sidebar-left__avatar {
+    box-shadow: 0 0 0 2px #f47fff, 0 0 12px rgba(244, 127, 255, 0.7);
+}
+
+.sidebar-left__avatar-wrapper.frame-golden-crown .sidebar-left__avatar {
+    box-shadow: 0 0 0 2px #f1c40f, 0 0 10px rgba(241, 196, 15, 0.7);
+}
+
+.sidebar-left__avatar-wrapper.frame-tech-ring .sidebar-left__avatar {
+    border: 2px dashed #80848e;
+    box-shadow: 0 0 8px rgba(128, 132, 142, 0.5);
+}
+
 .sidebar-left__avatar--user {
     background-color: var(--color-accent);
     color: var(--color-on-accent);
@@ -236,6 +279,44 @@
     font-size: var(--text-micro);
     color: var(--color-presence-online);
     font-weight: var(--weight-medium);
+}
+
+.sidebar-left__user-profile-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    flex: 1;
+    min-width: 0;
+    text-decoration: none;
+    color: inherit;
+    border-radius: var(--radius-md);
+    padding: 2px 4px;
+    transition: background-color var(--duration-fast, 150ms) var(--ease-standard, ease);
+}
+
+.sidebar-left__user-profile-left:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-left__settings-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-md);
+    background: transparent;
+    border: none;
+    color: var(--color-steel, #94a3b8);
+    cursor: pointer;
+    text-decoration: none;
+    transition: all var(--duration-fast, 150ms) var(--ease-standard, ease);
+    flex-shrink: 0;
+}
+
+.sidebar-left__settings-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
 }
 
 .sidebar-left__logout-btn {
@@ -369,8 +450,21 @@
     border-bottom: 1px solid #1e1f24;
 }
 
-.sidebar-left__channel-item {
+.sidebar-left__channel-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
     width: 100%;
+    border-radius: 8px;
+    transition: background-color 0.15s ease;
+}
+
+.sidebar-left__channel-wrapper:hover {
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+.sidebar-left__channel-item {
+    flex: 1;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -381,12 +475,48 @@
     color: #9ca3af;
     cursor: pointer;
     text-align: left;
+    min-width: 0;
+}
+
+.sidebar-left__channel-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .sidebar-left__channel-item:hover,
 .sidebar-left__channel-item--active {
-    background-color: #16171c;
     color: #fff;
+}
+
+.sidebar-left__channel-wrapper:has(.sidebar-left__channel-item--active) {
+    background-color: #16171c;
+}
+
+.sidebar-left__channel-delete-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin-right: 4px;
+    border-radius: 6px;
+    background: transparent;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+}
+
+.sidebar-left__channel-wrapper:hover .sidebar-left__channel-delete-btn {
+    opacity: 1;
+}
+
+.sidebar-left__channel-delete-btn:hover {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
 }
 
 /* --- USER PROFILE FOOTER --- */
@@ -432,4 +562,148 @@
 .sidebar-left__settings-btn:hover {
     background-color: rgba(255, 255, 255, 0.08);
     color: #fff;
+}
+
+/* Nút Mời bạn bè trong server sidebar */
+.sidebar-left__invite-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: calc(100% - 16px);
+    margin: 4px 8px 8px 8px;
+    padding: 8px 10px;
+    background-color: rgba(35, 165, 90, 0.12);
+    border: 1px solid rgba(35, 165, 90, 0.3);
+    border-radius: 8px;
+    color: #23a55a;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: left;
+}
+
+.sidebar-left__invite-btn:hover {
+    background-color: rgba(35, 165, 90, 0.2);
+    border-color: rgba(35, 165, 90, 0.5);
+    color: #2dc76d;
+}
+
+/* ==========================================================================
+   TOAST NOTIFICATION COMPONENT
+   ========================================================================== */
+.toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 380px;
+    width: calc(100vw - 48px);
+    pointer-events: none;
+}
+
+.toast-card {
+    pointer-events: auto;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    background: #18191e;
+    border: 1px solid #2a2c33;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 1px rgba(255, 255, 255, 0.1);
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    animation: toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.toast-card:hover {
+    transform: translateY(-2px);
+    border-color: #3f424e;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.6);
+}
+
+.toast-card--invite {
+    border-left: 4px solid #10b981;
+}
+
+.toast-card--friend {
+    border-left: 4px solid #3b82f6;
+}
+
+.toast-card--message {
+    border-left: 4px solid #8b5cf6;
+}
+
+.toast-card__icon {
+    font-size: 20px;
+    line-height: 1;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.toast-card__content {
+    flex: 1;
+    min-width: 0;
+}
+
+.toast-card__title {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 2px;
+    color: #fff;
+}
+
+.toast-card__message {
+    font-size: 12px;
+    color: #9ca3af;
+    line-height: 1.4;
+    word-break: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.toast-card__action {
+    display: inline-block;
+    margin-top: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #10b981;
+    text-decoration: underline;
+}
+
+.toast-card__close-btn {
+    background: transparent;
+    border: none;
+    color: #6b7280;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: color 0.15s ease;
+    flex-shrink: 0;
+}
+
+.toast-card__close-btn:hover {
+    color: #fff;
+}
+
+@keyframes toastSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }

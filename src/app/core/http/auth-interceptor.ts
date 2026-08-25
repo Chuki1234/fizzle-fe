@@ -31,12 +31,25 @@ const refreshedToken$ = new BehaviorSubject<string | null>(null);
 
 const REFRESH_ENDPOINT = '/auth/refresh';
 
+function withBearer(
+  req: HttpRequest<unknown>,
+  token: string,
+  userId?: string | null,
+): HttpRequest<unknown> {
+  const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+  if (userId) {
+    headers['x-user-id'] = userId;
+  }
+  return req.clone({ setHeaders: headers });
+}
+
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const store = inject(AuthStore);
   const auth = inject(AuthService);
 
   const token = store.accessToken();
-  const authed = token ? withBearer(req, token) : req;
+  const userId = store.user()?.id;
+  const authed = token ? withBearer(req, token, userId) : (userId ? req.clone({ setHeaders: { 'x-user-id': userId } }) : req);
 
   return next(authed).pipe(
     catchError((err: unknown) => {
@@ -64,7 +77,7 @@ function handleExpiredToken(
     return refreshedToken$.pipe(
       filter((t): t is string => t !== null),
       take(1),
-      switchMap((t) => next(withBearer(req, t))),
+      switchMap((t) => next(withBearer(req, t, store.user()?.id))),
     );
   }
 
@@ -75,7 +88,7 @@ function handleExpiredToken(
     switchMap((res) => {
       refreshInFlight = false;
       refreshedToken$.next(res.accessToken);
-      return next(withBearer(req, res.accessToken));
+      return next(withBearer(req, res.accessToken, store.user()?.id));
     }),
     catchError((refreshErr: unknown) => {
       // The refresh cookie is gone or rejected — the session is over.
@@ -86,9 +99,4 @@ function handleExpiredToken(
   );
 }
 
-function withBearer(
-  req: HttpRequest<unknown>,
-  token: string,
-): HttpRequest<unknown> {
-  return req.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
-}
+

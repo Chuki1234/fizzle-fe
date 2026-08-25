@@ -2,13 +2,17 @@ import { UserSummary } from './user.model';
 
 export interface Friend extends UserSummary {
     statusText?: string;
-    relationshipStatus: 'friend' | 'pending';
+    customStatus?: string | null;
+    customStatusEmoji?: string | null;
+    relationshipStatus: 'friend' | 'pending' | 'pending_outgoing' | 'none';
 }
 
 export interface ChatMessage {
     id: string;
     senderId: string;
     senderName: string;
+    senderAvatarUrl?: string | null;
+    avatarUrl?: string | null;
     text: string;
     timestamp: string;
 }

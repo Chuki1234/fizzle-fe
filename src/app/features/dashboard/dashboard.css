@@ -67,14 +67,43 @@
   font-size: var(--text-heading-5);
   font-weight: var(--weight-semibold);
   color: var(--color-ink);
-  margin-bottom: var(--space-xl);
+  margin-bottom: 0;
   line-height: var(--leading-heading-5);
+}
+
+.dashboard-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-accent);
+  color: #000000;
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-body-sm);
+  border: none;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.dashboard-add-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.dashboard-empty {
+  padding: var(--space-xxl);
+  text-align: center;
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--color-hairline);
 }
 
 .server-cards-list {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+  margin-top: var(--space-lg);
 }
 
 /* Card Server kiểu Flat Modern / Mintlify */
@@ -89,6 +118,7 @@
   text-decoration: none;
   color: var(--color-ink);
   box-shadow: var(--elevation-1);
+  cursor: pointer;
   transition:
     border-color var(--duration-fast) var(--ease-standard),
     box-shadow var(--duration-fast) var(--ease-standard),
@@ -99,6 +129,22 @@
   border-color: var(--color-accent);
   background-color: var(--color-surface-soft);
   box-shadow: var(--elevation-2);
+}
+
+.server-card:hover .server-card__arrow {
+  color: var(--color-accent);
+  transform: translateX(4px);
+}
+
+.server-card__arrow {
+  margin-left: auto;
+  font-size: 16px;
+  color: var(--color-steel);
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.stream-card--clickable {
+  cursor: pointer;
 }
 
 /* Đổi màu accent nhẹ nhàng thay vì phủ nguyên mảng màu gắt */
@@ -127,6 +173,11 @@
 .server-card__icon--pink {
   background-color: var(--color-accent);
   color: var(--color-on-accent);
+}
+
+.server-card__info {
+  flex: 1;
+  min-width: 0;
 }
 
 .server-card__title {

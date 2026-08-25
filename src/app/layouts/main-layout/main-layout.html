@@ -6,7 +6,7 @@
         <a routerLink="/friends" (click)="serverService.activeServerId.set('')" class="server-icon-btn"
             [class.server-icon-btn--active]="!serverService.activeServerId()">
             <span class="server-icon-text">⚡</span>
-            <span class="server-tooltip">Trang chủ & DMs</span>
+            <span class="server-tooltip">{{ languageService.t('nav.home') }}</span>
         </a>
 
         <div class="server-divider"></div>
@@ -23,7 +23,7 @@
         <!-- Nút Thêm Server -> Gọi Modal CREATE_SERVER -->
         <button (click)="modalService.open('CREATE_SERVER')" class="server-icon-btn server-icon-btn--add">
             <span class="server-icon-text">+</span>
-            <span class="server-tooltip">Thêm máy chủ</span>
+            <span class="server-tooltip">{{ languageService.t('nav.addServer') }}</span>
         </button>
     </aside>
 
@@ -39,20 +39,35 @@
                 <span class="sidebar-left__dropdown-icon">▼</span>
             </div>
 
+            <!-- Nút Mời bạn bè vào Server (Discord style) -->
+            <button (click)="modalService.open('INVITE_FRIENDS')" class="sidebar-left__invite-btn" [title]="languageService.t('nav.inviteFriends')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" y1="8" x2="19" y2="14"></line><line x1="22" y1="11" x2="16" y2="11"></line></svg>
+                {{ languageService.t('nav.inviteFriends') }}
+            </button>
+
             <div class="sidebar-left__content">
                 <div class="sidebar-left__section">
                     <div class="sidebar-left__section-header">
-                        <span>KÊNH TRÒ CHUYỆN</span>
+                        <span>{{ languageService.t('nav.textChannels') }}</span>
                         <!-- Nút Thêm Kênh -> Gọi Modal CREATE_CHANNEL -->
                         <button (click)="modalService.open('CREATE_CHANNEL')" class="sidebar-left__add-btn">+</button>
                     </div>
 
                     @for (channel of serverService.activeServer()?.channels; track channel.id) {
-                    <button (click)="serverService.selectChannel(channel)" class="sidebar-left__channel-item"
-                        [class.sidebar-left__channel-item--active]="serverService.activeChannelId() === channel.id">
-                        <span class="sidebar-left__channel-prefix">{{ channel.type === 'text' ? '#' : '🎙️' }}</span>
-                        <span class="sidebar-left__channel-name">{{ channel.name }}</span>
-                    </button>
+                    <div class="sidebar-left__channel-wrapper">
+                        <button (click)="serverService.selectChannel(channel)" class="sidebar-left__channel-item"
+                            [class.sidebar-left__channel-item--active]="serverService.activeChannelId() === channel.id">
+                            <span class="sidebar-left__channel-prefix">{{ channel.type === 'text' ? '#' : '🎙️' }}</span>
+                            <span class="sidebar-left__channel-name">{{ channel.name }}</span>
+                        </button>
+                        <button (click)="serverService.deleteChannel(channel.id); $event.stopPropagation()"
+                            class="sidebar-left__channel-delete-btn" [title]="languageService.t('nav.deleteChannel')" [attr.aria-label]="languageService.t('nav.deleteChannel')">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 6h18"></path>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                        </button>
+                    </div>
                     }
                 </div>
             </div>
@@ -68,14 +83,14 @@
 
             <div class="sidebar-left__content">
                 <div class="sidebar-left__search-box">
-                    <input type="text" placeholder="Tìm hoặc bắt đầu cuộc trò" class="sidebar-left__search-input" />
+                    <input type="text" [placeholder]="languageService.t('nav.searchPlaceholder')" class="sidebar-left__search-input" />
                 </div>
 
                 <a routerLink="/friends" routerLinkActive="sidebar-left__nav-item--active"
                     class="sidebar-left__nav-item">
                     <div class="sidebar-left__nav-link">
                         <span class="sidebar-left__nav-icon">👤</span>
-                        <span class="sidebar-left__nav-text">Bạn bè</span>
+                        <span class="sidebar-left__nav-text">{{ languageService.t('nav.friends') }}</span>
                     </div>
 
                     @if (friendService.pendingCount() > 0) {
@@ -86,14 +101,14 @@
                 <a routerLink="/requests" class="sidebar-left__nav-item">
                     <div class="sidebar-left__nav-link">
                         <span class="sidebar-left__nav-icon">✉️</span>
-                        <span class="sidebar-left__nav-text">Yêu cầu tin nhắn</span>
+                        <span class="sidebar-left__nav-text">{{ languageService.t('nav.requests') }}</span>
                     </div>
                 </a>
 
                 <div class="sidebar-left__section">
                     <div class="sidebar-left__section-header">
-                        <span>TIN NHẮN TRỰC TIẾP</span>
-                        <button class="sidebar-left__add-btn">+</button>
+                        <span>{{ languageService.t('nav.directMessages') }}</span>
+                        <button (click)="friendService.activeTab.set('add')" routerLink="/friends" class="sidebar-left__add-btn" [title]="languageService.t('friends.add')">+</button>
                     </div>
 
                     @for (friend of friendService.directMessages(); track friend.id) {
@@ -101,19 +116,28 @@
                         class="sidebar-left__dm-item">
 
                         <div class="sidebar-left__avatar-container">
-                            <div class="sidebar-left__avatar">
-                                {{ friend.displayName.charAt(0) }}
-                            </div>
-                            <span class="sidebar-left__status-dot" [class.bg-emerald-500]="friend.presence === 'online'"
-                                [class.bg-amber-500]="friend.presence === 'idle'"
-                                [class.bg-rose-500]="friend.presence === 'dnd'"
-                                [class.bg-zinc-500]="friend.presence === 'offline'"></span>
+                            @if (friend.avatarUrl) {
+                                <img [src]="friend.avatarUrl" class="sidebar-left__avatar" style="object-fit: cover; border-radius: 50%;" alt="Avatar" />
+                            } @else {
+                                <div class="sidebar-left__avatar">
+                                    {{ friend.displayName.charAt(0) }}
+                                </div>
+                            }
+                            <span class="sidebar-left__status-dot"
+                                [class.sidebar-left__status-dot--online]="friend.presence === 'online'"
+                                [class.sidebar-left__status-dot--idle]="friend.presence === 'idle'"
+                                [class.sidebar-left__status-dot--dnd]="friend.presence === 'dnd'"
+                                [class.sidebar-left__status-dot--offline]="!friend.presence || friend.presence === 'offline'"></span>
                         </div>
 
                         <div class="sidebar-left__dm-info">
                             <span class="sidebar-left__dm-name">{{ friend.displayName }}</span>
-                            <span class="sidebar-left__dm-status">{{ friend.statusText }}</span>
+                            <span class="sidebar-left__dm-status">{{ friendService.getDisplayStatus(friend) }}</span>
                         </div>
+
+                        @if (friendService.unreadCounts()[friend.id] > 0) {
+                        <span class="sidebar-left__badge">{{ friendService.unreadCounts()[friend.id] }}</span>
+                        }
                     </a>
                     }
                 </div>
@@ -126,14 +150,26 @@
 
             <!-- USER PROFILE FOOTER -->
             <div class="sidebar-left__user-profile">
-                <div class="sidebar-left__avatar sidebar-left__avatar--user">
-                    {{ userInitial() }}
-                </div>
-                <div class="sidebar-left__user-info">
-                    <span class="sidebar-left__user-name">{{ authStore.user()?.displayName || authStore.user()?.username || 'Người dùng' }}</span>
-                    <span class="sidebar-left__user-status">● Online</span>
-                </div>
-                <button (click)="logout()" class="sidebar-left__logout-btn" title="Đăng xuất" aria-label="Đăng xuất">
+                <a routerLink="/profile" class="sidebar-left__user-profile-left" [title]="languageService.t('nav.profile')">
+                    <div class="sidebar-left__avatar-wrapper" [class]="'sidebar-left__avatar-wrapper frame-' + (authStore.user()?.avatarFrame || 'none')">
+                        @if (authStore.user()?.avatarUrl) {
+                            <img [src]="authStore.user()?.avatarUrl" class="sidebar-left__avatar sidebar-left__avatar--user" alt="Avatar" />
+                        } @else {
+                            <div class="sidebar-left__avatar sidebar-left__avatar--user">{{ userInitial() }}</div>
+                        }
+                    </div>
+                    <div class="sidebar-left__user-info">
+                        <span class="sidebar-left__user-name">{{ authStore.user()?.displayName || authStore.user()?.username || 'User' }}</span>
+                        <span class="sidebar-left__user-status" [style.color]="userStatusColor()">● {{ userStatusText() }}</span>
+                    </div>
+                </a>
+                <a routerLink="/settings" class="sidebar-left__settings-btn" [title]="languageService.t('nav.settings')" [attr.aria-label]="languageService.t('nav.settings')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                </a>
+                <button (click)="logout()" class="sidebar-left__logout-btn" [title]="languageService.t('nav.logout')" [attr.aria-label]="languageService.t('nav.logout')">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                         <polyline points="16 17 21 12 16 7"></polyline>
@@ -150,6 +186,32 @@
     </main>
 
 </div>
+
+<!-- TOAST NOTIFICATION CONTAINER -->
+@if (notificationService.notifications().length > 0) {
+<div class="toast-container" aria-live="polite">
+    @for (n of notificationService.notifications(); track n.id) {
+    <div class="toast-card" [class.toast-card--invite]="n.type === 'server_invite'"
+        [class.toast-card--friend]="n.type === 'friend_request'"
+        [class.toast-card--message]="n.type === 'message'">
+        <div class="toast-card__icon">
+            @if (n.type === 'server_invite') { 🚀 }
+            @else if (n.type === 'friend_request') { 👤 }
+            @else { 💬 }
+        </div>
+        <div class="toast-card__content" (click)="handleNotificationClick(n)">
+            <h4 class="toast-card__title">{{ n.title }}</h4>
+            <p class="toast-card__message">{{ n.message }}</p>
+            @if (n.actionLabel) {
+            <span class="toast-card__action">{{ n.actionLabel }} →</span>
+            }
+        </div>
+        <button (click)="notificationService.dismiss(n.id); $event.stopPropagation()" class="toast-card__close-btn"
+            title="Đóng">✕</button>
+    </div>
+    }
+</div>
+}
 
 <!-- COMPONENT MODAL DÙNG CHUNG -->
 <app-modal></app-modal>
