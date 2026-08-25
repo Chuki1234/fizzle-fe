@@ -39,8 +39,12 @@ export class SupabaseRealtimeService {
     console.log('[SupabaseRealtime] Initializing Cloud Realtime for user:', userId);
 
     this.channel = this.supabase
-      .channel('fizzle-global-realtime')
-      // 1. Direct Messages
+      .channel('fizzle-global-realtime', {
+        config: {
+          broadcast: { self: false },
+        },
+      })
+      // 1. Direct Messages via Postgres Changes
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'direct_messages' },
@@ -64,13 +68,27 @@ export class SupabaseRealtimeService {
           });
         },
       )
-      // 2. Channel Messages
+      // 2. Direct Messages via Direct Supabase Broadcast (Cross-machine / Cross-network instant sync)
+      .on(
+        'broadcast',
+        { event: 'dm_message' },
+        (payload: any) => {
+          this.ngZone.run(() => {
+            const data = payload && payload['payload'] ? payload['payload'] : payload;
+            if (!data) return;
+            if (data.senderId === this.currentUserId || data.recipientId === this.currentUserId) {
+              this.directMessageHandlers.forEach(h => h(data.senderId, data.recipientId, data.message));
+            }
+          });
+        },
+      )
+      // 3. Channel Messages via Postgres Changes
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'channel_messages' },
         (payload: { new: any }) => {
           this.ngZone.run(() => {
-            const row = payload.new as any;
+            const row = (payload as any)['new'] || payload.new;
             if (!row) return;
             const msg = {
               id: row.id,
@@ -87,7 +105,19 @@ export class SupabaseRealtimeService {
           });
         },
       )
-      // 3. Friendships
+      // 4. Channel Messages via Direct Supabase Broadcast
+      .on(
+        'broadcast',
+        { event: 'channel_message' },
+        (payload: any) => {
+          this.ngZone.run(() => {
+            const data = payload && payload['payload'] ? payload['payload'] : payload;
+            if (!data?.channelId || !data?.message) return;
+            this.channelMessageHandlers.forEach(h => h(data.channelId, data.message));
+          });
+        },
+      )
+      // 5. Friendships
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'friendships' },
@@ -101,7 +131,7 @@ export class SupabaseRealtimeService {
           });
         },
       )
-      // 4. Servers & Channels
+      // 6. Servers & Channels
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'servers' },
@@ -120,7 +150,7 @@ export class SupabaseRealtimeService {
           });
         },
       )
-      // 5. Profiles (Avatar, Status, Presence)
+      // 7. Profiles (Avatar, Status, Presence)
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'profiles' },
@@ -133,6 +163,25 @@ export class SupabaseRealtimeService {
       .subscribe((status: string) => {
         console.log('[SupabaseRealtime] Subscription status:', status);
       });
+  }
+
+  // --- Broadcast Send Helpers ---
+  broadcastDirectMessage(senderId: string, recipientId: string, message: any) {
+    if (!this.channel) return;
+    this.channel.send({
+      type: 'broadcast',
+      event: 'dm_message',
+      payload: { senderId, recipientId, message },
+    });
+  }
+
+  broadcastChannelMessage(channelId: string, message: any) {
+    if (!this.channel) return;
+    this.channel.send({
+      type: 'broadcast',
+      event: 'channel_message',
+      payload: { channelId, message },
+    });
   }
 
   registerDirectMessageHandler(handler: (senderId: string, recipientId: string, message: any) => void) {

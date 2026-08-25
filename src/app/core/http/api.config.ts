@@ -7,8 +7,19 @@ export interface ApiConfig {
 
 export const API_CONFIG = new InjectionToken<ApiConfig>('API_CONFIG');
 
+export function getDynamicBaseUrl(): string {
+  if (typeof window !== 'undefined' && window.location) {
+    const protocol = window.location.protocol;
+    const hostname = window.location.hostname;
+    if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      return `${protocol}//${hostname}:3000`;
+    }
+  }
+  return 'http://localhost:3000';
+}
+
 export const defaultApiConfig: ApiConfig = {
-  baseUrl: 'http://localhost:3000',
+  baseUrl: getDynamicBaseUrl(),
 };
 
 /** Endpoints that must never carry an Authorization header. */
