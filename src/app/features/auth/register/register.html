@@ -27,17 +27,20 @@
     </footer>
   } @else {
     <header class="register-card__header">
-      <span class="register-card__badge">Xác thực email</span>
-      <h1 class="register-card__title" id="register-title">Kiểm tra hộp thư của bạn</h1>
+      <span class="register-card__badge">Xác thực tài khoản</span>
+      <h1 class="register-card__title" id="register-title">Kiểm tra mã xác nhận OTP</h1>
       <p class="register-card__subtitle">
-        Chúng tôi đã gửi mã xác nhận 8 số đến <strong>{{ pendingEmail() }}</strong>.
+        Mã xác nhận 6 số đã được gửi đến Gmail <strong>{{ pendingEmail() }}</strong>
+        @if (pendingPhone()) {
+          <span> và số điện thoại <strong>{{ pendingPhone() }}</strong></span>
+        }.
       </p>
     </header>
 
-    <fz-otp-verify [email]="pendingEmail()" />
+    <fz-otp-verify [email]="pendingEmail()" [phone]="pendingPhone()" />
 
     <footer class="register-card__footer">
-      <span>Nhập sai địa chỉ email?</span>
+      <span>Nhập sai thông tin đăng ký?</span>
       <button class="register-card__link" type="button" (click)="backToForm()">
         Quay lại chỉnh sửa
       </button>

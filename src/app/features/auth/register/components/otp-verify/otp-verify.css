@@ -1,31 +1,131 @@
-﻿.otp {
+.otp {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
 }
 
-.otp__intro {
-  font-size: var(--text-body-sm);
-  line-height: var(--leading-body);
-  color: var(--color-steel);
-  background-color: var(--color-surface);
-  padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-hairline);
+.otp__dest-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background-color: var(--color-surface, #2b2d31);
+  padding: 14px 16px;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--color-hairline, rgba(255, 255, 255, 0.08));
 }
 
-.otp__email {
-  color: var(--color-accent);
+.otp__dest-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.otp__dest-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--color-accent-soft, rgba(88, 101, 242, 0.15));
+  color: var(--color-accent, #5865f2);
+  flex-shrink: 0;
+}
+
+.otp__dest-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.otp__dest-label {
+  font-size: 0.8125rem;
+  color: var(--color-steel, #949ba4);
+}
+
+.otp__dest-value {
+  color: var(--color-ink, #ffffff);
+  font-size: 0.9375rem;
   font-weight: 600;
   word-break: break-all;
-  display: block;
-  margin-top: 2px;
+}
+
+.otp__phone-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: var(--color-accent, #5865f2);
+  margin-top: 4px;
+  background: var(--color-accent-soft, rgba(88, 101, 242, 0.15));
+  padding: 2px 8px;
+  border-radius: 12px;
+  width: fit-content;
+}
+
+.otp__open-mail-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 14px;
+  border-radius: 6px;
+  background-color: var(--color-surface-hover, rgba(255, 255, 255, 0.06));
+  border: 1px solid var(--color-hairline, rgba(255, 255, 255, 0.12));
+  color: var(--color-ink, #ffffff);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.otp__open-mail-btn:hover {
+  background-color: var(--color-accent, #5865f2);
+  border-color: var(--color-accent, #5865f2);
+  color: #ffffff;
+}
+
+.otp__open-mail-btn svg {
+  flex-shrink: 0;
+}
+
+.otp__input-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.otp__input-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-steel, #949ba4);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .otp__input-wrapper {
   display: flex;
   justify-content: center;
-  padding: var(--space-sm) 0;
+  width: 100%;
+}
+
+.otp__mobile-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--color-steel, #949ba4);
+  text-align: center;
+}
+
+.otp__mobile-hint svg {
+  color: var(--color-accent, #5865f2);
+  flex-shrink: 0;
 }
 
 .otp__resend {

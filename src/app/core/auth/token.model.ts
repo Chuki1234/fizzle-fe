@@ -18,6 +18,7 @@ export interface AuthSession {
 export interface RegisterResult {
   userId: string;
   email: string;
+  phone?: string;
   /** True when an OTP was emailed and the verify step is required. */
   verificationRequired: boolean;
 }

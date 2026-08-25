@@ -1,8 +1,41 @@
 <form class="otp" (ngSubmit)="submit()" novalidate>
-  <p class="otp__intro">
-    Mã xác thực 8 số đã được gửi tới địa chỉ email:
-    <strong class="otp__email">{{ email() }}</strong>
-  </p>
+  <div class="otp__dest-card">
+    <div class="otp__dest-header">
+      <div class="otp__dest-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="20" height="16" x="2" y="4" rx="2"/>
+          <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+        </svg>
+      </div>
+      <div class="otp__dest-info">
+        <span class="otp__dest-label">Mã xác thực đã được gửi tới Gmail:</span>
+        <strong class="otp__dest-value">{{ email() }}</strong>
+        @if (phone()) {
+          <span class="otp__phone-badge">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.99 13 19.79 19.79 0 0 1 1.95 4.35 2 2 0 0 1 3.93 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+            {{ phone() }}
+          </span>
+        }
+      </div>
+    </div>
+
+    <!-- Quick action to open email app on mobile / browser -->
+    <button
+      type="button"
+      class="otp__open-mail-btn"
+      (click)="openMailApp()"
+      title="Mở ứng dụng Email"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+        <polyline points="15 3 21 3 21 9"></polyline>
+        <line x1="10" y1="14" x2="21" y2="3"></line>
+      </svg>
+      <span>{{ mailAppLabel() }} trên điện thoại</span>
+    </button>
+  </div>
 
   @if (formError(); as message) {
     <fz-alert tone="error">{{ message }}</fz-alert>
@@ -13,12 +46,22 @@
   }
 
   <!-- 6-Box OTP Input -->
-  <div class="otp__input-wrapper">
-    <fz-otp-input
-      [(value)]="otpCode"
-      [length]="otpLength"
-      (completed)="submit()"
-    />
+  <div class="otp__input-section">
+    <label class="otp__input-label">Nhập mã xác thực 6 chữ số:</label>
+    <div class="otp__input-wrapper">
+      <fz-otp-input
+        [(value)]="otpCode"
+        [length]="otpLength"
+        (completed)="submit()"
+      />
+    </div>
+    <span class="otp__mobile-hint">
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
+        <path d="M12 18h.01"/>
+      </svg>
+      Tự động điền mã khi nhận thông báo trên điện thoại
+    </span>
   </div>
 
   <!-- Submit Button -->

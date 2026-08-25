@@ -1,191 +1,527 @@
-.login-form {
+.discord-form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
+  gap: 16px;
+  width: 100%;
 }
 
-.login-form__password-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.login-form__password-wrap input {
-  padding-right: 44px;
-}
-
-.login-form__toggle-pw {
-  position: absolute;
-  right: var(--space-sm);
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px;
-  background: transparent;
-  border: none;
-  color: var(--color-stone);
-  border-radius: var(--radius-xs);
-  transition: color var(--duration-fast) var(--ease-standard);
-  cursor: pointer;
-}
-
-.login-form__toggle-pw:hover {
-  color: var(--color-ink);
-}
-
-.login-form__forgot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-xs);
-  margin-top: -4px;
-}
-
-.login-form__forgot-hint {
-  font-size: var(--text-caption);
-  color: var(--color-stone);
-}
-
-.login-form__divider {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  margin: var(--space-xs) 0;
-}
-
-.login-form__divider-line {
-  flex: 1;
-  height: 1px;
-  background-color: var(--color-hairline);
-}
-
-.login-form__divider-text {
-  font-size: var(--text-caption);
+/* Alert Box */
+.discord-alert {
+  background-color: rgba(220, 38, 38, 0.15);
+  color: #fca5a5;
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  border-radius: 6px;
+  padding: 9px 12px;
+  font-size: 13px;
   font-weight: 500;
-  color: var(--color-muted);
-  white-space: nowrap;
-}
-
-.login-form__sso-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-sm);
-}
-
-.login-form__sso-btn {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  justify-content: center;
-  gap: var(--space-xs);
-  height: 40px;
-  padding: 0 var(--space-md);
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-md);
-  color: var(--color-body);
+  gap: 8px;
+  animation: shake 0.3s ease-in-out;
+}
+
+.discord-alert__icon { flex-shrink: 0; }
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25%       { transform: translateX(-4px); }
+  75%       { transform: translateX(4px); }
+}
+
+/* Field & Labels */
+.discord-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.discord-field__label {
   font-family: var(--font-sans);
-  font-size: var(--text-body-sm);
-  font-weight: 500;
-  transition: all var(--duration-fast) var(--ease-standard);
-  cursor: pointer;
-}
-
-.login-form__sso-btn:hover {
-  border-color: var(--color-stone);
-  background-color: var(--color-surface-soft);
-}
-
-/* Demo Credentials Box — Mintlify callout style */
-.login-form__demo-box {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #949ba4;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px var(--space-md);
-  border-radius: var(--radius-md);
-  background-color: var(--color-accent-soft);
-  border: 1px solid rgba(13, 147, 115, 0.2);
-  margin: var(--space-xxs) 0;
-}
-
-:root[data-theme='dark'] .login-form__demo-box {
-  border-color: rgba(16, 185, 129, 0.15);
-}
-
-.login-form__demo-info {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  font-size: var(--text-caption);
-  color: var(--color-accent);
-  font-weight: 500;
-}
-
-.login-form__demo-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: var(--radius-full);
-  background-color: var(--color-accent);
-  flex-shrink: 0;
-}
-
-.login-form__demo-btn {
-  padding: 4px 10px;
-  border-radius: var(--radius-sm);
-  background: var(--color-accent);
-  border: none;
-  color: var(--color-on-accent);
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color var(--duration-fast) var(--ease-standard);
-}
-
-.login-form__demo-btn:hover {
-  background-color: var(--color-accent-deep);
-}
-
-/* Security Compliance Widget — Mintlify note style */
-.login-form__security-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius-md);
-  background-color: var(--color-surface-soft);
-  border: 1px solid var(--color-hairline);
-  margin-top: var(--space-xs);
-}
-
-.login-form__security-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--text-caption);
-  font-weight: 500;
-  color: var(--color-steel);
-}
-
-.login-form__security-icon {
-  color: var(--color-stone);
-  flex-shrink: 0;
-}
-
-.login-form__security-badges {
-  display: flex;
-  align-items: center;
-  gap: 6px;
   flex-wrap: wrap;
 }
 
-.sec-badge {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 500;
-  padding: 2px 7px;
-  border-radius: var(--radius-xs);
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-hairline);
-  color: var(--color-stone);
+.discord-field__required {
+  color: #f87171;
+  margin-inline-start: 4px;
 }
+
+.discord-field__error-inline {
+  color: #f87171;
+  text-transform: none;
+  font-size: 11px;
+  font-style: italic;
+  font-weight: 500;
+  margin-inline-start: 4px;
+}
+
+/* Inputs — clean dark navy matching app theme */
+.discord-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.discord-input {
+  width: 100%;
+  height: 40px;
+  padding: 8px 12px;
+  background-color: #0e121e;
+  border: 1px solid rgba(88, 101, 242, 0.22);
+  border-radius: 6px;
+  color: #f2f3f5;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.discord-input::placeholder {
+  color: #4a5568;
+}
+
+.discord-input:focus {
+  border-color: #5865f2;
+  box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.25);
+  background-color: #0b0f1a;
+}
+
+.discord-input--invalid {
+  border-color: #f87171 !important;
+  box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.2) !important;
+}
+
+.discord-input--password {
+  padding-right: 40px;
+}
+
+.discord-toggle-pw {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: #8892b0;
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.15s ease;
+}
+
+.discord-toggle-pw:hover { color: #f2f3f5; }
+
+/* Forgot Password Row */
+.discord-forgot-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.discord-forgot-btn {
+  background: none;
+  border: none;
+  color: #00d4aa;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 0;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.discord-forgot-btn:hover:not(:disabled) {
+  color: #5cffe8;
+  text-decoration: underline;
+}
+
+.discord-forgot-btn:disabled {
+  color: #4a5568;
+  cursor: default;
+}
+
+.discord-forgot-hint {
+  font-size: 12px;
+  color: #4a5568;
+}
+
+/* Demo Credentials Callout — teal glow */
+.discord-demo-pill {
+  background: rgba(0, 212, 170, 0.07);
+  border: 1px solid rgba(0, 212, 170, 0.22);
+  border-radius: 6px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 2px 0;
+}
+
+.discord-demo-pill__text {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #00d4aa;
+}
+
+.discord-demo-pill__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #00d4aa;
+  flex-shrink: 0;
+  box-shadow: 0 0 6px #00d4aa;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+.discord-demo-pill__action {
+  background-color: rgba(0, 212, 170, 0.18);
+  color: #00d4aa;
+  border: 1px solid rgba(0, 212, 170, 0.3);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.discord-demo-pill__action:hover {
+  background-color: rgba(0, 212, 170, 0.28);
+}
+
+/* Primary Submit Button — indigo/blurple matching app nav icon */
+.discord-submit-btn {
+  width: 100%;
+  height: 42px;
+  background: linear-gradient(135deg, #5865f2 0%, #4752c4 100%);
+  color: #ffffff;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(88, 101, 242, 0.35);
+  transition: opacity 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+  margin-top: 6px;
+}
+
+.discord-submit-btn:hover:not(:disabled) {
+  opacity: 0.92;
+  box-shadow: 0 6px 18px rgba(88, 101, 242, 0.45);
+  transform: translateY(-1px);
+}
+
+.discord-submit-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(88, 101, 242, 0.3);
+}
+
+.discord-submit-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.discord-spinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Register Link Prompt */
+.discord-register-prompt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  margin-top: 2px;
+  font-family: var(--font-sans);
+}
+
+.discord-register-prompt__label { color: #8892b0; }
+
+.discord-register-prompt__link {
+  color: #00d4aa;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.discord-register-prompt__link:hover {
+  color: #5cffe8;
+  text-decoration: underline;
+}
+
+/* SSO Divider */
+.discord-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0;
+}
+
+.discord-divider__line {
+  flex: 1;
+  height: 1px;
+  background-color: rgba(88, 101, 242, 0.15);
+}
+
+.discord-divider__text {
+  font-size: 10px;
+  font-weight: 700;
+  color: #6272a4;
+  letter-spacing: 0.06em;
+  font-family: var(--font-sans);
+  white-space: nowrap;
+}
+
+/* SSO Social Buttons */
+.discord-sso-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.discord-sso-btn {
+  height: 40px;
+  background-color: #0d1421;
+  border: 1px solid rgba(88, 101, 242, 0.2);
+  border-radius: 5px;
+  color: #a0aec0;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.discord-sso-btn:hover {
+  background-color: #161b2e;
+  border-color: rgba(88, 101, 242, 0.4);
+  color: #e2e8f0;
+}
+
+/* ============================================================================
+   Forgot Password Modal Dialog (Navy Theme)
+   ========================================================================== */
+.forgot-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.forgot-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+}
+
+.forgot-modal__box {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  background-color: #161b2e;
+  border: 1px solid rgba(88, 101, 242, 0.25);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  padding: 24px;
+  z-index: 1;
+  animation: modalPop 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalPop {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.forgot-modal__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.forgot-modal__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: rgba(0, 212, 170, 0.12);
+  border: 1px solid rgba(0, 212, 170, 0.25);
+  color: #00d4aa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.forgot-modal__title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1.25;
+  margin: 0;
+  font-family: var(--font-sans);
+}
+
+.forgot-modal__subtitle {
+  font-size: 13px;
+  color: #8892b0;
+  margin: 4px 0 0;
+  font-family: var(--font-sans);
+}
+
+.forgot-modal__close {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: transparent;
+  border: none;
+  color: #6272a4;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.forgot-modal__close:hover {
+  color: #e2e8f0;
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.forgot-modal__body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Success State */
+.forgot-modal__success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 12px 0 6px;
+  gap: 10px;
+}
+
+.forgot-modal__success-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(0, 212, 170, 0.15);
+  border: 1px solid rgba(0, 212, 170, 0.35);
+  color: #00d4aa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+  animation: successPulse 1.5s infinite ease-in-out;
+}
+
+@keyframes successPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(0, 212, 170, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(0, 212, 170, 0);
+  }
+}
+
+.forgot-modal__success-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0;
+  font-family: var(--font-sans);
+}
+
+.forgot-modal__success-desc {
+  font-size: 14px;
+  color: #8892b0;
+  line-height: 1.5;
+  margin: 0;
+  font-family: var(--font-sans);
+}
+
+.forgot-modal__success-desc strong {
+  color: #00d4aa;
+  font-weight: 600;
+}
+
+.forgot-modal__done-btn {
+  width: 100%;
+  height: 42px;
+  margin-top: 8px;
+  background-color: rgba(0, 212, 170, 0.18);
+  border: 1px solid rgba(0, 212, 170, 0.35);
+  color: #00d4aa;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.forgot-modal__done-btn:hover {
+  background-color: #00d4aa;
+  color: #0d1117;
+}
+

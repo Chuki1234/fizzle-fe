@@ -48,7 +48,7 @@ export class SupabaseRealtimeService {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'direct_messages' },
-        (payload) => {
+        (payload: { new: any }) => {
           this.ngZone.run(() => {
             const row = payload.new as any;
             if (!row) return;
@@ -86,7 +86,7 @@ export class SupabaseRealtimeService {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'channel_messages' },
-        (payload) => {
+        (payload: { new: any }) => {
           this.ngZone.run(() => {
             const row = (payload as any)['new'] || payload.new;
             if (!row) return;
@@ -121,7 +121,7 @@ export class SupabaseRealtimeService {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'friendships' },
-        (payload) => {
+        (payload: { new?: any; old?: any }) => {
           this.ngZone.run(() => {
             const row = (payload.new || payload.old) as any;
             if (!row) return;
@@ -135,7 +135,7 @@ export class SupabaseRealtimeService {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'servers' },
-        (payload) => {
+        (payload: any) => {
           this.ngZone.run(() => {
             this.serverChangeHandlers.forEach(h => h(payload));
           });
@@ -144,7 +144,7 @@ export class SupabaseRealtimeService {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'channels' },
-        (payload) => {
+        (payload: any) => {
           this.ngZone.run(() => {
             this.serverChangeHandlers.forEach(h => h(payload));
           });
@@ -154,13 +154,13 @@ export class SupabaseRealtimeService {
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'profiles' },
-        (payload) => {
+        (payload: { new: any }) => {
           this.ngZone.run(() => {
             this.profileChangeHandlers.forEach(h => h(payload.new));
           });
         },
       )
-      .subscribe((status) => {
+      .subscribe((status: string) => {
         console.log('[SupabaseRealtime] Subscription status:', status);
       });
   }

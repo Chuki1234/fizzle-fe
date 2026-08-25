@@ -7,17 +7,17 @@
   min-height: 100dvh;
   width: 100%;
   overflow-x: hidden;
-  background-color: var(--color-canvas);
-  color: var(--color-ink);
+  /* Navy midnight — matches the main app background */
+  background-color: #0d1117;
+  color: #e2e8f0;
   font-family: var(--font-sans);
   isolation: isolate;
   display: flex;
   flex-direction: column;
-  transition: background-color var(--duration-base) var(--ease-standard);
 }
 
-/* --- Mintlify Subtle Backdrop ------------------------------------------- */
-.auth-shell__backdrop {
+/* --- Atmospheric Background --------------------------------------------- */
+.discord-backdrop {
   position: fixed;
   inset: 0;
   z-index: 0;
@@ -25,81 +25,100 @@
   overflow: hidden;
 }
 
-/* Light mode: clean white with faint emerald gradient at top */
-:root[data-theme='light'] .auth-shell__gradient {
+.discord-backdrop__gradient {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(13, 147, 115, 0.07) 0%, transparent 70%),
-    linear-gradient(180deg, #f8fafc 0%, #f8fafc 100%);
-  opacity: 1;
+    radial-gradient(ellipse at 12% 18%, rgba(88, 101, 242, 0.18) 0%, transparent 45%),
+    radial-gradient(ellipse at 88% 82%, rgba(0, 212, 170, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(22, 27, 46, 0.6) 0%, transparent 70%),
+    linear-gradient(160deg, #0d1117 0%, #161b2e 55%, #0d1421 100%);
 }
 
-/* Dark mode: slate with subtle emerald top glow */
-:root[data-theme='dark'] .auth-shell__gradient {
+/* Floating Art Doodles — tinted to match nav accent */
+.discord-doodle {
   position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 80% 50% at 50% -5%, rgba(16, 185, 129, 0.08) 0%, transparent 65%),
-    linear-gradient(180deg, #0f172a 0%, #0f172a 100%);
-  opacity: 1;
+  color: #5865f2;
+  opacity: 0.10;
+  pointer-events: none;
+  animation: floatDoodle 16s ease-in-out infinite alternate;
 }
 
-.auth-shell__gradient {
-  position: absolute;
-  inset: 0;
+.doodle-controller-1 {
+  width: 140px;
+  height: 140px;
+  top: 10%;
+  left: 6%;
+  animation-duration: 20s;
 }
 
-/* Mintlify dot grid — very subtle */
-.auth-shell__grid {
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(
-    circle,
-    rgba(148, 163, 184, 0.18) 1px,
-    transparent 1px
-  );
-  background-size: 24px 24px;
+.doodle-bubble-1 {
+  width: 120px;
+  height: 120px;
+  bottom: 12%;
+  left: 8%;
+  animation-duration: 18s;
+  animation-delay: -4s;
 }
 
-:root[data-theme='light'] .auth-shell__grid {
-  background-image: radial-gradient(
-    circle,
-    rgba(100, 116, 139, 0.12) 1px,
-    transparent 1px
-  );
-  background-size: 24px 24px;
+.doodle-headset {
+  width: 130px;
+  height: 130px;
+  top: 12%;
+  right: 8%;
+  animation-duration: 22s;
+  animation-delay: -2s;
 }
 
-/* Replaced heavy glows with single very subtle emerald ambient */
-.auth-shell__glow-1 {
-  position: absolute;
-  top: -200px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 700px;
-  height: 400px;
-  background: radial-gradient(ellipse, rgba(16, 185, 129, 0.06) 0%, transparent 70%);
-  filter: blur(60px);
-  border-radius: var(--radius-full);
+.doodle-dice {
+  width: 90px;
+  height: 90px;
+  bottom: 15%;
+  right: 10%;
+  animation-duration: 16s;
+  animation-delay: -6s;
 }
 
-.auth-shell__glow-2 {
-  display: none;
+.doodle-sparkle-1 {
+  width: 48px;
+  height: 48px;
+  top: 35%;
+  left: 20%;
+  color: #00d4aa;
+  opacity: 0.13;
+  animation-duration: 12s;
 }
 
-/* --- Header Bar ----------------------------------------------------------- */
-.auth-shell__header {
+.doodle-sparkle-2 {
+  width: 42px;
+  height: 42px;
+  bottom: 30%;
+  right: 22%;
+  color: #00d4aa;
+  opacity: 0.10;
+  animation-duration: 14s;
+  animation-delay: -3s;
+}
+
+@keyframes floatDoodle {
+  0%   { transform: translateY(0)    rotate(0deg)  scale(1);    }
+  50%  { transform: translateY(-20px) rotate(6deg) scale(1.05); }
+  100% { transform: translateY(15px) rotate(-6deg) scale(0.98); }
+}
+
+/* --- Top Navigation Header ---------------------------------------------- */
+.discord-header {
   position: relative;
   z-index: 10;
   width: 100%;
-  padding: var(--space-md) var(--space-xl);
-  border-bottom: 1px solid var(--color-hairline-soft);
-  background-color: var(--color-canvas);
-  backdrop-filter: blur(8px);
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(88, 101, 242, 0.12);
+  background: rgba(13, 17, 23, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
-.auth-shell__header-inner {
+.discord-header__inner {
   max-width: 1200px;
   margin: 0 auto;
   display: flex;
@@ -107,270 +126,64 @@
   justify-content: space-between;
 }
 
-.auth-shell__brand {
+.discord-header__brand {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
+  gap: 10px;
   text-decoration: none;
+  color: #e2e8f0;
+  transition: opacity 0.2s ease;
 }
 
-.auth-shell__mark {
-  width: 32px;
-  height: 32px;
+.discord-header__brand:hover {
+  opacity: 0.88;
+}
+
+.discord-brand-logo-img {
+  width: 34px;
+  height: 34px;
   object-fit: contain;
+  filter: drop-shadow(0 2px 10px rgba(0, 212, 170, 0.4));
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.auth-shell__wordmark {
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: -0.3px;
-  color: var(--color-ink);
+.discord-header__brand:hover .discord-brand-logo-img {
+  transform: scale(1.1) rotate(-3deg);
 }
 
-.auth-shell__badge {
+.discord-header__wordmark {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: #e2e8f0;
   font-family: var(--font-sans);
-  font-size: var(--text-micro);
-  font-weight: 500;
-  letter-spacing: 0.2px;
-  color: var(--color-accent);
-  background: var(--color-accent-soft);
-  border: 1px solid currentColor;
-  border-color: rgba(13, 147, 115, 0.25);
+}
+
+.discord-header__badge {
+  font-size: 11px;
+  font-weight: 600;
   padding: 2px 8px;
-  border-radius: var(--radius-full);
-  margin-left: var(--space-xxs);
-  opacity: 0.9;
+  border-radius: 9999px;
+  background-color: rgba(0, 212, 170, 0.15);
+  color: #00d4aa;
+  border: 1px solid rgba(0, 212, 170, 0.35);
+  letter-spacing: 0.3px;
 }
 
-.auth-shell__theme-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: var(--radius-md);
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-hairline);
-  color: var(--color-steel);
-  font-size: var(--text-body-sm);
-  font-weight: 500;
-  transition: all var(--duration-fast) var(--ease-standard);
-  box-shadow: var(--elevation-1);
-}
-
-.auth-shell__theme-btn:hover {
-  color: var(--color-ink);
-  border-color: var(--color-stone);
-  background-color: var(--color-raised);
-}
-
-.auth-shell__theme-icon {
-  color: var(--color-stone);
-  flex-shrink: 0;
-}
-
-.auth-shell__theme-btn:hover .auth-shell__theme-icon {
-  color: var(--color-accent);
-}
-
-/* --- Main Layout Container ------------------------------------------------ */
-.auth-shell__main {
+/* --- Main Layout & Centered Modal Box ----------------------------------- */
+.discord-main {
   position: relative;
   z-index: 1;
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-xl) var(--space-md) var(--space-xxxl);
+  padding: 24px 16px 48px;
 }
 
-.auth-shell__container {
+.discord-modal-container {
   width: 100%;
-  max-width: 1100px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-xxl);
+  display: flex;
+  justify-content: center;
   align-items: center;
-}
-
-@media (min-width: 992px) {
-  .auth-shell__container {
-    grid-template-columns: 1.05fr 0.95fr;
-    gap: var(--space-xxxl);
-  }
-}
-
-/* --- Left Showcase Hero Panel --------------------------------------------- */
-.auth-shell__hero-panel {
-  display: none;
-}
-
-@media (min-width: 992px) {
-  .auth-shell__hero-panel {
-    display: block;
-    padding-right: var(--space-xl);
-  }
-}
-
-.auth-shell__hero-content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-lg);
-}
-
-/* Mintlify-style eyebrow tag */
-.auth-shell__hero-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  width: fit-content;
-  padding: 4px 12px;
-  border-radius: var(--radius-full);
-  background: var(--color-accent-soft);
-  border: 1px solid rgba(13, 147, 115, 0.2);
-  color: var(--color-accent);
-  font-size: var(--text-caption);
-  font-weight: 500;
-}
-
-:root[data-theme='dark'] .auth-shell__hero-pill {
-  border-color: rgba(16, 185, 129, 0.2);
-}
-
-.auth-shell__hero-pill-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: var(--radius-full);
-  background-color: var(--color-accent);
-  flex-shrink: 0;
-}
-
-.auth-shell__hero-title {
-  font-size: clamp(28px, 3vw, 38px);
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: -0.75px;
-  color: var(--color-ink);
-}
-
-.auth-shell__hero-desc {
-  font-size: var(--text-body-sm);
-  line-height: 1.6;
-  color: var(--color-steel);
-  max-width: 440px;
-}
-
-/* --- Mintlify-style Code Card (docs aesthetic) --------------------------- */
-.auth-shell__code-card {
-  background: var(--color-code);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-hairline);
-  box-shadow: var(--elevation-3);
-  overflow: hidden;
-  margin-top: var(--space-xs);
-}
-
-:root[data-theme='light'] .auth-shell__code-card {
-  border-color: #e2e8f0;
-}
-
-.auth-shell__code-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 16px;
-  background: rgba(255, 255, 255, 0.04);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-}
-
-.auth-shell__code-dots {
-  display: flex;
-  gap: 6px;
-}
-
-.dot {
-  width: 10px;
-  height: 10px;
-  border-radius: var(--radius-full);
-}
-.dot--red    { background-color: #ff5f57; }
-.dot--yellow { background-color: #febc2e; }
-.dot--green  { background-color: #28c840; }
-
-.auth-shell__code-title-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.auth-shell__shield-icon {
-  color: #94a3b8;
-}
-
-.auth-shell__code-filename {
-  font-family: var(--font-mono);
-  font-size: var(--text-code-sm);
-  color: #64748b;
-}
-
-.auth-shell__code-body {
-  padding: var(--space-md) var(--space-lg);
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 13px;
-  line-height: 1.65;
-  color: #e2e8f0;
-  overflow-x: auto;
-}
-
-/* Mintlify code colors — cleaner, not neon */
-.auth-shell__code-body .prompt  { color: #10b981; font-weight: 600; }
-.auth-shell__code-body .cmd     { color: #7dd3fc; font-weight: 500; }
-.auth-shell__code-body .str     { color: #86efac; }
-.auth-shell__code-body .green   { color: #10b981; font-weight: 500; }
-.auth-shell__code-body .cyan    { color: #38bdf8; }
-.auth-shell__code-body .comment { color: #475569; font-style: italic; }
-.auth-shell__code-body .kw      { color: #c084fc; font-weight: 500; }
-.auth-shell__code-body .prop    { color: #93c5fd; }
-.auth-shell__code-body .bool    { color: #f472b6; }
-
-.tag {
-  display: inline-block;
-  padding: 1px 6px;
-  border-radius: var(--radius-xs);
-  font-size: 11px;
-  font-weight: 600;
-}
-.tag--success { background: rgba(16, 185, 129, 0.15); color: #10b981; }
-.tag--cyan    { background: rgba(56, 189, 248, 0.12);  color: #38bdf8; }
-.tag--info    { background: rgba(148, 163, 184, 0.12); color: #94a3b8; }
-
-/* Perks list — Mintlify feature bullets */
-.auth-shell__hero-perks {
-  list-style: none;
-  padding: 0;
-  margin: var(--space-xs) 0 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
-
-.auth-shell__perk-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  font-size: var(--text-body-sm);
-  color: var(--color-body);
-}
-
-.auth-shell__check-icon {
-  color: var(--color-accent);
-  flex-shrink: 0;
-}
-
-/* --- Right Form Wrapper --------------------------------------------------- */
-.auth-shell__form-wrapper {
-  width: 100%;
-  max-width: 440px;
-  margin: 0 auto;
 }
