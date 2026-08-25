@@ -7,6 +7,14 @@ export interface Friend extends UserSummary {
     relationshipStatus: 'friend' | 'pending' | 'pending_outgoing' | 'none';
 }
 
+export interface MessageAttachment {
+    url: string;
+    name: string;
+    size?: number;
+    mimeType?: string;
+    type?: 'image' | 'video' | 'audio' | 'file';
+}
+
 export interface ChatMessage {
     id: string;
     senderId: string;
@@ -15,4 +23,8 @@ export interface ChatMessage {
     avatarUrl?: string | null;
     text: string;
     timestamp: string;
-}
+    type?: 'text' | 'image' | 'gif' | 'sticker' | 'file' | 'video' | 'audio';
+    attachments?: MessageAttachment[];
+    mediaUrl?: string | null;
+    metadata?: Record<string, any> | null;
+}

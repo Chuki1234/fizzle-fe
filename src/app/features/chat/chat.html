@@ -1,4 +1,17 @@
-<div class="flex h-full w-full overflow-hidden bg-[#0e0f12]">
+<div class="relative flex h-full w-full overflow-hidden bg-[#0e0f12]"
+     (dragover)="onDragOver($event)"
+     (dragleave)="onDragLeave($event)"
+     (drop)="onDrop($event)">
+
+    <!-- DRAG AND DROP OVERLAY -->
+    @if (isDraggingOver) {
+        <div class="absolute inset-0 z-40 bg-emerald-950/70 border-2 border-dashed border-emerald-400 backdrop-blur-sm flex flex-col items-center justify-center text-white pointer-events-none animate-fadeIn">
+            <span class="text-5xl mb-3 animate-bounce">📁</span>
+            <h4 class="text-lg font-bold text-emerald-300">Thả tập tin để gửi vào cuộc trò chuyện</h4>
+            <p class="text-xs text-emerald-400/80 mt-1">Hỗ trợ hình ảnh, video, âm thanh, tài liệu (PDF, ZIP, DOCX...)</p>
+        </div>
+    }
+
     <!-- KHUNG CHAT CHÍNH -->
     <div class="flex flex-1 flex-col h-full justify-between border-r border-[#1e1f24] min-w-0">
 
@@ -59,7 +72,7 @@
         </div>
 
         <!-- 2. DANH SÁCH TIN NHẮN -->
-        <div #scrollContainer class="flex-1 overflow-y-auto p-6 space-y-6 min-w-0 scroll-smooth">
+        <div #scrollContainer class="flex-1 overflow-y-auto p-6 space-y-5 min-w-0 scroll-smooth">
             <div class="relative flex items-center justify-center my-4">
                 <div class="absolute inset-0 flex items-center">
                     <div class="w-full border-t border-[#1e1f24]"></div>
@@ -71,7 +84,7 @@
             @let activeMessages = serverService.activeServerId() ? serverService.messages() : friendService.messages();
 
             @for (msg of activeMessages; track msg.id) {
-            <div class="flex items-start gap-3.5 w-full">
+            <div class="flex items-start gap-3.5 w-full group hover:bg-[#121318]/50 p-1.5 rounded-2xl transition">
                 @if (getSenderAvatar(msg)) {
                     <img [src]="getSenderAvatar(msg)" (error)="onAvatarError($event, msg)" class="w-10 h-10 rounded-full object-cover shrink-0 border border-[#2a2c33]" alt="Avatar" />
                 } @else {
@@ -81,7 +94,7 @@
                     </div>
                 }
 
-                <div class="flex flex-col items-start max-w-[80%] min-w-0">
+                <div class="flex flex-col items-start max-w-[85%] min-w-0">
                     <div class="flex items-center gap-2 mb-1">
                         <span class="text-xs font-bold" [class.text-emerald-400]="msg.senderId !== authStore.user()?.id"
                             [class.text-white]="msg.senderId === authStore.user()?.id">
@@ -91,32 +104,183 @@
                         <span class="text-[10px] text-zinc-500">{{ msg.timestamp }}</span>
                     </div>
 
-                    <div
-                        class="inline-block text-sm text-zinc-200 bg-[#16171c] px-4 py-2.5 rounded-2xl border border-[#22242b] leading-relaxed break-words whitespace-pre-wrap">
-                        {{ msg.text }}
-                    </div>
+                    <!-- 1. GIF / STICKER placeholder (sticker removed) -->
+
+                    <!-- 2. GIPHY GIF MESSAGE -->
+                    @if (msg.type === 'gif' && msg.mediaUrl) {
+                        <div class="my-1.5 rounded-2xl overflow-hidden border border-[#2a2d3c] inline-block cursor-pointer group/gif shadow-xl bg-[#121319]"
+                             (click)="openLightbox(msg.mediaUrl, 'gif', msg.text || 'GIF')">
+                            <img [src]="msg.mediaUrl" [alt]="msg.text || 'GIF'"
+                                 class="max-w-[360px] max-h-80 w-auto h-auto rounded-2xl object-contain group-hover/gif:scale-[1.02] transition duration-200 block" />
+                        </div>
+                    }
+
+                    <!-- 3. DIRECT IMAGE MESSAGE -->
+                    @else if (msg.type === 'image' && msg.mediaUrl) {
+                        <div class="my-1.5 rounded-2xl overflow-hidden border border-[#2a2d3c] inline-block cursor-pointer group/img shadow-xl bg-[#121319]"
+                             (click)="openLightbox(msg.mediaUrl, 'image', msg.text || 'Image')">
+                            <img [src]="msg.mediaUrl" [alt]="msg.text || 'Image'"
+                                 class="max-w-[360px] max-h-80 w-auto h-auto rounded-2xl object-contain group-hover/img:scale-[1.02] transition duration-200 block" />
+                        </div>
+                    }
+
+                    <!-- 4. ATTACHMENTS (Images, Videos, Audio, Documents) -->
+                    @if (msg.attachments && msg.attachments.length > 0) {
+                        <div class="flex flex-wrap gap-2.5 my-1.5">
+                            @for (att of msg.attachments; track $index) {
+                                <!-- Image attachment -->
+                                @if (att.type === 'image') {
+                                    <div class="relative group/att rounded-2xl overflow-hidden border border-[#252834] max-w-sm cursor-pointer shadow-md bg-[#14151b]"
+                                         (click)="openLightbox(att.url, 'image', att.name)">
+                                        <img [src]="att.url" [alt]="att.name" class="max-w-full max-h-72 object-contain group-hover/att:scale-[1.02] transition duration-200 block" />
+                                        <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-2.5 opacity-0 group-hover/att:opacity-100 transition flex items-center justify-between">
+                                            <span class="text-xs text-white font-medium truncate max-w-[180px]">{{ att.name }}</span>
+                                            <span class="text-[10px] text-zinc-300">{{ formatFileSize(att.size) }}</span>
+                                        </div>
+                                    </div>
+                                }
+                                <!-- Video attachment -->
+                                @else if (att.type === 'video') {
+                                    <div class="rounded-2xl overflow-hidden border border-[#252834] max-w-md shadow-md bg-black">
+                                        <video [src]="att.url" controls class="max-w-full max-h-72 rounded-2xl"></video>
+                                    </div>
+                                }
+                                <!-- Audio attachment -->
+                                @else if (att.type === 'audio') {
+                                    <div class="p-3 rounded-2xl bg-[#16171c] border border-[#252834] flex items-center gap-3 max-w-xs shadow-md">
+                                        <span class="text-2xl">🎵</span>
+                                        <audio [src]="att.url" controls class="h-8 max-w-[220px]"></audio>
+                                    </div>
+                                }
+                                <!-- Generic File attachment (PDF, ZIP, DOCX, etc.) -->
+                                @else {
+                                    <a [href]="att.url" [download]="att.name" target="_blank"
+                                       class="flex items-center gap-3 p-3.5 bg-[#16171c] hover:bg-[#1c1e24] border border-[#252834] hover:border-emerald-500/50 rounded-2xl transition group/file max-w-xs cursor-pointer shadow-md">
+                                        <div class="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center text-xl shrink-0 group-hover/file:bg-emerald-500/20 group-hover/file:text-emerald-400">
+                                            📄
+                                        </div>
+                                        <div class="flex flex-col min-w-0 flex-1">
+                                            <span class="text-xs font-semibold text-zinc-200 truncate group-hover/file:text-white">{{ att.name }}</span>
+                                            <span class="text-[10px] text-zinc-500">{{ formatFileSize(att.size) }}</span>
+                                        </div>
+                                        <div class="p-1.5 rounded-lg bg-zinc-800/80 group-hover/file:bg-emerald-500 group-hover/file:text-black text-zinc-400 transition shrink-0">
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                            </svg>
+                                        </div>
+                                    </a>
+                                }
+                            }
+                        </div>
+                    }
+
+                    <!-- 5. PLAIN TEXT OR JUMBO EMOJIS -->
+                    @if (msg.text && msg.text.trim() && msg.type !== 'gif' && msg.type !== 'image' && msg.type !== 'sticker') {
+                        @if (isOnlyEmoji(msg.text)) {
+                            <div class="text-4xl py-1 select-none leading-relaxed tracking-wider">
+                                {{ msg.text }}
+                            </div>
+                        } @else {
+                            <div class="text-sm text-zinc-200 bg-[#16171c] px-4 py-2.5 rounded-2xl border border-[#22242b] leading-relaxed shadow-sm"
+                                 style="word-break:break-word;overflow-wrap:anywhere;max-width:min(85vw,600px);display:inline-block">
+                                {{ msg.text }}
+                            </div>
+                        }
+                    }
                 </div>
             </div>
             } @empty {
             <div class="flex flex-col items-center justify-center h-full text-zinc-500 text-sm">
-                <span class="text-3xl mb-2">💬</span>
-                <span>Chưa có tin nhắn nào trong cuộc trò chuyện này.</span>
+                <span class="text-4xl mb-2">💬</span>
+                <span class="font-medium text-zinc-400">Chưa có tin nhắn nào trong cuộc trò chuyện này.</span>
+                <span class="text-xs text-zinc-600 mt-1">Hãy gửi lời chào, emoji, ảnh GIF hoặc tập tin để bắt đầu trò chuyện!</span>
             </div>
             }
         </div>
 
-        <!-- 3. Ô NHẬP TIN NHẮN -->
-        <div class="p-4 bg-[#0e0f12] shrink-0">
-            <div
-                class="flex items-center gap-3 bg-[#16171c] border border-[#22242b] rounded-2xl p-2 px-4 focus-within:border-emerald-500/50 transition">
-                <input #msgInput type="text" (keyup.enter)="onSendMessage(msgInput.value); msgInput.value = ''"
-                    [placeholder]="serverService.activeServerId() ? 'Nhắn tin tới #' + (serverService.activeChannel()?.name || 'kênh') : 'Nhắn @' + (friendService.activeFriend() ? friendService.activeFriend()!.displayName : 'bạn bè') + '...'"
-                    class="flex-1 bg-transparent text-sm text-white outline-none placeholder-zinc-500 py-1.5" />
+        <!-- 3. KHU VỰC SOẠN THẢO VÀ NHẬP TIN NHẮN -->
+        <div class="relative p-4 bg-[#0e0f12] shrink-0">
 
-                <button (click)="onSendMessage(msgInput.value); msgInput.value = ''"
-                    class="px-5 py-2 bg-[#1e2029] hover:bg-emerald-500 hover:text-black text-white font-semibold text-xs rounded-xl transition duration-200 cursor-pointer shrink-0 border border-[#2d303d]">
-                    Gửi
-                </button>
+            <!-- Hidden File Input -->
+            <input type="file" #fileInput (change)="onFileSelected($event)" multiple class="hidden" />
+
+            <!-- MEDIA PICKER POPOVER -->
+            @if (showMediaPicker) {
+                <div class="absolute bottom-20 right-6 z-30">
+                    <fz-media-picker
+                        [activeTab]="mediaPickerTab"
+                        (selectEmoji)="onSelectEmoji($event)"
+                        (selectGif)="onSelectGif($event)"
+                        (close)="closeMediaPicker()">
+                    </fz-media-picker>
+                </div>
+            }
+
+            <div class="flex flex-col bg-[#16171c] border border-[#22242b] rounded-2xl overflow-hidden focus-within:border-emerald-500/50 focus-within:shadow-[0_0_20px_rgba(16,185,129,0.1)] transition duration-200">
+
+                <!-- Attachment Queue Tray -->
+                <fz-attachment-preview
+                    [attachments]="pendingAttachments"
+                    (remove)="removeAttachment($event)">
+                </fz-attachment-preview>
+
+                <!-- Input Row -->
+                <div class="flex items-center gap-2 p-2 px-3">
+                    <!-- 1. Attach File Button (+) -->
+                    <button type="button"
+                            (click)="triggerFileInput()"
+                            class="w-8 h-8 rounded-xl bg-[#20222a] hover:bg-emerald-500 hover:text-black text-zinc-400 hover:rotate-90 flex items-center justify-center transition duration-200 cursor-pointer shrink-0 border border-[#2a2c36]"
+                            title="Đính kèm tập tin, hình ảnh, video">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                        </svg>
+                    </button>
+
+                    <!-- 2. Text Input (auto-resize textarea) -->
+                    <textarea #msgInput
+                           [(ngModel)]="messageText"
+                           (keydown.enter)="onTextareaEnter($any($event))"
+                           (input)="autoResizeTextarea($event)"
+                           rows="1"
+                           [placeholder]="serverService.activeServerId() ? 'Nhắn tin tới #' + (serverService.activeChannel()?.name || 'kênh') : 'Nhắn @' + (friendService.activeFriend() ? friendService.activeFriend()!.displayName : 'bạn bè') + '...'"
+                           class="flex-1 bg-transparent text-sm text-white outline-none placeholder-zinc-500 py-1 px-1.5 resize-none overflow-hidden leading-5 max-h-36"></textarea>
+
+                    <!-- 3. Media Picker Trigger Buttons -->
+                    <div class="flex items-center gap-1 shrink-0">
+                        <!-- Emoji Button -->
+                        <button type="button"
+                                (click)="toggleMediaPicker('emoji')"
+                                class="media-trigger-btn w-8 h-8 rounded-xl hover:bg-[#232633] text-zinc-400 hover:text-amber-400 flex items-center justify-center text-lg transition cursor-pointer"
+                                [class.text-amber-400]="showMediaPicker && mediaPickerTab === 'emoji'"
+                                [class.bg-[#232633]]="showMediaPicker && mediaPickerTab === 'emoji'"
+                                title="Chọn Emoji">
+                            😀
+                        </button>
+
+                        <!-- GIF Button -->
+                        <button type="button"
+                                (click)="toggleMediaPicker('gif')"
+                                class="media-trigger-btn px-2 h-8 rounded-xl hover:bg-[#232633] text-zinc-400 hover:text-emerald-400 flex items-center justify-center text-xs font-black tracking-wider transition cursor-pointer"
+                                [class.text-emerald-400]="showMediaPicker && mediaPickerTab === 'gif'"
+                                [class.bg-[#232633]]="showMediaPicker && mediaPickerTab === 'gif'"
+                                title="Tìm kiếm GIF (GIPHY)">
+                            GIF
+                        </button>
+
+
+                    </div>
+
+                    <!-- 4. Send Button -->
+                    <button type="button"
+                            (click)="onSendMessage()"
+                            [disabled]="!messageText.trim() && pendingAttachments.length === 0"
+                            class="px-4 py-2 bg-[#1e2029] hover:bg-emerald-500 hover:text-black disabled:opacity-40 disabled:hover:bg-[#1e2029] disabled:hover:text-white text-white font-semibold text-xs rounded-xl transition duration-200 cursor-pointer shrink-0 border border-[#2d303d] flex items-center gap-1.5">
+                        <span>Gửi</span>
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -158,4 +322,14 @@
     </div>
     }
     }
-</div>
+
+    <!-- LIGHTBOX MODAL -->
+    @if (lightboxMedia) {
+        <fz-media-viewer
+            [src]="lightboxMedia.src"
+            [type]="lightboxMedia.type"
+            [title]="lightboxMedia.title"
+            (close)="closeLightbox()">
+        </fz-media-viewer>
+    }
+</div>
