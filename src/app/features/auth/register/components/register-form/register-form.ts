@@ -138,22 +138,11 @@ export class RegisterForm {
     this.submitting.set(true);
     this.auth.register(toRegisterPayload(parsed.data)).subscribe({
       next: (result) => {
-        if (!result.verificationRequired) {
-          // If verified directly, log in and enter dashboard immediately
-          this.auth.login({ email: parsed.data.email, password: parsed.data.password }).subscribe({
-            next: () => {
-              this.submitting.set(false);
-              void this.router.navigateByUrl('/');
-            },
-            error: () => {
-              this.submitting.set(false);
-              void this.router.navigate(['/auth/login'], { queryParams: { registered: 'true' } });
-            },
-          });
-        } else {
-          this.submitting.set(false);
-          this.registered.emit(result);
-        }
+        this.submitting.set(false);
+        this.registered.emit({
+          ...result,
+          phone: parsed.data.phone || result.phone || undefined,
+        });
       },
       error: (err: ApiError) => {
         this.submitting.set(false);

@@ -1,13 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../../../core/auth/auth.service';
 import { ApiError } from '../../../../../core/http/api-error.model';
-import { Alert } from '../../../../../shared/ui/alert/alert';
-import { Button } from '../../../../../shared/ui/button/button';
-import { FormField } from '../../../../../shared/ui/form-field/form-field';
-import { InputDirective } from '../../../../../shared/ui/input/input';
 import {
   emailField,
   loginSchema,
@@ -20,7 +16,7 @@ import {
 @Component({
   selector: 'fz-login-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, Button, FormField, InputDirective, Alert],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './login-form.html',
   styleUrl: './login-form.css',
 })
@@ -39,8 +35,64 @@ export class LoginForm {
   protected readonly sendingResetCode = signal(false);
   protected readonly showPassword = signal(false);
 
+  // Forgot password modal state
+  protected readonly showForgotModal = signal(false);
+  protected readonly forgotEmailValue = signal('');
+  protected readonly forgotEmailError = signal<string | null>(null);
+  protected readonly forgotApiError = signal<string | null>(null);
+  protected readonly forgotSuccess = signal(false);
+
   protected togglePassword(): void {
     this.showPassword.update((show) => !show);
+  }
+
+  protected openForgotModal(): void {
+    const currentEmail = this.form.controls.email.value.trim();
+    this.forgotEmailValue.set(currentEmail);
+    this.forgotEmailError.set(null);
+    this.forgotApiError.set(null);
+    this.forgotSuccess.set(false);
+    this.showForgotModal.set(true);
+  }
+
+  protected closeForgotModal(): void {
+    this.showForgotModal.set(false);
+  }
+
+  protected onForgotEmailInput(event: Event): void {
+    const val = (event.target as HTMLInputElement).value;
+    this.forgotEmailValue.set(val);
+    if (this.forgotEmailError()) {
+      this.forgotEmailError.set(null);
+    }
+  }
+
+  protected submitForgot(): void {
+    const email = this.forgotEmailValue().trim();
+    const parseRes = emailField.safeParse(email);
+
+    if (!parseRes.success) {
+      this.forgotEmailError.set('Vui lòng nhập địa chỉ email hợp lệ');
+      return;
+    }
+
+    this.sendingResetCode.set(true);
+    this.forgotApiError.set(null);
+    this.forgotEmailError.set(null);
+
+    this.auth.forgotPassword(email).subscribe({
+      next: () => {
+        this.sendingResetCode.set(false);
+        this.showForgotModal.set(false);
+        void this.router.navigate(['/auth/forgot-password'], {
+          state: { email },
+        });
+      },
+      error: (err: ApiError) => {
+        this.sendingResetCode.set(false);
+        this.forgotApiError.set(err.message || 'Đã có lỗi xảy ra khi gửi yêu cầu khôi phục.');
+      },
+    });
   }
 
   protected fillDemoCredentials(): void {
@@ -71,44 +123,6 @@ export class LoginForm {
     this.formEvents();
     return errorMessageOf(this.form.controls.password);
   });
-
-  /**
-   * Recovery starts here rather than on its own page: the address is already
-   * in front of the user, so asking for it a second time is a step for
-   * nothing. The button therefore stays disabled until the email is valid.
-   */
-  protected readonly canRequestReset = computed(() => {
-    this.formEvents();
-    return (
-      !this.sendingResetCode() &&
-      !this.submitting() &&
-      emailField.safeParse(this.form.controls.email.value.trim()).success
-    );
-  });
-
-  protected requestReset(): void {
-    if (!this.canRequestReset()) return;
-
-    const email = this.form.controls.email.value.trim();
-
-    this.sendingResetCode.set(true);
-    this.formError.set(null);
-
-    this.auth.forgotPassword(email).subscribe({
-      // The API answers 204 whether or not the account exists, so the page
-      // advances either way — anything else would leak who is registered.
-      next: () => {
-        this.sendingResetCode.set(false);
-        void this.router.navigate(['/auth/forgot-password'], {
-          state: { email },
-        });
-      },
-      error: (err: ApiError) => {
-        this.sendingResetCode.set(false);
-        this.formError.set(err.message);
-      },
-    });
-  }
 
   protected submit(): void {
     if (this.submitting()) return;

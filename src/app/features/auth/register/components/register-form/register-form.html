@@ -3,8 +3,8 @@
     <fz-alert tone="error">{{ message }}</fz-alert>
   }
 
-  <!-- Email Input -->
-  <fz-form-field label="Địa chỉ Email" [required]="true" [error]="emailError()" #emailField>
+  <!-- Gmail Input -->
+  <fz-form-field label="Địa chỉ Gmail" [required]="true" [error]="emailError()" #emailField>
     <input
       fzInput
       type="email"
@@ -13,7 +13,7 @@
       [fzInvalid]="!!emailError()"
       [attr.aria-describedby]="emailField.describedBy()"
       [attr.aria-invalid]="emailField.ariaInvalid()"
-      placeholder="name@company.com"
+      placeholder="ten@gmail.com"
       autocomplete="email"
       inputmode="email"
       autocapitalize="none"

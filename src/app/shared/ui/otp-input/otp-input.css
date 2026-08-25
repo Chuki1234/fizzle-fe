@@ -57,10 +57,14 @@
   border-color: var(--color-error, #ef4444);
 }
 
-@media (max-width: 360px) {
+@media (max-width: 380px) {
+  .otp-input {
+    gap: 4px;
+  }
   .otp-input__cell {
-    width: 40px;
-    height: 48px;
-    font-size: var(--text-heading-4, 1.25rem);
+    width: 34px;
+    height: 44px;
+    font-size: 1.125rem;
+    border-radius: var(--radius-sm, 6px);
   }
 }

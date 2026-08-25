@@ -8,6 +8,14 @@
   <meta name="color-scheme" content="dark light">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
 
+  <!-- Inline theme bootstrap: apply saved theme BEFORE Angular loads to prevent flash -->
+  <script>
+    (function () {
+      var t = localStorage.getItem('fz-theme');
+      document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : 'dark');
+    })();
+  </script>
+
   <!-- Inter (UI prose) + Geist Mono (code) — the DESIGN-mintlify.md pairing -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
