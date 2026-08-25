@@ -96,19 +96,22 @@ export class FriendService implements OnDestroy {
             if (currentUserId) {
                 partnerId = (senderId === currentUserId) ? targetId : senderId;
             } else {
-                partnerId = senderId;
+                partnerId = (senderId === 'user') ? targetId : senderId;
             }
 
             if (!partnerId) return;
 
-            // Don't duplicate if message is already present
+            // Update messages store immediately in real-time
             this.messagesByFriend.update(store => {
                 const current = store[partnerId] || [];
                 // Check if message ID already exists
                 if (current.some(m => m.id === message.id)) return store;
-                // If message from current user, avoid duplicating optimistic message with same text sent recently
+                // If message is from current user, replace the optimistic message or deduplicate
                 if (senderId === currentUserId && current.some(m => m.text === message.text && (Date.now() - Number(m.id)) < 8000)) {
-                    return store;
+                    return {
+                        ...store,
+                        [partnerId]: current.map(m => m.text === message.text ? { ...m, ...message } : m)
+                    };
                 }
                 return { ...store, [partnerId]: [...current, message] };
             });

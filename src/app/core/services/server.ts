@@ -6,6 +6,7 @@ import { ChatMessage } from '../models/friend.model';
 import { API_CONFIG } from '../http/api.config';
 import { SocketService } from './socket';
 import { SupabaseRealtimeService } from './supabase-realtime.service';
+import { VoiceService } from './voice.service';
 import { AuthStore } from '../auth/auth.store';
 import { NotificationService } from './notification.service';
 
@@ -18,13 +19,23 @@ export class ServerService {
     private apiConfig = inject(API_CONFIG);
     private socketService = inject(SocketService);
     private supabaseRealtime = inject(SupabaseRealtimeService);
+    public voiceService = inject(VoiceService);
     private authStore = inject(AuthStore);
     private notificationService = inject(NotificationService);
 
     // --- STATE QUẢN LÝ VOICE CHANNEL ---
-    activeVoiceChannel = signal<{ serverId: string; channelId: string; channelName: string } | null>(null);
-    isMuted = signal<boolean>(false);
-    isDeafened = signal<boolean>(false);
+    activeVoiceChannel = computed(() => {
+        const chId = this.voiceService.currentChannelId();
+        if (!chId) return null;
+        return {
+            serverId: this.voiceService.currentServerId() || '',
+            channelId: chId,
+            channelName: this.voiceService.currentChannelName()
+        };
+    });
+
+    isMuted = computed(() => this.voiceService.isMuted());
+    isDeafened = computed(() => this.voiceService.isDeafened());
 
     // --- DANH SÁCH SERVER & KÊNH ---
     servers = signal<Server[]>([]);
@@ -51,14 +62,18 @@ export class ServerService {
 
         const handleIncomingChannelMsg = (channelId: string, message: any) => {
             const currentUserId = this.authStore.user()?.id;
-            // Don't duplicate if message is already in store
+            // Update immediately in real time
             this.channelMessages.update(store => {
                 const current = store[channelId] || [];
                 // Check duplicate by id
                 if (current.some((m: ChatMessage) => m.id === message.id)) return store;
-                // If message from current user, avoid duplicate with recent optimistic message
+                // If message from current user, avoid duplicate with recent optimistic message with same text
                 if (currentUserId && message?.senderId === currentUserId && current.some(m => m.text === message.text && (Date.now() - Number(m.id)) < 8000)) {
-                    return store;
+                    // Update optimistic message with real message
+                    return {
+                        ...store,
+                        [channelId]: current.map(m => m.text === message.text ? { ...m, ...message } : m)
+                    };
                 }
                 return { ...store, [channelId]: [...current, message] };
             });
@@ -98,12 +113,10 @@ export class ServerService {
             }
 
             if (data.type === 'SERVER_CREATED' && data.server) {
-                // Reload from backend to get accurate state (avoids duplicate with optimistic add)
                 this.loadServers();
             }
 
             if (data.type === 'MEMBER_ADDED' && data.server) {
-                // Check if this member added is the current user
                 const currentUserId = this.authStore.user()?.id;
                 if (data.userId === currentUserId || (data.server.members && data.server.members.includes(currentUserId))) {
                     const exists = this.servers().some(s => s.id === data.server.id);
@@ -117,12 +130,10 @@ export class ServerService {
 
         this.socketService.registerServerInviteHandler((data) => {
             if (!data || !data.server) return;
-            // 1. Add server immediately to state
             const exists = this.servers().some(s => s.id === data.server.id);
             if (!exists) {
                 this.servers.update(list => [...list, data.server]);
             }
-            // 2. Show toast notification
             this.notificationService.show({
                 type: 'server_invite',
                 title: 'Lời mời máy chủ mới 🚀',
@@ -130,7 +141,6 @@ export class ServerService {
                 actionLabel: 'Mở máy chủ',
                 actionRoute: ['/channels', data.server.id, data.server.channels?.[0]?.id || '']
             });
-            // 3. Sync from backend
             this.loadServers();
         });
     }
@@ -223,25 +233,22 @@ export class ServerService {
         }
     }
 
-    // --- PHƯƠNG THỨC XỬ LÝ VOICE ---
+    // --- PHƯƠNG THỨC XỬ LÝ VOICE (WebRTC) ---
     joinVoiceChannel(channel: Channel) {
-        this.activeVoiceChannel.set({
-            serverId: this.activeServerId(),
-            channelId: channel.id,
-            channelName: channel.name
-        });
+        const serverId = this.activeServerId();
+        void this.voiceService.joinChannel(serverId, channel.id, channel.name);
     }
 
     leaveVoiceChannel() {
-        this.activeVoiceChannel.set(null);
+        this.voiceService.leaveChannel();
     }
 
     toggleMute() {
-        this.isMuted.update(v => !v);
+        this.voiceService.toggleMute();
     }
 
     toggleDeafen() {
-        this.isDeafened.update(v => !v);
+        this.voiceService.toggleDeafen();
     }
 
     // --- HÀM TẠO SERVER MỚI ---

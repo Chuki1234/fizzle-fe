@@ -14,12 +14,12 @@ export class SupabaseRealtimeService {
   private channel: RealtimeChannel | null = null;
   private currentUserId: string = '';
 
-  // Callbacks
-  private onDirectMessage?: (senderId: string, recipientId: string, message: any) => void;
-  private onChannelMessage?: (channelId: string, message: any) => void;
-  private onFriendshipChange?: (payload: any) => void;
-  private onServerChange?: (payload: any) => void;
-  private onProfileChange?: (payload: any) => void;
+  // Multi-handler callback arrays
+  private directMessageHandlers: Array<(senderId: string, recipientId: string, message: any) => void> = [];
+  private channelMessageHandlers: Array<(channelId: string, message: any) => void> = [];
+  private friendshipChangeHandlers: Array<(payload: any) => void> = [];
+  private serverChangeHandlers: Array<(payload: any) => void> = [];
+  private profileChangeHandlers: Array<(payload: any) => void> = [];
 
   init(userId: string) {
     if (!userId) return;
@@ -59,7 +59,7 @@ export class SupabaseRealtimeService {
                   minute: '2-digit',
                 }),
               };
-              this.onDirectMessage?.(row.sender_id, row.recipient_id, msg);
+              this.directMessageHandlers.forEach(h => h(row.sender_id, row.recipient_id, msg));
             }
           });
         },
@@ -83,7 +83,7 @@ export class SupabaseRealtimeService {
                 minute: '2-digit',
               }),
             };
-            this.onChannelMessage?.(row.channel_id, msg);
+            this.channelMessageHandlers.forEach(h => h(row.channel_id, msg));
           });
         },
       )
@@ -96,7 +96,7 @@ export class SupabaseRealtimeService {
             const row = (payload.new || payload.old) as any;
             if (!row) return;
             if (row.user_a_id === this.currentUserId || row.user_b_id === this.currentUserId) {
-              this.onFriendshipChange?.(payload);
+              this.friendshipChangeHandlers.forEach(h => h(payload));
             }
           });
         },
@@ -107,7 +107,7 @@ export class SupabaseRealtimeService {
         { event: '*', schema: 'public', table: 'servers' },
         (payload) => {
           this.ngZone.run(() => {
-            this.onServerChange?.(payload);
+            this.serverChangeHandlers.forEach(h => h(payload));
           });
         },
       )
@@ -116,7 +116,7 @@ export class SupabaseRealtimeService {
         { event: '*', schema: 'public', table: 'channels' },
         (payload) => {
           this.ngZone.run(() => {
-            this.onServerChange?.(payload);
+            this.serverChangeHandlers.forEach(h => h(payload));
           });
         },
       )
@@ -126,7 +126,7 @@ export class SupabaseRealtimeService {
         { event: 'UPDATE', schema: 'public', table: 'profiles' },
         (payload) => {
           this.ngZone.run(() => {
-            this.onProfileChange?.(payload.new);
+            this.profileChangeHandlers.forEach(h => h(payload.new));
           });
         },
       )
@@ -136,23 +136,33 @@ export class SupabaseRealtimeService {
   }
 
   registerDirectMessageHandler(handler: (senderId: string, recipientId: string, message: any) => void) {
-    this.onDirectMessage = handler;
+    if (!this.directMessageHandlers.includes(handler)) {
+      this.directMessageHandlers.push(handler);
+    }
   }
 
   registerChannelMessageHandler(handler: (channelId: string, message: any) => void) {
-    this.onChannelMessage = handler;
+    if (!this.channelMessageHandlers.includes(handler)) {
+      this.channelMessageHandlers.push(handler);
+    }
   }
 
   registerFriendshipChangeHandler(handler: (payload: any) => void) {
-    this.onFriendshipChange = handler;
+    if (!this.friendshipChangeHandlers.includes(handler)) {
+      this.friendshipChangeHandlers.push(handler);
+    }
   }
 
   registerServerChangeHandler(handler: (payload: any) => void) {
-    this.onServerChange = handler;
+    if (!this.serverChangeHandlers.includes(handler)) {
+      this.serverChangeHandlers.push(handler);
+    }
   }
 
   registerProfileChangeHandler(handler: (profile: any) => void) {
-    this.onProfileChange = handler;
+    if (!this.profileChangeHandlers.includes(handler)) {
+      this.profileChangeHandlers.push(handler);
+    }
   }
 
   disconnect() {
@@ -162,3 +172,4 @@ export class SupabaseRealtimeService {
     }
   }
 }
+

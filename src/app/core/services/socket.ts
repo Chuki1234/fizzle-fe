@@ -1,6 +1,17 @@
 import { Injectable, NgZone, inject } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
 
+export interface VoiceParticipantInfo {
+  socketId: string;
+  userId: string;
+  username?: string;
+  displayName?: string;
+  avatarUrl?: string | null;
+  isMuted?: boolean;
+  isDeafened?: boolean;
+  isSpeaking?: boolean;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -9,14 +20,21 @@ export class SocketService {
   private socket!: Socket;
   private userId: string = '';
 
-  // Callback registry: handlers can be registered by services
-  private onChannelMessage?: (channelId: string, message: any) => void;
-  private onDirectMessage?: (senderId: string, targetId: string, message: any) => void;
-  private onFriendRequestReceived?: (data: any) => void;
-  private onFriendAccepted?: (data: any) => void;
-  private onServerInviteReceived?: (data: any) => void;
-  private onServerUpdated?: (data: any) => void;
-  private onUserStatusUpdated?: (data: any) => void;
+  // Multi-handler callback registries
+  private channelMessageHandlers: Array<(channelId: string, message: any) => void> = [];
+  private directMessageHandlers: Array<(senderId: string, targetId: string, message: any) => void> = [];
+  private friendRequestHandlers: Array<(data: any) => void> = [];
+  private friendAcceptedHandlers: Array<(data: any) => void> = [];
+  private serverInviteHandlers: Array<(data: any) => void> = [];
+  private serverUpdatedHandlers: Array<(data: any) => void> = [];
+  private userStatusUpdatedHandlers: Array<(data: any) => void> = [];
+
+  // WebRTC Voice Handlers
+  private voiceRoomUsersHandlers: Array<(data: { channelId: string; users: VoiceParticipantInfo[] }) => void> = [];
+  private voiceUserJoinedHandlers: Array<(data: { channelId: string; user: VoiceParticipantInfo }) => void> = [];
+  private voiceUserLeftHandlers: Array<(data: { channelId: string; socketId: string; userId: string }) => void> = [];
+  private voiceSignalHandlers: Array<(data: { senderSocketId: string; senderUserId: string; signal: any; type: 'offer' | 'answer' | 'ice-candidate' }) => void> = [];
+  private voiceUserStateHandlers: Array<(data: { channelId: string; socketId: string; userId: string; isMuted?: boolean; isDeafened?: boolean; isSpeaking?: boolean }) => void> = [];
 
   connect(userId: string) {
     if (this.socket?.connected && this.userId === userId) return;
@@ -66,7 +84,7 @@ export class SocketService {
     this.socket.on('channel_message', (data: any) => {
       this.ngZone.run(() => {
         if (data?.channelId && data?.message) {
-          this.onChannelMessage?.(data.channelId, data.message);
+          this.channelMessageHandlers.forEach(h => h(data.channelId, data.message));
         }
       });
     });
@@ -78,7 +96,7 @@ export class SocketService {
 
         // 1. Channel message
         if (data.channelId && data.message) {
-          this.onChannelMessage?.(data.channelId, data.message);
+          this.channelMessageHandlers.forEach(h => h(data.channelId, data.message));
           return;
         }
 
@@ -86,7 +104,7 @@ export class SocketService {
         const senderId = data.senderId;
         const targetId = data.targetId || data.recipientId;
         if (senderId && targetId && data.message) {
-          this.onDirectMessage?.(senderId, targetId, data.message);
+          this.directMessageHandlers.forEach(h => h(senderId, targetId, data.message));
           return;
         }
       });
@@ -95,15 +113,7 @@ export class SocketService {
     this.socket.on('direct_message', (data: any) => {
       this.ngZone.run(() => {
         if (data?.senderId && data?.recipientId && data?.message) {
-          this.onDirectMessage?.(data.senderId, data.recipientId, data.message);
-        }
-      });
-    });
-
-    this.socket.on('dm_update', (data: any) => {
-      this.ngZone.run(() => {
-        if (data?.senderId && data?.recipientId && data?.message) {
-          this.onDirectMessage?.(data.senderId, data.recipientId, data.message);
+          this.directMessageHandlers.forEach(h => h(data.senderId, data.recipientId, data.message));
         }
       });
     });
@@ -111,28 +121,28 @@ export class SocketService {
     // ---- FRIEND EVENTS ----
     this.socket.on('friend_request_received', (data: any) => {
       this.ngZone.run(() => {
-        this.onFriendRequestReceived?.(data);
+        this.friendRequestHandlers.forEach(h => h(data));
       });
     });
 
     this.socket.on('friend_request_event', (data: any) => {
       this.ngZone.run(() => {
         if (data?.targetUserId === this.userId) {
-          this.onFriendRequestReceived?.(data?.requestData);
+          this.friendRequestHandlers.forEach(h => h(data?.requestData));
         }
       });
     });
 
     this.socket.on('friend_request_accepted', (data: any) => {
       this.ngZone.run(() => {
-        this.onFriendAccepted?.(data);
+        this.friendAcceptedHandlers.forEach(h => h(data));
       });
     });
 
     this.socket.on('friend_accepted_event', (data: any) => {
       this.ngZone.run(() => {
         if (data?.userAId === this.userId || data?.userBId === this.userId) {
-          this.onFriendAccepted?.(data?.data);
+          this.friendAcceptedHandlers.forEach(h => h(data?.data));
         }
       });
     });
@@ -140,58 +150,139 @@ export class SocketService {
     // ---- SERVER EVENTS ----
     this.socket.on('server_invite_received', (data: any) => {
       this.ngZone.run(() => {
-        this.onServerInviteReceived?.(data);
+        this.serverInviteHandlers.forEach(h => h(data));
       });
     });
 
     this.socket.on('server_updated', (data: any) => {
       this.ngZone.run(() => {
-        this.onServerUpdated?.(data);
+        this.serverUpdatedHandlers.forEach(h => h(data));
       });
     });
 
     this.socket.on('server_invite_event', (data: any) => {
       this.ngZone.run(() => {
         if (data?.targetUserId === this.userId) {
-          this.onServerInviteReceived?.(data?.serverData);
+          this.serverInviteHandlers.forEach(h => h(data?.serverData));
         }
       });
     });
 
     // User status/profile/avatar update
     this.socket.on('user_status_updated', (data: any) => {
-      this.onUserStatusUpdated?.(data);
+      this.ngZone.run(() => {
+        this.userStatusUpdatedHandlers.forEach(h => h(data));
+      });
+    });
+
+    // ==========================================
+    // ---- WEBRTC VOICE EVENTS ----
+    // ==========================================
+    this.socket.on('voice_room_users', (data: any) => {
+      this.ngZone.run(() => {
+        this.voiceRoomUsersHandlers.forEach(h => h(data));
+      });
+    });
+
+    this.socket.on('voice_user_joined', (data: any) => {
+      this.ngZone.run(() => {
+        this.voiceUserJoinedHandlers.forEach(h => h(data));
+      });
+    });
+
+    this.socket.on('voice_user_left', (data: any) => {
+      this.ngZone.run(() => {
+        this.voiceUserLeftHandlers.forEach(h => h(data));
+      });
+    });
+
+    this.socket.on('voice_signal', (data: any) => {
+      this.ngZone.run(() => {
+        this.voiceSignalHandlers.forEach(h => h(data));
+      });
+    });
+
+    this.socket.on('voice_user_state_updated', (data: any) => {
+      this.ngZone.run(() => {
+        this.voiceUserStateHandlers.forEach(h => h(data));
+      });
     });
   }
 
   // --- Registration Methods ---
 
   registerChannelMessageHandler(handler: (channelId: string, message: any) => void) {
-    this.onChannelMessage = handler;
+    if (!this.channelMessageHandlers.includes(handler)) {
+      this.channelMessageHandlers.push(handler);
+    }
   }
 
   registerDirectMessageHandler(handler: (senderId: string, targetId: string, message: any) => void) {
-    this.onDirectMessage = handler;
+    if (!this.directMessageHandlers.includes(handler)) {
+      this.directMessageHandlers.push(handler);
+    }
   }
 
   registerFriendRequestHandler(handler: (data: any) => void) {
-    this.onFriendRequestReceived = handler;
+    if (!this.friendRequestHandlers.includes(handler)) {
+      this.friendRequestHandlers.push(handler);
+    }
   }
 
   registerFriendAcceptedHandler(handler: (data: any) => void) {
-    this.onFriendAccepted = handler;
+    if (!this.friendAcceptedHandlers.includes(handler)) {
+      this.friendAcceptedHandlers.push(handler);
+    }
   }
 
   registerServerInviteHandler(handler: (data: any) => void) {
-    this.onServerInviteReceived = handler;
+    if (!this.serverInviteHandlers.includes(handler)) {
+      this.serverInviteHandlers.push(handler);
+    }
   }
 
   registerServerUpdatedHandler(handler: (data: any) => void) {
-    this.onServerUpdated = handler;
+    if (!this.serverUpdatedHandlers.includes(handler)) {
+      this.serverUpdatedHandlers.push(handler);
+    }
   }
 
   registerUserStatusUpdatedHandler(handler: (data: any) => void) {
-    this.onUserStatusUpdated = handler;
+    if (!this.userStatusUpdatedHandlers.includes(handler)) {
+      this.userStatusUpdatedHandlers.push(handler);
+    }
+  }
+
+  // --- Voice Handlers Registration ---
+
+  registerVoiceRoomUsersHandler(handler: (data: { channelId: string; users: VoiceParticipantInfo[] }) => void) {
+    if (!this.voiceRoomUsersHandlers.includes(handler)) {
+      this.voiceRoomUsersHandlers.push(handler);
+    }
+  }
+
+  registerVoiceUserJoinedHandler(handler: (data: { channelId: string; user: VoiceParticipantInfo }) => void) {
+    if (!this.voiceUserJoinedHandlers.includes(handler)) {
+      this.voiceUserJoinedHandlers.push(handler);
+    }
+  }
+
+  registerVoiceUserLeftHandler(handler: (data: { channelId: string; socketId: string; userId: string }) => void) {
+    if (!this.voiceUserLeftHandlers.includes(handler)) {
+      this.voiceUserLeftHandlers.push(handler);
+    }
+  }
+
+  registerVoiceSignalHandler(handler: (data: { senderSocketId: string; senderUserId: string; signal: any; type: 'offer' | 'answer' | 'ice-candidate' }) => void) {
+    if (!this.voiceSignalHandlers.includes(handler)) {
+      this.voiceSignalHandlers.push(handler);
+    }
+  }
+
+  registerVoiceUserStateUpdatedHandler(handler: (data: { channelId: string; socketId: string; userId: string; isMuted?: boolean; isDeafened?: boolean; isSpeaking?: boolean }) => void) {
+    if (!this.voiceUserStateHandlers.includes(handler)) {
+      this.voiceUserStateHandlers.push(handler);
+    }
   }
 
   // --- Emit Methods ---
@@ -204,7 +295,28 @@ export class SocketService {
     this.socket?.emit('leave_room', { roomId });
   }
 
+  // Voice Emit Methods
+  joinVoice(payload: { channelId: string; userId: string; username?: string; displayName?: string; avatarUrl?: string | null }) {
+    this.socket?.emit('voice_join', payload);
+  }
+
+  leaveVoice() {
+    this.socket?.emit('voice_leave');
+  }
+
+  sendVoiceSignal(payload: { targetSocketId: string; signal: any; type: 'offer' | 'answer' | 'ice-candidate' }) {
+    this.socket?.emit('voice_signal', payload);
+  }
+
+  sendVoiceState(payload: { isMuted?: boolean; isDeafened?: boolean; isSpeaking?: boolean }) {
+    this.socket?.emit('voice_state', payload);
+  }
+
   isConnected(): boolean {
     return this.socket?.connected ?? false;
   }
-}
+
+  getSocketId(): string | undefined {
+    return this.socket?.id;
+  }
+}
