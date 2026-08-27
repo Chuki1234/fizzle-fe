@@ -396,6 +396,7 @@ export class ServerService {
 
         this.activeServerId.set(serverId);
         this.loadServerMembers(serverId);
+        this.socketService.requestVoiceStates();
         const server = this.servers().find(s => s.id === serverId);
         const firstTextChannel = server?.channels.find(c => c.type === 'text');
         if (firstTextChannel) {

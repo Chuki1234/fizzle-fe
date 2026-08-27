@@ -117,6 +117,8 @@ export class VoiceService {
       const currentUser = this.authStore.user();
       const userId = currentUser?.id || 'user-' + Date.now();
       const displayName = currentUser?.displayName || currentUser?.username || 'Người dùng';
+      const username = currentUser?.username || '';
+      const avatarUrl = currentUser?.avatarUrl || null;
 
       // 1. Lấy LiveKit JWT Token từ backend
       const baseUrl = getDynamicBaseUrl();
@@ -127,6 +129,8 @@ export class VoiceService {
             channelId,
             userId,
             displayName,
+            username,
+            avatarUrl,
           }
         )
         .toPromise();
@@ -386,11 +390,26 @@ export class VoiceService {
         videoStream = new MediaStream([videoTrack.mediaStreamTrack]);
       }
 
+      let meta: any = {};
+      try {
+        if (p.metadata) {
+          meta = JSON.parse(p.metadata);
+        }
+      } catch {}
+
+      // Lấy avatarUrl từ metadata của LiveKit hoặc tra cứu từ voiceChannelsUsers
+      const channelUsers = this.voiceChannelsUsers()[this.currentChannelId() || ''] || [];
+      const foundInMap = channelUsers.find((u) => u.userId === p.identity);
+      const participantAvatarUrl = meta.avatarUrl || foundInMap?.avatarUrl || null;
+      const participantDisplayName = meta.displayName || p.name || foundInMap?.displayName || p.identity;
+      const participantUsername = meta.username || foundInMap?.username || p.name || p.identity;
+
       remoteList.push({
         socketId: p.sid,
         userId: p.identity,
-        displayName: p.name || p.identity,
-        username: p.name || p.identity,
+        displayName: participantDisplayName,
+        username: participantUsername,
+        avatarUrl: participantAvatarUrl,
         isMuted: !p.isMicrophoneEnabled,
         isDeafened: false,
         isSpeaking: p.isSpeaking,

@@ -70,9 +70,13 @@
             <div class="friend-row flex items-center justify-between p-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-hairline)] hover:bg-[var(--color-surface-soft)] transition">
                 <div class="flex items-center gap-3">
                     <div class="relative">
-                        <div class="w-10 h-10 rounded-full bg-[var(--color-surface-code)] text-white font-bold flex items-center justify-center">
-                            {{ user.displayName.charAt(0) }}
-                        </div>
+                        @if (user.avatarUrl) {
+                            <img [src]="user.avatarUrl" class="w-10 h-10 rounded-full object-cover" alt="Avatar" />
+                        } @else {
+                            <div class="w-10 h-10 rounded-full bg-[var(--color-surface-code)] text-white font-bold flex items-center justify-center">
+                                {{ user.displayName.charAt(0) }}
+                            </div>
+                        }
                         <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[var(--color-surface)]"
                             [class.bg-emerald-500]="user.presence === 'online'"
                             [class.bg-amber-500]="user.presence === 'idle'"

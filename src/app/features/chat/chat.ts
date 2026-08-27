@@ -103,6 +103,28 @@ export class Chat implements OnInit {
         return cardGradients[index % cardGradients.length];
     }
 
+    public getVoiceParticipantAvatar(user: any): string | null {
+        if (!user) return null;
+        if (user.avatarUrl && typeof user.avatarUrl === 'string' && user.avatarUrl.length > 5) {
+            return user.avatarUrl;
+        }
+        const targetUserId = user.userId || user.id;
+        if (!targetUserId) return null;
+
+        if (targetUserId === this.authStore.user()?.id && this.authStore.user()?.avatarUrl) {
+            return this.authStore.user()!.avatarUrl!;
+        }
+        const members = this.serverService.activeServerMembers();
+        const foundMember = members.find(m => m.userId === targetUserId);
+        if (foundMember?.avatarUrl) return foundMember.avatarUrl;
+
+        const friends = this.friendService.friends();
+        const foundFriend = friends.find(f => f.id === targetUserId);
+        if (foundFriend?.avatarUrl) return foundFriend.avatarUrl;
+
+        return null;
+    }
+
     public joinCurrentVoiceChannel(): void {
         const sId = this.serverService.activeServerId();
         const ch = this.serverService.activeChannel();
@@ -110,6 +132,7 @@ export class Chat implements OnInit {
             void this.voiceService.joinChannel(sId, ch.id, ch.name);
         }
     }
+
 
     @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
     @ViewChild('msgInput') private msgInputRef!: ElementRef<HTMLTextAreaElement>;
