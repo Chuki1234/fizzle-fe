@@ -14,11 +14,12 @@
         [class.server-card--orange]="idx % 2 === 0"
         [class.server-card--mint]="idx % 2 !== 0">
         
-        <div class="server-card__icon" [class.server-card__icon--pink]="idx % 2 !== 0">
-          @if (isImageIcon(server.icon)) {
-            <img [src]="server.icon" class="w-full h-full object-cover rounded-xl" [alt]="server.name" />
+        <div class="server-card__icon" [class.server-card__icon--pink]="idx % 2 !== 0 && !isImageUrl(server.icon)">
+          @if (isImageUrl(server.icon)) {
+            <img [src]="server.icon" alt="Server Avatar" />
           } @else {
-            {{ getServerDisplayIcon(server) }}
+            <span>{{ server.icon || (server.name ? server.name.charAt(0).toUpperCase() : 'S') }}</span>
+
           }
         </div>
 

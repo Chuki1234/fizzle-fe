@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 
-export type ModalType = 'CREATE_SERVER' | 'CREATE_CHANNEL' | 'INVITE_FRIENDS' | null;
+export type ModalType = 'CREATE_SERVER' | 'CREATE_CHANNEL' | 'INVITE_FRIENDS' | 'SERVER_SETTINGS' | null;
 
 @Injectable({
     providedIn: 'root',

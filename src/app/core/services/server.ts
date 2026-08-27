@@ -1,7 +1,7 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { Server, Channel } from '../models/server.model';
+import { Server, Channel, ServerMember } from '../models/server.model';
 import { ChatMessage } from '../models/friend.model';
 import { API_CONFIG } from '../http/api.config';
 import { SocketService } from './socket';
@@ -51,7 +51,6 @@ export function normalizeMessage(rawMsg: any): ChatMessage {
     let mediaUrl = rawMsg.mediaUrl || null;
     let attachments = rawMsg.attachments || [];
     let metadata = rawMsg.metadata || null;
-
     let replyTo = rawMsg.replyTo || null;
     let reactions = rawMsg.reactions || {};
 
@@ -70,7 +69,6 @@ export function normalizeMessage(rawMsg: any): ChatMessage {
         }
     }
 
-    // Auto-detect sticker or GIF from text if type/mediaUrl is missing
     const cleanText = (text || '').trim().toLowerCase();
     if (!mediaUrl || type === 'text') {
         if (KNOWN_STICKERS[cleanText]) {
@@ -115,7 +113,6 @@ export function isSameContent(a: ChatMessage, b: ChatMessage): boolean {
     if (!a || !b) return false;
     if (a.id && b.id && String(a.id) === String(b.id)) return true;
 
-    // Sender flexible check
     const senderMatches = !a.senderId || !b.senderId ||
         a.senderId === b.senderId ||
         a.senderId === 'user' || b.senderId === 'user' ||
@@ -123,26 +120,21 @@ export function isSameContent(a: ChatMessage, b: ChatMessage): boolean {
 
     if (!senderMatches) return false;
 
-    // Check mediaUrl (GIF, Sticker, Image)
     if (a.mediaUrl && b.mediaUrl && a.mediaUrl === b.mediaUrl) return true;
 
-    // Check attachments
     if (a.attachments?.length && b.attachments?.length && a.attachments[0].name === b.attachments[0].name) {
         return true;
     }
 
-    // Both are stickers with same text or id
     if (a.type === 'sticker' && b.type === 'sticker') {
         return (a.text || '').trim() === (b.text || '').trim() ||
                (a.metadata?.['stickerId'] && a.metadata?.['stickerId'] === b.metadata?.['stickerId']);
     }
 
-    // Both are GIFs with same text/name
     if (a.type === 'gif' && b.type === 'gif') {
         return (a.text || '').trim() === (b.text || '').trim();
     }
 
-    // Text comparison
     const aText = (a.text || '').trim();
     const bText = (b.text || '').trim();
     return aText.length > 0 && aText === bText;
@@ -184,6 +176,7 @@ export class ServerService {
 
     activeServerId = signal<string>('');
     activeChannelId = signal<string>('');
+    activeServerMembers = signal<ServerMember[]>([]);
 
     activeServer = computed(() => this.servers().find(s => s.id === this.activeServerId()));
     activeChannel = computed(() => this.activeServer()?.channels.find(c => c.id === this.activeChannelId()));
@@ -396,11 +389,13 @@ export class ServerService {
         if (!serverId) {
             this.activeServerId.set('');
             this.activeChannelId.set('');
+            this.activeServerMembers.set([]);
             this.router.navigate(['/friends']);
             return;
         }
 
         this.activeServerId.set(serverId);
+        this.loadServerMembers(serverId);
         const server = this.servers().find(s => s.id === serverId);
         const firstTextChannel = server?.channels.find(c => c.type === 'text');
         if (firstTextChannel) {
@@ -408,6 +403,44 @@ export class ServerService {
             this.loadChannelMessages(firstTextChannel.id);
             this.router.navigate(['/channels', serverId, firstTextChannel.id]);
         }
+    }
+
+    loadServerMembers(serverId: string) {
+        if (!serverId) {
+            this.activeServerMembers.set([]);
+            return;
+        }
+        this.http.get<ServerMember[]>(`${this.apiConfig.baseUrl}/servers/${serverId}/members`).subscribe({
+            next: (members) => {
+                if (members) {
+                    this.activeServerMembers.set(members);
+                }
+            },
+            error: (err) => console.warn(`Could not load members for server ${serverId}:`, err)
+        });
+    }
+
+    updateMemberRole(serverId: string, targetUserId: string, role: 'admin' | 'moderator' | 'member'): Promise<any> {
+        const userId = this.authStore.user()?.id || 'user';
+        return this.http.patch<any>(
+            `${this.apiConfig.baseUrl}/servers/${serverId}/members/${targetUserId}/role`,
+            { role },
+            { headers: { 'x-user-id': userId } }
+        ).toPromise().then((res) => {
+            this.loadServerMembers(serverId);
+            return res;
+        });
+    }
+
+    removeMember(serverId: string, targetUserId: string): Promise<any> {
+        const userId = this.authStore.user()?.id || 'user';
+        return this.http.delete<any>(
+            `${this.apiConfig.baseUrl}/servers/${serverId}/members/${targetUserId}`,
+            { headers: { 'x-user-id': userId } }
+        ).toPromise().then((res) => {
+            this.loadServerMembers(serverId);
+            return res;
+        });
     }
 
     selectChannel(channelOrId: Channel | string) {
@@ -640,6 +673,47 @@ export class ServerService {
         ).toPromise() as any;
     }
 
+    // --- CẬP NHẬT SERVER (tên / icon) ---
+    updateServer(serverId: string, name?: string, icon?: string): Promise<any> {
+        const userId = this.authStore.user()?.id || 'user';
+        const payload: Record<string, string> = {};
+        if (name) payload['name'] = name;
+        if (icon !== undefined) payload['icon'] = icon;
+
+        return this.http.patch<any>(
+            `${this.apiConfig.baseUrl}/servers/${serverId}`,
+            payload,
+            { headers: { 'x-user-id': userId } }
+        ).toPromise().then((updatedServer) => {
+            this.servers.update(list =>
+                list.map(s => s.id === serverId ? { ...s, ...payload } : s)
+            );
+            return updatedServer;
+        });
+    }
+
+    // --- XÓA SERVER ---
+    deleteServer(serverId: string): Promise<{ success: boolean }> {
+        const userId = this.authStore.user()?.id || 'user';
+
+        return this.http.delete<{ success: boolean }>(
+            `${this.apiConfig.baseUrl}/servers/${serverId}`,
+            {
+                body: { userId },
+                headers: { 'x-user-id': userId },
+            }
+        ).toPromise().then((res) => {
+            this.servers.update(list => list.filter(s => s.id !== serverId));
+            if (this.activeServerId() === serverId) {
+                this.activeServerId.set('');
+                this.activeChannelId.set('');
+                this.activeServerMembers.set([]);
+                this.router.navigate(['/friends']);
+            }
+            return res as { success: boolean };
+        });
+    }
+
     // --- XÓA TIN NHẮN KÊNH ---
     deleteMessage(messageId: string) {
         const channelId = this.activeChannelId();
@@ -719,3 +793,4 @@ export class ServerService {
         });
     }
 }
+

@@ -1,4 +1,4 @@
-import { Component, computed, inject, effect } from '@angular/core';
+import { Component, computed, inject, effect, signal } from '@angular/core';
 import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { ServerService } from '../../core/services/server';
 import { FriendService } from '../../core/services/friend';
@@ -12,6 +12,7 @@ import { NotificationService, InAppNotification } from '../../core/services/noti
 import { LanguageService } from '../../core/services/language.service';
 import { VoiceControlComponent } from '../../shared/ui/voice-control/voice-control';
 import { ModalComponent } from '../../shared/ui/modal/modal';
+import { Server } from '../../core/models/server.model';
 
 @Component({
     selector: 'app-main-layout',
@@ -38,6 +39,98 @@ export class MainLayout {
     private socketService = inject(SocketService);
     private supabaseRealtime = inject(SupabaseRealtimeService);
     private router = inject(Router);
+
+    // --- DRAG & DROP STATE ---
+    public draggedServerId = signal<string | null>(null);
+    public dragOverServerId = signal<string | null>(null);
+    public isDragging = signal<boolean>(false);
+
+    /** Danh sách server đã được sắp xếp theo thứ tự người dùng tùy chỉnh */
+    public sortedServers = computed<Server[]>(() => {
+        const servers = this.serverService.servers();
+        const userId = this.authStore.user()?.id;
+        if (!userId) return servers;
+        const orderKey = `server_order_${userId}`;
+        const savedOrder: string[] = JSON.parse(localStorage.getItem(orderKey) || '[]');
+        if (!savedOrder.length) return servers;
+        // Sắp xếp theo thứ tự đã lưu, các server mới thêm sẽ xuất hiện ở cuối
+        const orderMap = new Map(savedOrder.map((id, i) => [id, i]));
+        return [...servers].sort((a, b) => {
+            const ia = orderMap.has(a.id) ? orderMap.get(a.id)! : 9999;
+            const ib = orderMap.has(b.id) ? orderMap.get(b.id)! : 9999;
+            return ia - ib;
+        });
+    });
+
+    /** Lưu thứ tự server mới vào localStorage */
+    private saveServerOrder(servers: Server[]): void {
+        const userId = this.authStore.user()?.id;
+        if (!userId) return;
+        const orderKey = `server_order_${userId}`;
+        localStorage.setItem(orderKey, JSON.stringify(servers.map(s => s.id)));
+    }
+
+    onDragStart(event: DragEvent, serverId: string): void {
+        this.draggedServerId.set(serverId);
+        this.isDragging.set(true);
+        if (event.dataTransfer) {
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', serverId);
+        }
+        // Add ghost image effect
+        const el = event.target as HTMLElement;
+        el.style.opacity = '0.5';
+    }
+
+    onDragEnd(event: DragEvent): void {
+        const el = event.target as HTMLElement;
+        el.style.opacity = '1';
+        this.draggedServerId.set(null);
+        this.dragOverServerId.set(null);
+        this.isDragging.set(false);
+    }
+
+    onDragOver(event: DragEvent, serverId: string): void {
+        event.preventDefault();
+        if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+        if (this.draggedServerId() !== serverId) {
+            this.dragOverServerId.set(serverId);
+        }
+    }
+
+    onDragLeave(serverId: string): void {
+        if (this.dragOverServerId() === serverId) {
+            this.dragOverServerId.set(null);
+        }
+    }
+
+    onDrop(event: DragEvent, targetServerId: string): void {
+        event.preventDefault();
+        const sourceId = this.draggedServerId();
+        if (!sourceId || sourceId === targetServerId) return;
+
+        const current = [...this.sortedServers()];
+        const sourceIdx = current.findIndex(s => s.id === sourceId);
+        const targetIdx = current.findIndex(s => s.id === targetServerId);
+        if (sourceIdx === -1 || targetIdx === -1) return;
+
+        // Move source to target position
+        const [moved] = current.splice(sourceIdx, 1);
+        current.splice(targetIdx, 0, moved);
+
+        this.saveServerOrder(current);
+        // Trigger recompute by updating servers signal
+        this.serverService.servers.set([...current]);
+
+        this.draggedServerId.set(null);
+        this.dragOverServerId.set(null);
+        this.isDragging.set(false);
+    }
+
+    public isImageUrl(icon: string | undefined): boolean {
+        if (!icon) return false;
+        return icon.startsWith('http://') || icon.startsWith('https://') || icon.startsWith('data:image/') || icon.startsWith('/') || icon.includes('/');
+    }
 
     public userInitial = computed(() => {
         const name = this.authStore.user()?.displayName || this.authStore.user()?.username || 'U';

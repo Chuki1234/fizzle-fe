@@ -168,6 +168,14 @@
   font-weight: var(--weight-semibold);
   font-size: var(--text-body-md);
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.server-card__icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-full);
 }
 
 .server-card__icon--pink {

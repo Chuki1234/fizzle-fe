@@ -5,60 +5,212 @@
     <div class="absolute inset-0" (click)="modalService.close()"></div>
 
     <!-- Modal Box -->
-    <div class="modal-container" [class.modal-container--wide]="modalService.activeModal() === 'INVITE_FRIENDS'">
+    <div class="modal-container" [class.modal-container--wide]="modalService.activeModal() === 'INVITE_FRIENDS' || modalService.activeModal() === 'SERVER_SETTINGS'">
 
         <!-- Nút Đóng X -->
         <button (click)="modalService.close()" type="button" class="modal-close-btn">
             ✕
         </button>
 
-        <!-- 1. MODAL TẠO SERVER -->
+        <!-- 1. MODAL TẠO SERVER (Tự động tạo Avatar theo chữ cái đầu) -->
         @if (modalService.activeModal() === 'CREATE_SERVER') {
         <div class="text-center mb-6">
-            <h2 class="modal-title">Tạo máy chủ của bạn</h2>
+            <h2 class="modal-title">{{ languageService.t('server.createTitle') }}</h2>
             <p class="modal-subtitle">
-                Máy chủ là nơi bạn và các chiến hữu dành thời gian cho nhau.
+                {{ languageService.t('server.createSubtitle') }}
             </p>
         </div>
 
-        <div class="form-group">
-            <label class="form-label">
-                Biểu tượng (Emoji)
-            </label>
-            <input type="text" [ngModel]="serverIcon()" (ngModelChange)="serverIcon.set($event)" maxlength="2"
-                class="form-input" />
+        <div class="server-avatar-preview-container">
+            <div class="server-avatar-preview">
+                {{ serverInitialIcon() }}
+            </div>
+            <span class="server-avatar-preview-hint">{{ languageService.t('server.avatarHint') }}</span>
         </div>
 
         <div class="form-group">
             <label class="form-label">
-                Tên máy chủ
+                {{ languageService.t('server.nameLabel') }} <span style="color: #ef4444;">*</span>
             </label>
             <input type="text" [ngModel]="serverName()" (ngModelChange)="serverName.set($event)"
-                placeholder="VD: Server Học Tập HSU" class="form-input" />
+                [placeholder]="languageService.t('server.namePlaceholder')" class="form-input" autofocus />
         </div>
 
         <div class="modal-actions">
             <button (click)="modalService.close()" type="button" class="btn-cancel">
-                Hủy
+                {{ languageService.t('server.cancel') }}
             </button>
             <button (click)="onCreateServer()" [disabled]="!serverName().trim()" type="button" class="btn-submit">
-                Tạo máy chủ
+                {{ languageService.t('server.createBtn') }}
             </button>
         </div>
+        }
+
+        <!-- 4. MODAL CÀI ĐẶT MÁY CHỦ & PHÂN QUYỀN -->
+        @if (modalService.activeModal() === 'SERVER_SETTINGS') {
+        <div class="server-settings-header mb-5">
+            <div>
+                <h2 class="modal-title">{{ languageService.t('server.settingsTitle') }} <span style="color: var(--color-accent);">{{ serverService.activeServer()?.name }}</span></h2>
+                <p class="modal-subtitle">{{ languageService.t('server.settingsSubtitle') }}</p>
+            </div>
+        </div>
+
+        <!-- TAB NAVIGATOR -->
+        <div class="settings-tabs">
+            <button (click)="settingsTab.set('overview')" type="button" class="settings-tab-btn" [class.settings-tab-btn--active]="settingsTab() === 'overview'">
+                {{ languageService.t('server.tabOverview') }}
+            </button>
+            <button (click)="settingsTab.set('members')" type="button" class="settings-tab-btn" [class.settings-tab-btn--active]="settingsTab() === 'members'">
+                {{ languageService.t('server.tabMembers') }} ({{ serverService.activeServerMembers().length }})
+            </button>
+        </div>
+
+        <!-- TAB 1: TỔNG QUAN -->
+        @if (settingsTab() === 'overview') {
+        <div class="settings-tab-content">
+            <div class="form-group">
+                <label class="form-label">{{ languageService.t('server.avatarLabel') }}</label>
+                <div class="flex items-center gap-4">
+                    <div class="server-avatar-preview sm relative overflow-hidden shrink-0">
+                        @if (isImageUrl(editServerIcon())) {
+                            <img [src]="editServerIcon()" class="w-full h-full object-cover rounded-full" alt="Server Avatar" />
+                        } @else {
+                            <span>{{ editServerName() ? editServerName().charAt(0).toUpperCase() : 'S' }}</span>
+                        }
+                    </div>
+
+                    <div class="flex-1 flex flex-col gap-2">
+                        <input type="text" [ngModel]="editServerIcon()" (ngModelChange)="editServerIcon.set($event)"
+                            [placeholder]="languageService.t('server.avatarPlaceholder')" class="form-input" />
+
+                        <div class="flex items-center gap-2">
+                            <label class="btn-upload-avatar">
+                                {{ languageService.t('server.uploadBtn') }}
+                                <input type="file" accept="image/*" (change)="onServerAvatarFileSelected($event)" class="hidden" />
+                            </label>
+                            @if (isImageUrl(editServerIcon())) {
+                                <button type="button" (click)="editServerIcon.set('')" class="btn-remove-avatar">
+                                    {{ languageService.t('server.removeAvatarBtn') }}
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">{{ languageService.t('server.nameLabel') }}</label>
+                <input type="text" [ngModel]="editServerName()" (ngModelChange)="editServerName.set($event)"
+                    [placeholder]="languageService.t('server.namePlaceholder')" class="form-input" />
+            </div>
+
+            <div class="modal-actions" style="margin-top: 1.5rem; justify-content: space-between;">
+                <div class="danger-zone-wrapper">
+                    @if (!showDeleteConfirm()) {
+                    <button (click)="showDeleteConfirm.set(true)" type="button" class="btn-danger-outline">
+                        {{ languageService.t('server.deleteServerBtn') }}
+                    </button>
+                    } @else {
+                    <div class="delete-confirm-box">
+                        <span class="delete-confirm-text">{{ languageService.t('server.deleteConfirmText') }}</span>
+                        <div class="flex gap-2">
+                            <button (click)="showDeleteConfirm.set(false)" type="button" class="btn-cancel sm">{{ languageService.t('server.cancel') }}</button>
+                            <button (click)="onDeleteServer()" [disabled]="isDeletingServer()" type="button" class="btn-danger sm">
+                                {{ isDeletingServer() ? languageService.t('server.deleting') : languageService.t('server.deleteConfirmYes') }}
+                            </button>
+                        </div>
+                    </div>
+                    }
+                </div>
+
+                <div class="flex gap-2">
+                    <button (click)="modalService.close()" type="button" class="btn-cancel">{{ languageService.t('server.close') }}</button>
+                    <button (click)="onSaveServerSettings()" [disabled]="!editServerName().trim() || isSavingSettings()" type="button" class="btn-submit">
+                        {{ isSavingSettings() ? languageService.t('server.saving') : languageService.t('server.saveChanges') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+        }
+
+        <!-- TAB 2: THÀNH VIÊN & PHÂN QUYỀN -->
+        @if (settingsTab() === 'members') {
+        <div class="settings-tab-content">
+            <div class="form-group mb-4">
+                <input type="text" [ngModel]="memberSearchQuery()" (ngModelChange)="memberSearchQuery.set($event)"
+                    [placeholder]="languageService.t('server.searchMembersPlaceholder')" class="form-input search-member-input" />
+            </div>
+
+            <div class="members-settings-list">
+                @for (member of filteredServerMembers; track member.userId) {
+                <div class="member-settings-row">
+                    <div class="member-info-left">
+                        <div class="member-avatar">
+                            @if (member.avatarUrl) {
+                                <img [src]="member.avatarUrl" class="w-full h-full rounded-full object-cover" alt="Avatar" />
+                            } @else {
+                                <span>{{ (member.displayName || member.username || 'U').charAt(0).toUpperCase() }}</span>
+                            }
+                        </div>
+                        <div class="member-details">
+                            <div class="member-name-row">
+                                <span class="member-name">{{ member.displayName }}</span>
+                                @if (member.role === 'owner') {
+                                    <span class="badge-role badge-owner">{{ languageService.t('server.roleOwner') }}</span>
+                                } @else if (member.role === 'admin') {
+                                    <span class="badge-role badge-admin">{{ languageService.t('server.roleAdmin') }}</span>
+                                } @else if (member.role === 'moderator') {
+                                    <span class="badge-role badge-mod">{{ languageService.t('server.roleMod') }}</span>
+                                }
+                            </div>
+                            <span class="member-subtext">&#64;{{ member.username }}</span>
+                        </div>
+                    </div>
+
+                    <div class="member-actions-right">
+                        @if (member.role !== 'owner') {
+                            <!-- Select role dropdown -->
+                            <select [value]="member.role" (change)="onChangeMemberRole(member.userId, $event)" class="role-select-dropdown" [disabled]="!canManageMembers()">
+                                <option value="admin">{{ languageService.t('server.roleAdmin') }}</option>
+                                <option value="moderator">{{ languageService.t('server.roleMod') }}</option>
+                                <option value="member">{{ languageService.t('server.roleMember') }}</option>
+                            </select>
+
+                            @if (canManageMembers()) {
+                            <button (click)="onKickMember(member.userId, member.displayName)" type="button" class="btn-kick-member" [title]="languageService.t('server.kickTooltip')">
+                                ✕
+                            </button>
+                            }
+                        } @else {
+                            <span class="text-xs text-amber-400 font-semibold px-2 py-1 bg-amber-400/10 rounded">{{ languageService.t('server.supremeRole') }}</span>
+                        }
+                    </div>
+                </div>
+                }
+                @if (filteredServerMembers.length === 0) {
+                <p class="no-members-found">{{ languageService.t('server.noMembersFound') }}</p>
+                }
+            </div>
+
+            <div class="modal-actions mt-4">
+                <button (click)="modalService.close()" type="button" class="btn-cancel">{{ languageService.t('server.close') }}</button>
+            </div>
+        </div>
+        }
         }
 
         <!-- 2. MODAL TẠO KÊNH -->
         @if (modalService.activeModal() === 'CREATE_CHANNEL') {
         <div class="mb-6">
-            <h2 class="modal-title">Tạo kênh</h2>
+            <h2 class="modal-title">{{ languageService.t('channel.createTitle') }}</h2>
             <p class="modal-subtitle">
-                Trong máy chủ <span style="font-weight: 600; color: #ffffff;">{{ serverService.activeServer()?.name }}</span>
+                {{ languageService.t('channel.nameLabel') }} <span style="font-weight: 600; color: #ffffff;">{{ serverService.activeServer()?.name }}</span>
             </p>
         </div>
 
         <div class="form-group">
             <label class="form-label">
-                Loại kênh
+                {{ languageService.t('channel.typeLabel') }}
             </label>
             <div class="type-grid">
                 <!-- Text Channel Option -->
@@ -67,8 +219,8 @@
                     <div class="type-card__left">
                         <span class="type-card__icon">#</span>
                         <div>
-                            <p class="type-card__title">Text</p>
-                            <p class="type-card__desc">Gửi tin nhắn, ảnh</p>
+                            <p class="type-card__title">{{ languageService.t('channel.textTitle') }}</p>
+                            <p class="type-card__desc">{{ languageService.t('channel.textDesc') }}</p>
                         </div>
                     </div>
                     <div class="type-radio">
@@ -82,8 +234,8 @@
                     <div class="type-card__left">
                         <span class="type-card__icon">🎙️</span>
                         <div>
-                            <p class="type-card__title">Voice</p>
-                            <p class="type-card__desc">Nói chuyện trực tiếp</p>
+                            <p class="type-card__title">{{ languageService.t('channel.voiceTitle') }}</p>
+                            <p class="type-card__desc">{{ languageService.t('channel.voiceDesc') }}</p>
                         </div>
                     </div>
                     <div class="type-radio">
@@ -95,18 +247,18 @@
 
         <div class="form-group">
             <label class="form-label">
-                Tên kênh
+                {{ languageService.t('channel.nameLabel') }}
             </label>
             <input type="text" [ngModel]="channelName()" (ngModelChange)="channelName.set($event)"
-                placeholder="new-channel" class="form-input" />
+                [placeholder]="languageService.t('channel.namePlaceholder')" class="form-input" />
         </div>
 
         <div class="modal-actions">
             <button (click)="modalService.close()" type="button" class="btn-cancel">
-                Hủy
+                {{ languageService.t('server.cancel') }}
             </button>
             <button (click)="onCreateChannel()" [disabled]="!channelName().trim()" type="button" class="btn-submit">
-                Tạo kênh
+                {{ languageService.t('channel.createBtn') }}
             </button>
         </div>
         }
@@ -114,24 +266,24 @@
         <!-- 3. MODAL MỜI BẠN BÈ -->
         @if (modalService.activeModal() === 'INVITE_FRIENDS') {
         <div class="mb-5">
-            <h2 class="modal-title">Mời bạn bè vào <span style="color: var(--color-accent);">{{ serverService.activeServer()?.name }}</span></h2>
-            <p class="modal-subtitle">Chia sẻ link hoặc mời trực tiếp từ danh sách bạn bè</p>
+            <h2 class="modal-title">{{ languageService.t('invite.title') }} <span style="color: var(--color-accent);">{{ serverService.activeServer()?.name }}</span></h2>
+            <p class="modal-subtitle">{{ languageService.t('invite.subtitle') }}</p>
         </div>
 
         <!-- Invite Link -->
         <div class="form-group">
-            <label class="form-label">Liên kết mời</label>
+            <label class="form-label">{{ languageService.t('invite.linkLabel') }}</label>
             <div class="invite-link-row">
-                <input type="text" [value]="inviteCode() || 'Đang tạo liên kết...'" readonly class="form-input invite-link-input" />
+                <input type="text" [value]="inviteCode() || '...'" readonly class="form-input invite-link-input" />
                 <button (click)="copyInviteLink()" type="button" class="btn-copy" [class.btn-copy--copied]="copied()" [disabled]="!inviteCode()">
                     @if (copied()) {
-                        <span>✓ Đã sao chép!</span>
+                        <span>{{ languageService.t('invite.copiedBtn') }}</span>
                     } @else {
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                         </svg>
-                        <span>Sao chép</span>
+                        <span>{{ languageService.t('invite.copyBtn') }}</span>
                     }
                 </button>
             </div>
@@ -139,7 +291,7 @@
 
         <!-- Friends List -->
         <div class="form-group">
-            <label class="form-label">Bạn bè của bạn</label>
+            <label class="form-label">{{ languageService.t('invite.friendsLabel') }}</label>
             <div class="invite-friends-list">
                 @for (friend of getFriends(); track friend.id) {
                 <div class="invite-friend-row">
@@ -156,26 +308,26 @@
                         [class.btn-invite--inviting]="isInviting(friend.id)"
                         [disabled]="isInvited(friend.id) || isMember(friend.id) || isInviting(friend.id)">
                         @if (isMember(friend.id)) {
-                            <span>✓ Đã tham gia</span>
+                            <span>{{ languageService.t('invite.joined') }}</span>
                         } @else if (isInvited(friend.id)) {
-                            <span>✓ Đã mời</span>
+                            <span>{{ languageService.t('invite.invited') }}</span>
                         } @else if (isInviting(friend.id)) {
-                            <span>⏳ Đang gửi...</span>
+                            <span>{{ languageService.t('invite.inviting') }}</span>
                         } @else {
-                            <span>Mời</span>
+                            <span>{{ languageService.t('invite.sendBtn') }}</span>
                         }
                     </button>
                 </div>
                 }
                 @if (getFriends().length === 0) {
-                <p class="invite-no-friends">Bạn chưa có bạn bè nào. Hãy thêm bạn bè trước!</p>
+                <p class="invite-no-friends">{{ languageService.t('invite.noFriends') }}</p>
                 }
             </div>
         </div>
 
         <div class="modal-actions">
             <button (click)="modalService.close()" type="button" class="btn-cancel">
-                Đóng
+                {{ languageService.t('server.close') }}
             </button>
         </div>
         }

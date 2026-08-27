@@ -23,6 +23,8 @@ import { MediaPickerComponent, GifItem } from './components/media-picker/media-p
 import { AttachmentPreviewComponent, PendingAttachment } from './components/attachment-preview/attachment-preview.component';
 import { MediaViewerComponent } from './components/media-viewer/media-viewer.component';
 
+import { LanguageService } from '../../core/services/language.service';
+
 @Component({
     selector: 'fz-chat',
     standalone: true,
@@ -42,6 +44,7 @@ export class Chat implements OnInit {
     public serverService = inject(ServerService);
     public socketService = inject(SocketService);
     public authStore = inject(AuthStore);
+    public languageService = inject(LanguageService);
     private route = inject(ActivatedRoute);
     private cdr = inject(ChangeDetectorRef);
     private apiConfig = inject(API_CONFIG, { optional: true });
@@ -294,6 +297,7 @@ export class Chat implements OnInit {
                 this.serverService.activeServerId.set(serverId);
                 this.serverService.activeChannelId.set(channelId);
                 this.serverService.loadChannelMessages(channelId);
+                this.serverService.loadServerMembers(serverId);
             }
             // 2. Chat Trực Tiếp 1-1 Bạn bè
             else if (friendId) {
@@ -304,6 +308,18 @@ export class Chat implements OnInit {
             this.showMediaPicker = false;
             this.cdr.markForCheck();
         });
+    }
+
+    get adminMembers() {
+        return this.serverService.activeServerMembers().filter(m => m.role === 'owner' || m.role === 'admin');
+    }
+
+    get modMembers() {
+        return this.serverService.activeServerMembers().filter(m => m.role === 'moderator');
+    }
+
+    get normalMembers() {
+        return this.serverService.activeServerMembers().filter(m => m.role === 'member' || !m.role);
     }
 
     // Message send queue to preserve strict chronological ordering
