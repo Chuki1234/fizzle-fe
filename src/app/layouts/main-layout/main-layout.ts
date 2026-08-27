@@ -127,6 +127,107 @@ export class MainLayout {
         this.isDragging.set(false);
     }
 
+    // --- CHANNEL DRAG & DROP STATE ---
+    public draggedChannelId = signal<string | null>(null);
+    public dragOverChannelId = signal<string | null>(null);
+
+    /** Danh sách kênh của server hiện tại đã được sắp xếp theo thứ tự người dùng kéo thả */
+    public sortedChannels = computed(() => {
+        const server = this.serverService.activeServer();
+        if (!server || !server.channels) return [];
+
+        const orderKey = `channel_order_${server.id}`;
+        const savedOrder: string[] = JSON.parse(localStorage.getItem(orderKey) || '[]');
+        if (!savedOrder.length) return server.channels;
+
+        const orderMap = new Map(savedOrder.map((id, i) => [id, i]));
+        return [...server.channels].sort((a, b) => {
+            const ia = orderMap.has(a.id) ? orderMap.get(a.id)! : 9999;
+            const ib = orderMap.has(b.id) ? orderMap.get(b.id)! : 9999;
+            return ia - ib;
+        });
+    });
+
+    /** Kiểm tra người dùng hiện tại có phải chủ server không */
+    public isServerOwner = computed(() => {
+        const server = this.serverService.activeServer();
+        const currentUserId = this.authStore.user()?.id;
+        if (!server || !currentUserId) return true; // Cho phép sắp xếp nếu không xác định
+        const owner = server.ownerId || server.creatorId;
+        return !owner || owner === currentUserId;
+    });
+
+    onChannelDragStart(event: DragEvent, channelId: string): void {
+        this.draggedChannelId.set(channelId);
+        if (event.dataTransfer) {
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', channelId);
+        }
+        const el = event.target as HTMLElement;
+        el.style.opacity = '0.5';
+    }
+
+    onChannelDragEnd(event: DragEvent): void {
+        const el = event.target as HTMLElement;
+        el.style.opacity = '1';
+        this.draggedChannelId.set(null);
+        this.dragOverChannelId.set(null);
+    }
+
+    onChannelDragOver(event: DragEvent, channelId: string): void {
+        event.preventDefault();
+        if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+        if (this.draggedChannelId() !== channelId) {
+            this.dragOverChannelId.set(channelId);
+        }
+    }
+
+    onChannelDragLeave(channelId: string): void {
+        if (this.dragOverChannelId() === channelId) {
+            this.dragOverChannelId.set(null);
+        }
+    }
+
+    onChannelDrop(event: DragEvent, targetChannelId: string): void {
+        event.preventDefault();
+        const sourceId = this.draggedChannelId();
+        if (!sourceId || sourceId === targetChannelId) return;
+
+        const server = this.serverService.activeServer();
+        if (!server) return;
+
+        const current = [...this.sortedChannels()];
+        const sourceIdx = current.findIndex(c => c.id === sourceId);
+        const targetIdx = current.findIndex(c => c.id === targetChannelId);
+        if (sourceIdx === -1 || targetIdx === -1) return;
+
+        const [moved] = current.splice(sourceIdx, 1);
+        current.splice(targetIdx, 0, moved);
+
+        // Lưu vào localStorage
+        const orderKey = `channel_order_${server.id}`;
+        localStorage.setItem(orderKey, JSON.stringify(current.map(c => c.id)));
+
+        // Cập nhật signal channels trong serverService
+        this.serverService.servers.update(list => list.map(s => {
+            if (s.id === server.id) {
+                return { ...s, channels: [...current] };
+            }
+            return s;
+        }));
+
+        this.draggedChannelId.set(null);
+        this.dragOverChannelId.set(null);
+    }
+
+    public attachScreenStream(videoEl: HTMLVideoElement): void {
+        const screenShare = this.voiceService.activeScreenShare();
+        if (videoEl && screenShare?.stream) {
+            videoEl.srcObject = screenShare.stream;
+            videoEl.play().catch(e => console.warn('Autoplay screen share video warning:', e));
+        }
+    }
+
     public isImageUrl(icon: string | undefined): boolean {
         if (!icon) return false;
         return icon.startsWith('http://') || icon.startsWith('https://') || icon.startsWith('data:image/') || icon.startsWith('/') || icon.includes('/');
@@ -176,6 +277,20 @@ export class MainLayout {
                 // Reload both friends and servers for this user
                 this.friendService.loadFriendsFromBackend();
                 this.serverService.loadServers();
+            }
+        });
+
+        // Auto-attach LiveKit screen share video stream
+        effect(() => {
+            const screenShare = this.voiceService.activeScreenShare();
+            if (screenShare?.stream) {
+                setTimeout(() => {
+                    const videoEl = document.querySelector<HTMLVideoElement>('.screenshare-video');
+                    if (videoEl && videoEl.srcObject !== screenShare.stream) {
+                        videoEl.srcObject = screenShare.stream;
+                        videoEl.play().catch(e => console.warn('Screen share video play warning:', e));
+                    }
+                }, 100);
             }
         });
     }

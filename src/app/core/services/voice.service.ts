@@ -17,6 +17,9 @@ import { SocketService, VoiceParticipantInfo } from './socket';
 export interface VoiceParticipant extends VoiceParticipantInfo {
   audioElement?: HTMLAudioElement;
   stream?: MediaStream;
+  isScreenSharing?: boolean;
+  isCameraOn?: boolean;
+  videoStream?: MediaStream;
 }
 
 @Injectable({
@@ -37,7 +40,11 @@ export class VoiceService {
   readonly isMuted = signal<boolean>(false);
   readonly isDeafened = signal<boolean>(false);
   readonly isSpeaking = signal<boolean>(false);
+  readonly isScreenSharing = signal<boolean>(false);
+  readonly isCameraOn = signal<boolean>(false);
+  readonly isVoiceOverlayMinimized = signal<boolean>(false);
   readonly micLevel = signal<number>(0); // 0 - 100 VU Meter
+  readonly activeScreenShare = signal<{ participantId: string; displayName: string; stream: MediaStream } | null>(null);
 
   // Participants in CURRENT active voice room
   readonly participants = signal<VoiceParticipant[]>([]);
@@ -57,6 +64,8 @@ export class VoiceService {
         this.voiceChannelsUsers.set(states || {});
       });
     });
+    // Trực tiếp yêu cầu server phát danh sách người trong các kênh voice ngay khi service chạy
+    setTimeout(() => this.socketService.requestVoiceStates(), 500);
   }
 
   getSelfParticipant(): VoiceParticipant {
@@ -73,12 +82,14 @@ export class VoiceService {
       isMuted: this.isMuted(),
       isDeafened: this.isDeafened(),
       isSpeaking: this.isSpeaking(),
+      isScreenSharing: this.isScreenSharing(),
+      isCameraOn: this.isCameraOn(),
     };
   }
 
   getUsersInChannel(channelId: string): VoiceParticipant[] {
     const curId = this.currentChannelId();
-    if (curId === channelId && this.participants().length > 0) {
+    if (curId === channelId && this.isConnected() && this.participants().length > 0) {
       return this.participants();
     }
     const map = this.voiceChannelsUsers();
@@ -100,6 +111,7 @@ export class VoiceService {
     this.currentServerId.set(serverId);
     this.currentChannelId.set(channelId);
     this.currentChannelName.set(channelName);
+    this.isVoiceOverlayMinimized.set(false);
 
     try {
       const currentUser = this.authStore.user();
@@ -202,8 +214,13 @@ export class VoiceService {
     this.isConnected.set(false);
     this.isConnecting.set(false);
     this.isSpeaking.set(false);
+    this.isScreenSharing.set(false);
+    this.isCameraOn.set(false);
     this.micLevel.set(0);
     this.participants.set([]);
+
+    // Yêu cầu server phát lại voice states mới cho tất cả client
+    setTimeout(() => this.socketService.requestVoiceStates(), 300);
   }
 
   // ==========================================
@@ -229,7 +246,7 @@ export class VoiceService {
       });
     });
 
-    // 3. Khi nhận track âm thanh từ người khác -> LiveKit tự động attach phát loa
+    // 3. Khi nhận track âm thanh hoặc màn hình từ người khác
     room.on(
       RoomEvent.TrackSubscribed,
       (track: RemoteTrack, publication: RemoteTrackPublication, participant: RemoteParticipant) => {
@@ -241,6 +258,17 @@ export class VoiceService {
           if (this.isDeafened()) {
             el.muted = true;
           }
+        } else if (track.kind === Track.Kind.Video || publication.source === Track.Source.ScreenShare) {
+          console.log('[LiveKit] Subscribed to remote screen share track from:', participant.identity);
+          const mediaStream = new MediaStream([track.mediaStreamTrack]);
+          this.ngZone.run(() => {
+            this.activeScreenShare.set({
+              participantId: participant.identity,
+              displayName: participant.name || participant.identity,
+              stream: mediaStream,
+            });
+            this.updateParticipantsList();
+          });
         }
       }
     );
@@ -251,9 +279,30 @@ export class VoiceService {
       (track: RemoteTrack, publication: RemoteTrackPublication, participant: RemoteParticipant) => {
         if (track.kind === Track.Kind.Audio) {
           track.detach().forEach((el: HTMLMediaElement) => el.remove());
+        } else if (track.kind === Track.Kind.Video || publication.source === Track.Source.ScreenShare) {
+          this.ngZone.run(() => {
+            if (this.activeScreenShare()?.participantId === participant.identity) {
+              this.activeScreenShare.set(null);
+            }
+            this.updateParticipantsList();
+          });
         }
       }
     );
+
+    // 4b. Khi bản thân dừng share màn hình (qua nút browser)
+    room.on(RoomEvent.LocalTrackUnpublished, (publication) => {
+      if (publication.source === Track.Source.ScreenShare) {
+        this.ngZone.run(() => {
+          this.isScreenSharing.set(false);
+          const selfId = this.authStore.user()?.id || 'self';
+          if (this.activeScreenShare()?.participantId === selfId) {
+            this.activeScreenShare.set(null);
+          }
+          this.updateParticipantsList();
+        });
+      }
+    });
 
     // 5. Khi có người nói chuyện (LiveKit SFU ActiveSpeakers)
     room.on(RoomEvent.ActiveSpeakersChanged, (speakers: Participant[]) => {
@@ -303,9 +352,40 @@ export class VoiceService {
     if (!this.room) return;
 
     const self = this.getSelfParticipant();
+    if (this.room.localParticipant) {
+      const isCam = this.room.localParticipant.isCameraEnabled;
+      const isScreen = this.room.localParticipant.isScreenShareEnabled;
+      self.isCameraOn = isCam;
+      self.isScreenSharing = isScreen;
+
+      let videoTrack: any = null;
+      if (isScreen) {
+        videoTrack = this.room.localParticipant.getTrackPublication(Track.Source.ScreenShare)?.track;
+      } else if (isCam) {
+        videoTrack = this.room.localParticipant.getTrackPublication(Track.Source.Camera)?.track;
+      }
+      if (videoTrack?.mediaStreamTrack) {
+        self.videoStream = new MediaStream([videoTrack.mediaStreamTrack]);
+      }
+    }
+
     const remoteList: VoiceParticipant[] = [];
 
     this.room.remoteParticipants.forEach((p: RemoteParticipant) => {
+      const isCam = p.isCameraEnabled;
+      const isScreen = p.isScreenShareEnabled;
+
+      let videoTrack: any = null;
+      if (isScreen) {
+        videoTrack = p.getTrackPublication(Track.Source.ScreenShare)?.track;
+      } else if (isCam) {
+        videoTrack = p.getTrackPublication(Track.Source.Camera)?.track;
+      }
+      let videoStream: MediaStream | undefined = undefined;
+      if (videoTrack?.mediaStreamTrack) {
+        videoStream = new MediaStream([videoTrack.mediaStreamTrack]);
+      }
+
       remoteList.push({
         socketId: p.sid,
         userId: p.identity,
@@ -314,6 +394,9 @@ export class VoiceService {
         isMuted: !p.isMicrophoneEnabled,
         isDeafened: false,
         isSpeaking: p.isSpeaking,
+        isScreenSharing: isScreen,
+        isCameraOn: isCam,
+        videoStream,
       });
     });
 
@@ -327,6 +410,75 @@ export class VoiceService {
         [curChannelId]: [self, ...remoteList],
       }));
     }
+  }
+
+  // ==========================================
+  // --- WEBCAM CAMERA (BẬT/TẮT CAMERA) ---
+  // ==========================================
+
+  async toggleCamera(): Promise<boolean> {
+    if (!this.room || !this.isConnected()) return false;
+    try {
+      const nextState = !this.isCameraOn();
+      await this.room.localParticipant.setCameraEnabled(nextState);
+      this.isCameraOn.set(nextState);
+      this.updateParticipantsList();
+      return nextState;
+    } catch (err) {
+      console.error('[LiveKit] Error toggling camera:', err);
+      this.isCameraOn.set(false);
+      return false;
+    }
+  }
+
+  // ==========================================
+  // --- SCREEN SHARE (CHIA SẺ MÀN HÌNH) ---
+  // ==========================================
+
+  async toggleScreenShare(): Promise<boolean> {
+    if (!this.room || !this.isConnected()) return false;
+    try {
+      const nextState = !this.isScreenSharing();
+      await this.room.localParticipant.setScreenShareEnabled(nextState, { audio: true });
+      this.isScreenSharing.set(nextState);
+
+      if (nextState) {
+        const trackPub = this.room.localParticipant.getTrackPublication(Track.Source.ScreenShare);
+        if (trackPub?.track?.mediaStreamTrack) {
+          const stream = new MediaStream([trackPub.track.mediaStreamTrack]);
+          const currentUser = this.authStore.user();
+          this.activeScreenShare.set({
+            participantId: currentUser?.id || 'self',
+            displayName: currentUser?.displayName || currentUser?.username || 'Bạn',
+            stream,
+          });
+        }
+      } else {
+        const selfId = this.authStore.user()?.id || 'self';
+        if (this.activeScreenShare()?.participantId === selfId) {
+          this.activeScreenShare.set(null);
+        }
+      }
+
+      this.updateParticipantsList();
+      return nextState;
+    } catch (err) {
+      console.error('[LiveKit] Error toggling screen share:', err);
+      this.isScreenSharing.set(false);
+      return false;
+    }
+  }
+
+  // ==========================================
+  // --- MINIMIZE / EXPAND OVERLAY ---
+  // ==========================================
+
+  minimizeVoiceOverlay() {
+    this.isVoiceOverlayMinimized.set(true);
+  }
+
+  expandVoiceOverlay() {
+    this.isVoiceOverlayMinimized.set(false);
   }
 
   // ==========================================

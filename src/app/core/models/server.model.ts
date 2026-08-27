@@ -22,4 +22,5 @@ export interface Server {
     channels: Channel[];
     members?: string[];
     creatorId?: string;
+    ownerId?: string;
 }

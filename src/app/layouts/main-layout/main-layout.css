@@ -603,6 +603,136 @@
     color: #ef4444;
 }
 
+/* --- CHANNEL DRAG & DROP STYLES --- */
+.sidebar-left__channel-group[draggable="true"] {
+    cursor: grab;
+}
+
+.sidebar-left__channel-group[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+.sidebar-left__channel-group--dragging {
+    opacity: 0.4 !important;
+    border: 1px dashed #10b981 !important;
+    border-radius: 8px;
+}
+
+.sidebar-left__channel-group--drag-over {
+    background-color: rgba(16, 185, 129, 0.1) !important;
+    border: 1px solid #10b981 !important;
+    border-radius: 8px;
+}
+
+.sidebar-left__channel-drag-handle {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.3);
+    opacity: 0;
+    cursor: grab;
+    padding: 0 4px;
+    transition: opacity 0.15s ease;
+}
+
+.sidebar-left__channel-wrapper:hover .sidebar-left__channel-drag-handle {
+    opacity: 1;
+}
+
+/* --- DISCORD-STYLE FLOATING MINI-PLAYER BÊN PHẢI --- */
+.screenshare-pip-card {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 380px;
+    height: 240px;
+    background-color: #111214;
+    border: 1px solid #2b2d31;
+    border-radius: 12px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 20px rgba(99, 102, 241, 0.2);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 99999;
+    animation: slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(40px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+.screenshare-pip-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background-color: #18191c;
+    border-bottom: 1px solid #232428;
+}
+
+.screenshare-pip-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.screenshare-pip-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #f2f3f5;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.live-badge {
+    background-color: #ef4444;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+    animation: pulse 1.5s infinite;
+}
+
+.pip-close-btn {
+    background: transparent;
+    border: none;
+    color: #949ba4;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+}
+
+.pip-close-btn:hover {
+    background-color: rgba(242, 63, 67, 0.2);
+    color: #f23f43;
+}
+
+.screenshare-pip-body {
+    flex: 1;
+    background-color: #000000;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.screenshare-video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
 /* --- USER PROFILE FOOTER --- */
 .sidebar-left__user-profile {
     display: flex;

@@ -7,7 +7,8 @@ import {
     OnInit,
     ViewChild,
     effect,
-    HostListener
+    HostListener,
+    computed
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -15,6 +16,8 @@ import { ActivatedRoute } from '@angular/router';
 import { FriendService } from '../../core/services/friend';
 import { ServerService } from '../../core/services/server';
 import { SocketService } from '../../core/services/socket';
+import { VoiceService } from '../../core/services/voice.service';
+import { ModalService } from '../../core/services/modal';
 import { AuthStore } from '../../core/auth/auth.store';
 import { ChatMessage } from '../../core/models/friend.model';
 import { API_CONFIG, getDynamicBaseUrl } from '../../core/http/api.config';
@@ -24,6 +27,7 @@ import { AttachmentPreviewComponent, PendingAttachment } from './components/atta
 import { MediaViewerComponent } from './components/media-viewer/media-viewer.component';
 
 import { LanguageService } from '../../core/services/language.service';
+import { VideoStreamDirective } from '../../shared/directives/video-stream.directive';
 
 @Component({
     selector: 'fz-chat',
@@ -34,6 +38,7 @@ import { LanguageService } from '../../core/services/language.service';
         MediaPickerComponent,
         AttachmentPreviewComponent,
         MediaViewerComponent,
+        VideoStreamDirective,
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './chat.html',
@@ -43,11 +48,68 @@ export class Chat implements OnInit {
     public friendService = inject(FriendService);
     public serverService = inject(ServerService);
     public socketService = inject(SocketService);
+    public voiceService = inject(VoiceService);
+    public modalService = inject(ModalService);
     public authStore = inject(AuthStore);
     public languageService = inject(LanguageService);
     private route = inject(ActivatedRoute);
     private cdr = inject(ChangeDetectorRef);
     private apiConfig = inject(API_CONFIG, { optional: true });
+
+    public isVoiceChannelActive = computed(() => {
+        const activeCh = this.serverService.activeChannel();
+        if (activeCh?.type !== 'voice') return false;
+        return !this.voiceService.isVoiceOverlayMinimized();
+    });
+
+    public activeVoiceUsers = computed(() => {
+        const activeCh = this.serverService.activeChannel();
+        if (!activeCh || activeCh.type !== 'voice') return [];
+        return this.voiceService.getUsersInChannel(activeCh.id);
+    });
+
+    public isConnectedToActiveVoiceChannel = computed(() => {
+        const activeCh = this.serverService.activeChannel();
+        return activeCh?.type === 'voice' &&
+               this.voiceService.currentChannelId() === activeCh.id &&
+               this.voiceService.isConnected();
+    });
+
+    // Participant đang chia sẻ màn hình (main focal point)
+    public focusedScreenShare = computed(() => {
+        const participants = this.voiceService.participants();
+        return participants.find(p => p.isScreenSharing && p.videoStream) || null;
+    });
+
+    // Tất cả participants có video (cam hoặc screen)
+    public participantsWithVideo = computed(() => {
+        return this.voiceService.participants().filter(p => p.videoStream);
+    });
+
+    // Số lượng participants có video active (dùng để tính layout)
+    public hasActiveVideo = computed(() => {
+        return this.voiceService.participants().some(p => p.videoStream);
+    });
+
+    public getUserCardBg(index: number): string {
+        const cardGradients = [
+            'linear-gradient(135deg, #583648 0%, #3e2634 100%)',
+            'linear-gradient(135deg, #2b3958 0%, #1e263c 100%)',
+            'linear-gradient(135deg, #23483b 0%, #183027 100%)',
+            'linear-gradient(135deg, #4c3728 0%, #33241b 100%)',
+            'linear-gradient(135deg, #442a4c 0%, #2c1a32 100%)',
+            'linear-gradient(135deg, #1b3d4a 0%, #112832 100%)'
+        ];
+        return cardGradients[index % cardGradients.length];
+    }
+
+    public joinCurrentVoiceChannel(): void {
+        const sId = this.serverService.activeServerId();
+        const ch = this.serverService.activeChannel();
+        if (sId && ch && ch.type === 'voice') {
+            void this.voiceService.joinChannel(sId, ch.id, ch.name);
+        }
+    }
 
     @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
     @ViewChild('msgInput') private msgInputRef!: ElementRef<HTMLTextAreaElement>;

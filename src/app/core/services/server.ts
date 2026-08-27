@@ -454,13 +454,17 @@ export class ServerService {
 
         if (!targetChannel) return;
 
+        this.activeChannelId.set(targetChannel.id);
+        const serverId = this.activeServerId();
+        if (serverId) {
+            void this.router.navigate(['/channels', serverId, targetChannel.id]);
+        }
+
         if (targetChannel.type === 'voice') {
+            this.voiceService.isVoiceOverlayMinimized.set(false);
             this.joinVoiceChannel(targetChannel);
         } else {
-            this.activeChannelId.set(targetChannel.id);
             this.loadChannelMessages(targetChannel.id);
-            const serverId = this.activeServerId();
-            this.router.navigate(['/channels', serverId, targetChannel.id]);
         }
     }
 

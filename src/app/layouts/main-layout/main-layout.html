@@ -74,8 +74,16 @@
                         <button (click)="modalService.open('CREATE_CHANNEL')" class="sidebar-left__add-btn">+</button>
                     </div>
 
-                    @for (channel of serverService.activeServer()?.channels; track channel.id) {
-                    <div class="sidebar-left__channel-group">
+                    @for (channel of sortedChannels(); track channel.id) {
+                    <div class="sidebar-left__channel-group"
+                        [class.sidebar-left__channel-group--dragging]="draggedChannelId() === channel.id"
+                        [class.sidebar-left__channel-group--drag-over]="dragOverChannelId() === channel.id"
+                        [attr.draggable]="isServerOwner() ? 'true' : null"
+                        (dragstart)="onChannelDragStart($event, channel.id)"
+                        (dragend)="onChannelDragEnd($event)"
+                        (dragover)="onChannelDragOver($event, channel.id)"
+                        (dragleave)="onChannelDragLeave(channel.id)"
+                        (drop)="onChannelDrop($event, channel.id)">
                         <div class="sidebar-left__channel-wrapper">
                             <button (click)="serverService.selectChannel(channel)" class="sidebar-left__channel-item"
                                 [class.sidebar-left__channel-item--active]="channel.type === 'text' ? serverService.activeChannelId() === channel.id : voiceService.currentChannelId() === channel.id">
@@ -85,6 +93,9 @@
                                     <span class="sidebar-left__voice-count">{{ voiceService.getUsersInChannel(channel.id).length }}</span>
                                 }
                             </button>
+                            @if (isServerOwner()) {
+                                <span class="sidebar-left__channel-drag-handle" title="Kéo để sắp xếp kênh">⠿</span>
+                            }
                             <button (click)="serverService.deleteChannel(channel.id); $event.stopPropagation()"
                                 class="sidebar-left__channel-delete-btn" [title]="languageService.t('nav.deleteChannel')" [attr.aria-label]="languageService.t('nav.deleteChannel')">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -94,7 +105,7 @@
                             </button>
                         </div>
 
-                        <!-- LIVE PARTICIPANTS IN VOICE CHANNEL (DISCORD STYLE) -->
+                        <!-- LIVE PARTICIPANTS PREVIEW IN VOICE CHANNEL (DISCORD STYLE) -->
                         @if (channel.type === 'voice' && voiceService.getUsersInChannel(channel.id).length > 0) {
                             <div class="sidebar-left__voice-members">
                                 @for (vUser of voiceService.getUsersInChannel(channel.id); track vUser.socketId) {
@@ -110,6 +121,9 @@
                                             {{ vUser.displayName || vUser.username || 'Người dùng' }}
                                         </span>
                                         <div class="sidebar-left__voice-member-icons">
+                                            @if (vUser.isScreenSharing) {
+                                                <span class="sidebar-left__voice-icon text-indigo-400 font-bold" title="Đang phát màn hình Live">🖥️</span>
+                                            }
                                             @if (vUser.isMuted) {
                                                 <span class="sidebar-left__voice-icon" title="Tắt mic">🔇</span>
                                             }
@@ -269,3 +283,21 @@
 
 <!-- COMPONENT MODAL DÙNG CHUNG -->
 <app-modal></app-modal>
+
+<!-- DISCORD-STYLE FLOATING MINI-PLAYER BÊN PHẢI KHI SHARE MÀN HÌNH -->
+@if (voiceService.activeScreenShare()) {
+<div class="screenshare-pip-card">
+    <div class="screenshare-pip-header">
+        <div class="screenshare-pip-title">
+            <span class="live-badge">● LIVE</span>
+            <span class="screenshare-pip-name">Màn hình của {{ voiceService.activeScreenShare()?.displayName }}</span>
+        </div>
+        <div class="screenshare-pip-controls">
+            <button (click)="voiceService.activeScreenShare.set(null)" class="pip-close-btn" title="Thu nhỏ / Đóng">✕</button>
+        </div>
+    </div>
+    <div class="screenshare-pip-body">
+        <video class="screenshare-video" autoplay playsinline muted></video>
+    </div>
+</div>
+}
