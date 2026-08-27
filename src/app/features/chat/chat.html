@@ -29,10 +29,10 @@
                 <div class="voice-room__header-right">
                     <div class="voice-room__member-badge">
                         <span class="voice-room__member-dot"></span>
-                        {{ activeVoiceUsers().length }} Thành viên
+                        {{ activeVoiceUsers().length }} {{ languageService.t('voice.members') }}
                     </div>
-                    <button class="voice-room__minimize-btn" (click)="voiceService.minimizeVoiceOverlay()" title="Thu nhỏ (cuộc gọi vẫn tiếp tục)">
-                        🗕 Thu nhỏ
+                    <button class="voice-room__minimize-btn" (click)="voiceService.minimizeVoiceOverlay()" [title]="languageService.t('voice.minimizeHint')">
+                        🗕 {{ languageService.t('voice.minimize') }}
                     </button>
                 </div>
             </div>
@@ -52,7 +52,7 @@
                                     <span class="live-dot"></span>
                                     <span class="live-label">LIVE</span>
                                     <span class="live-who">{{ focusedScreenShare()!.displayName }}</span>
-                                    <span class="live-action">đang chia sẻ màn hình</span>
+                                    <span class="live-action">{{ languageService.t('voice.sharingScreen') }}</span>
                                 </div>
                             </div>
 
@@ -103,10 +103,10 @@
                         <div class="voice-room__empty">
                             <div class="voice-room__empty-card">
                                 <div class="voice-room__empty-icon">🔊</div>
-                                <h3>Chưa có ai trong kênh thoại này</h3>
-                                <p>Hãy bấm nút kết nối bên dưới để bắt đầu trò chuyện và chia sẻ màn hình!</p>
+                                <h3>{{ languageService.t('voice.noUsersTitle') }}</h3>
+                                <p>{{ languageService.t('voice.noUsersDesc') }}</p>
                                 <button class="dock-join-btn" (click)="joinCurrentVoiceChannel()">
-                                    🎙️ Tham gia Voice
+                                    🎙️ {{ languageService.t('voice.join') }}
                                 </button>
                             </div>
                         </div>
@@ -127,7 +127,7 @@
 
                                     <div class="voice-card__nameplate">
                                         <span style="font-size:12px">{{ user.isMuted ? '🔇' : '🎙️' }}</span>
-                                        <span class="voice-card__nameplate-name">{{ user.displayName || user.username || 'Người dùng' }}</span>
+                                        <span class="voice-card__nameplate-name">{{ user.displayName || user.username || 'User' }}</span>
                                         @if (user.isScreenSharing) {
                                             <span class="voice-card__live-badge">LIVE</span>
                                         }
@@ -142,9 +142,9 @@
                             @if (activeVoiceUsers().length === 1) {
                                 <div class="voice-card" style="background: rgba(20,21,25,0.8); border: 1px solid #232429; justify-content: center; gap: 16px">
                                     <span style="font-size:36px">🏆</span>
-                                    <span style="font-size:12px; color:#71717a; font-weight:600">Mời thêm bạn bè tham gia</span>
+                                    <span style="font-size:12px; color:#71717a; font-weight:600">{{ languageService.t('voice.inviteFriends') }}</span>
                                     <button class="voice-room__minimize-btn" (click)="modalService.open('INVITE_FRIENDS')" style="font-size:11px">
-                                        👥 Mời bạn bè
+                                        👥 {{ languageService.t('voice.inviteFriendsBtn') }}
                                     </button>
                                 </div>
                             }
@@ -157,28 +157,28 @@
             <!-- CONTROL DOCK -->
             <div class="voice-room__dock">
                 @if (isConnectedToActiveVoiceChannel()) {
-                    <button class="dock-btn" [class.dock-btn--muted]="voiceService.isMuted()" (click)="voiceService.toggleMute()" [title]="voiceService.isMuted() ? 'Bật Mic' : 'Tắt Mic'">
+                    <button class="dock-btn" [class.dock-btn--muted]="voiceService.isMuted()" (click)="voiceService.toggleMute()" [title]="voiceService.isMuted() ? languageService.t('voice.unmute') : languageService.t('voice.mute')">
                         {{ voiceService.isMuted() ? '🔇' : '🎙️' }}
                     </button>
 
-                    <button class="dock-btn" [class.dock-btn--cam]="voiceService.isCameraOn()" (click)="voiceService.toggleCamera()" [title]="voiceService.isCameraOn() ? 'Tắt Cam' : 'Bật Cam'">
+                    <button class="dock-btn" [class.dock-btn--cam]="voiceService.isCameraOn()" (click)="voiceService.toggleCamera()" [title]="voiceService.isCameraOn() ? languageService.t('voice.camOff') : languageService.t('voice.camOn')">
                         📹
                         @if (voiceService.isCameraOn()) { <span class="dock-btn__dot dock-btn__dot--green"></span> }
                     </button>
 
-                    <button class="dock-btn" [class.dock-btn--screen]="voiceService.isScreenSharing()" (click)="voiceService.toggleScreenShare()" [title]="voiceService.isScreenSharing() ? 'Dừng chia sẻ' : 'Chia sẻ màn hình'">
+                    <button class="dock-btn" [class.dock-btn--screen]="voiceService.isScreenSharing()" (click)="voiceService.toggleScreenShare()" [title]="voiceService.isScreenSharing() ? languageService.t('voice.stopScreenShare') : languageService.t('voice.screenShare')">
                         🖥️
                         @if (voiceService.isScreenSharing()) { <span class="dock-btn__dot dock-btn__dot--red"></span> }
                     </button>
 
                     <div class="dock-separator"></div>
 
-                    <button class="dock-btn dock-btn--leave" (click)="voiceService.leaveChannel()" title="Ngắt kết nối">
-                        📞 Thoát
+                    <button class="dock-btn dock-btn--leave" (click)="voiceService.leaveChannel()" [title]="languageService.t('voice.leave')">
+                        📞 {{ languageService.t('voice.leave') }}
                     </button>
                 } @else {
                     <button class="dock-join-btn" (click)="joinCurrentVoiceChannel()">
-                        🎙️ Tham gia Kênh thoại
+                        🎙️ {{ languageService.t('voice.join') }}
                     </button>
                 }
             </div>
@@ -193,15 +193,15 @@
         <div class="px-6 py-2.5 bg-[#18191c] border-b border-[#232428] flex items-center justify-between text-xs font-medium text-white shrink-0 z-30 shadow-md">
             <div class="flex items-center gap-2.5">
                 <span class="w-2.5 h-2.5 rounded-full bg-[#23a55a] animate-pulse"></span>
-                <span class="font-bold text-[#23a55a] uppercase tracking-wider text-[11px]">Đang trong cuộc gọi:</span>
+                <span class="font-bold text-[#23a55a] uppercase tracking-wider text-[11px]">{{ languageService.t('voice.inCall') }}</span>
                 <span class="font-bold text-white text-xs">🔊 {{ voiceService.currentChannelName() }}</span>
             </div>
             <div class="flex items-center gap-2">
                 <button (click)="voiceService.expandVoiceOverlay()" class="px-3.5 py-1.5 rounded-xl bg-[#23a55a] hover:bg-[#1db954] text-white font-bold text-xs flex items-center gap-1.5 transition shadow cursor-pointer">
-                    <span>⛶ Mở lại phòng Voice</span>
+                    <span>⛶ {{ languageService.t('voice.reopen') }}</span>
                 </button>
                 <button (click)="voiceService.leaveChannel()" class="px-3.5 py-1.5 rounded-xl bg-[#da373c] hover:bg-[#a1282c] text-white font-bold text-xs flex items-center gap-1.5 transition shadow cursor-pointer">
-                    <span>📞 Thoát Voice</span>
+                    <span>📞 {{ languageService.t('voice.leave') }}</span>
                 </button>
             </div>
         </div>
