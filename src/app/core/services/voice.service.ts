@@ -41,6 +41,7 @@ export class VoiceService {
   readonly isSpeaking = signal<boolean>(false);
   readonly isScreenSharing = signal<boolean>(false);
   readonly isCameraOn = signal<boolean>(false);
+  readonly isVoiceOverlayMinimized = signal<boolean>(false);
   readonly micLevel = signal<number>(0); // 0 - 100 VU Meter
   readonly activeScreenShare = signal<{ participantId: string; displayName: string; stream: MediaStream } | null>(null);
 
@@ -109,6 +110,7 @@ export class VoiceService {
     this.currentServerId.set(serverId);
     this.currentChannelId.set(channelId);
     this.currentChannelName.set(channelName);
+    this.isVoiceOverlayMinimized.set(false);
 
     try {
       const currentUser = this.authStore.user();
@@ -431,6 +433,18 @@ export class VoiceService {
       this.isScreenSharing.set(false);
       return false;
     }
+  }
+
+  // ==========================================
+  // --- MINIMIZE / EXPAND OVERLAY ---
+  // ==========================================
+
+  minimizeVoiceOverlay() {
+    this.isVoiceOverlayMinimized.set(true);
+  }
+
+  expandVoiceOverlay() {
+    this.isVoiceOverlayMinimized.set(false);
   }
 
   // ==========================================

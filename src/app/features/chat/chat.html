@@ -33,6 +33,14 @@
                         <span class="w-2 h-2 rounded-full bg-[#23a55a] animate-pulse"></span>
                         {{ activeVoiceUsers().length }} Thành viên
                     </span>
+
+                    <!-- Nút Thu nhỏ UI Voice Stage -->
+                    <button (click)="voiceService.minimizeVoiceOverlay()"
+                            class="px-3 py-1.5 rounded-xl bg-[#1e1f24] hover:bg-[#2b2d31] text-zinc-300 hover:text-white transition duration-150 text-xs font-bold flex items-center gap-1.5 border border-[#2b2d31] shadow-sm cursor-pointer"
+                            title="Thu nhỏ giao diện Voice Stage (Cuộc gọi thoại vẫn tiếp tục duy trì)">
+                        <span class="text-sm">🗕</span>
+                        <span>Thu nhỏ</span>
+                    </button>
                 </div>
             </div>
 
@@ -167,6 +175,25 @@
     } @else {
     <!-- KHUNG CHAT CHÍNH -->
     <div class="flex flex-1 flex-col h-full justify-between border-r border-[#1e1f24] min-w-0 min-h-0">
+
+        <!-- BANNER THÔNG BÁO CUỘC GỌI VOICE ĐANG CHẠY KHI ĐÃ THU NHỎ OVERLAY -->
+        @if (voiceService.isConnected() && voiceService.isVoiceOverlayMinimized()) {
+        <div class="px-6 py-2.5 bg-[#18191c] border-b border-[#232428] flex items-center justify-between text-xs font-medium text-white shrink-0 z-30 shadow-md">
+            <div class="flex items-center gap-2.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-[#23a55a] animate-pulse"></span>
+                <span class="font-bold text-[#23a55a] uppercase tracking-wider text-[11px]">Đang trong cuộc gọi:</span>
+                <span class="font-bold text-white text-xs">🔊 {{ voiceService.currentChannelName() }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <button (click)="voiceService.expandVoiceOverlay()" class="px-3.5 py-1.5 rounded-xl bg-[#23a55a] hover:bg-[#1db954] text-white font-bold text-xs flex items-center gap-1.5 transition shadow cursor-pointer">
+                    <span>⛶ Mở lại phòng Voice</span>
+                </button>
+                <button (click)="voiceService.leaveChannel()" class="px-3.5 py-1.5 rounded-xl bg-[#da373c] hover:bg-[#a1282c] text-white font-bold text-xs flex items-center gap-1.5 transition shadow cursor-pointer">
+                    <span>📞 Thoát Voice</span>
+                </button>
+            </div>
+        </div>
+        }
 
         <!-- 1. HEADER CHAT ĐỘNG -->
         <div class="flex items-center gap-3 px-6 py-3.5 border-b border-[#1e1f24] bg-[#0e0f12] shrink-0">

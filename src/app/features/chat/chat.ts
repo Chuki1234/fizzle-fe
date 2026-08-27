@@ -55,7 +55,9 @@ export class Chat implements OnInit {
     private apiConfig = inject(API_CONFIG, { optional: true });
 
     public isVoiceChannelActive = computed(() => {
-        return this.serverService.activeChannel()?.type === 'voice';
+        const activeCh = this.serverService.activeChannel();
+        if (activeCh?.type !== 'voice') return false;
+        return !this.voiceService.isVoiceOverlayMinimized();
     });
 
     public activeVoiceUsers = computed(() => {
