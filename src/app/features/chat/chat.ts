@@ -16,6 +16,8 @@ import { AuthStore } from '../../core/auth/auth.store';
 
 import { ChatMessage } from '../../core/models/friend.model';
 
+import { LanguageService } from '../../core/services/language.service';
+
 @Component({
     selector: 'fz-chat',
     standalone: true,
@@ -28,6 +30,7 @@ export class Chat implements OnInit {
     public friendService = inject(FriendService);
     public serverService = inject(ServerService);
     public authStore = inject(AuthStore);
+    public languageService = inject(LanguageService);
     private route = inject(ActivatedRoute);
     private cdr = inject(ChangeDetectorRef);
 
@@ -57,6 +60,7 @@ export class Chat implements OnInit {
                 this.serverService.activeServerId.set(serverId);
                 this.serverService.activeChannelId.set(channelId);
                 this.serverService.loadChannelMessages(channelId);
+                this.serverService.loadServerMembers(serverId);
             }
             // 2. Chat Trực Tiếp 1-1 Bạn bè
             else if (friendId) {
@@ -64,6 +68,18 @@ export class Chat implements OnInit {
                 this.serverService.activeServerId.set('');
             }
         });
+    }
+
+    get adminMembers() {
+        return this.serverService.activeServerMembers().filter(m => m.role === 'owner' || m.role === 'admin');
+    }
+
+    get modMembers() {
+        return this.serverService.activeServerMembers().filter(m => m.role === 'moderator');
+    }
+
+    get normalMembers() {
+        return this.serverService.activeServerMembers().filter(m => m.role === 'member' || !m.role);
     }
 
     onSendMessage(text: string) {

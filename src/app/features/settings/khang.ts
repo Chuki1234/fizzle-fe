@@ -11,7 +11,7 @@ import { Server } from '../../core/models/server.model';
 
 export interface SettingFeatureItem {
   id: string;
-  section: 'account-info' | 'profiles' | 'badges-presence' | 'accessibility' | 'privacy' | 'messaging' | 'notifications' | 'server-settings';
+  section: 'account-info' | 'profiles' | 'badges-presence' | 'accessibility' | 'privacy' | 'messaging' | 'notifications';
   sectionName: string;
   sectionIcon: string;
   title: string;
@@ -75,7 +75,7 @@ export class Khang {
 
   // Section Navigation matching the sample image
   activeSection = signal<
-    'account-info' | 'profiles' | 'badges-presence' | 'accessibility' | 'privacy' | 'messaging' | 'notifications' | 'server-settings'
+    'account-info' | 'profiles' | 'badges-presence' | 'accessibility' | 'privacy' | 'messaging' | 'notifications'
   >('account-info');
 
   // Accessibility & Language Signals
@@ -357,7 +357,7 @@ export class Khang {
     this.serverEditSuccess.set(false);
     this.showDeleteServerConfirm.set(false);
     this._clearServerDeleteFields();
-    this.activeSection.set('server-settings');
+    // Server settings are managed in the server settings panel, not user settings
   }
 
   /** Lưu tên server mới — xác thực trên BE, không cần password vì chỉ owner mới có server trong list */
@@ -625,7 +625,6 @@ export class Khang {
       | 'privacy'
       | 'messaging'
       | 'notifications'
-      | 'server-settings'
   ) {
     this.activeSection.set(section);
   }

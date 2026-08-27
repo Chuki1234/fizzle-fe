@@ -11,12 +11,28 @@
 
         <div class="server-divider"></div>
 
-        <!-- Vòng lặp các Server -->
-        @for (server of serverService.servers(); track server.id) {
-        <div (click)="serverService.selectServer(server.id)" class="server-icon-btn"
-            [class.server-icon-btn--active]="serverService.activeServerId() === server.id">
-            <span class="server-icon-text">{{ server.icon }}</span>
+        <!-- Vòng lặp các Server (Drag & Drop) -->
+        @for (server of sortedServers(); track server.id) {
+        <div
+            class="server-icon-btn"
+            [class.server-icon-btn--active]="serverService.activeServerId() === server.id"
+            [class.server-icon-btn--dragging]="draggedServerId() === server.id"
+            [class.server-icon-btn--drag-over]="dragOverServerId() === server.id"
+            draggable="true"
+            (dragstart)="onDragStart($event, server.id)"
+            (dragend)="onDragEnd($event)"
+            (dragover)="onDragOver($event, server.id)"
+            (dragleave)="onDragLeave(server.id)"
+            (drop)="onDrop($event, server.id)"
+            (click)="serverService.selectServer(server.id)">
+            @if (isImageUrl(server.icon)) {
+                <img [src]="server.icon" class="server-icon-img" alt="Server Avatar" />
+            } @else {
+                <span class="server-icon-text">{{ server.icon || (server.name ? server.name.charAt(0).toUpperCase() : 'S') }}</span>
+            }
             <span class="server-tooltip">{{ server.name }}</span>
+            <!-- Drag handle indicator -->
+            <span class="server-drag-handle" title="Kéo để sắp xếp">⠿</span>
         </div>
         }
 
@@ -36,7 +52,12 @@
 
             <div class="sidebar-left__server-header">
                 <span class="sidebar-left__server-title">{{ serverService.activeServer()?.name }}</span>
-                <span class="sidebar-left__dropdown-icon">▼</span>
+                <button (click)="modalService.open('SERVER_SETTINGS')" class="sidebar-left__settings-icon-btn" title="Cài đặt máy chủ">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                </button>
             </div>
 
             <!-- Nút Mời bạn bè vào Server (Discord style) -->

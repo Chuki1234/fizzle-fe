@@ -19,6 +19,11 @@ export class Dashboard {
   public modalService = inject(ModalService);
   public languageService = inject(LanguageService);
 
+  public isImageUrl(icon: string | undefined): boolean {
+    if (!icon) return false;
+    return icon.startsWith('http://') || icon.startsWith('https://') || icon.startsWith('data:image/') || icon.startsWith('/') || icon.includes('/');
+  }
+
   // Danh sách các luồng thoại/livestream từ các server thực tế
   public voiceChannels = computed(() => {
     const list: { server: Server; channel: Channel }[] = [];

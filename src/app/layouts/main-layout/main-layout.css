@@ -407,6 +407,13 @@
     color: #000;
 }
 
+.server-icon-img {
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    object-fit: cover;
+}
+
 .server-icon-btn--add {
     color: #10b981;
 }
@@ -437,6 +444,75 @@
 
 .server-icon-btn:hover .server-tooltip {
     opacity: 1;
+}
+
+/* --- DRAG & DROP STYLES --- */
+
+/* Server đang bị kéo - mờ đi */
+.server-icon-btn--dragging {
+    opacity: 0.4 !important;
+    transform: scale(0.95);
+    border-style: dashed !important;
+}
+
+/* Server đang là đích drop - highlight nổi bật */
+.server-icon-btn--drag-over {
+    border-color: #10b981 !important;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.5), 0 0 16px rgba(16, 185, 129, 0.3) !important;
+    transform: scale(1.1);
+    border-radius: 14px !important;
+}
+
+/* Drag handle - hiện ra khi hover */
+.server-drag-handle {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 14px;
+    height: 14px;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    line-height: 1;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.server-icon-btn:hover .server-drag-handle {
+    opacity: 1;
+}
+
+/* Cursor khi drag */
+.server-icon-btn[draggable="true"] {
+    cursor: grab;
+}
+
+.server-icon-btn[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+/* Drop indicator line giữa các server */
+.server-icon-btn--drag-over::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 3px;
+    background: #10b981;
+    border-radius: 2px;
+    animation: dropIndicatorPulse 0.8s ease infinite;
+}
+
+@keyframes dropIndicatorPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
 }
 
 /* Style cho Kênh Server */
@@ -587,6 +663,26 @@
     background-color: rgba(35, 165, 90, 0.2);
     border-color: rgba(35, 165, 90, 0.5);
     color: #2dc76d;
+}
+
+.sidebar-left__settings-icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: transparent;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+}
+
+.sidebar-left__settings-icon-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
 }
 
 /* ==========================================================================

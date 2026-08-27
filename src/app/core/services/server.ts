@@ -1,7 +1,7 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { Server, Channel } from '../models/server.model';
+import { Server, Channel, ServerMember } from '../models/server.model';
 import { ChatMessage } from '../models/friend.model';
 import { API_CONFIG } from '../http/api.config';
 import { SocketService } from './socket';
@@ -42,6 +42,7 @@ export class ServerService {
 
     activeServerId = signal<string>('');
     activeChannelId = signal<string>('');
+    activeServerMembers = signal<ServerMember[]>([]);
 
     activeServer = computed(() => this.servers().find(s => s.id === this.activeServerId()));
     activeChannel = computed(() => this.activeServer()?.channels.find(c => c.id === this.activeChannelId()));
@@ -135,6 +136,9 @@ export class ServerService {
 
             if (data.type === 'SERVER_UPDATED' && data.serverId) {
                 this.loadServers();
+                if (data.serverId === this.activeServerId()) {
+                    this.loadServerMembers(data.serverId);
+                }
             }
 
             if (data.type === 'SERVER_DELETED' && data.serverId) {
@@ -142,14 +146,15 @@ export class ServerService {
                 if (this.activeServerId() === data.serverId) {
                     this.activeServerId.set('');
                     this.activeChannelId.set('');
+                    this.activeServerMembers.set([]);
                     this.router.navigate(['/friends']);
                 }
             }
 
-            if (data.type === 'MEMBER_ADDED' && data.server) {
-                const currentUserId = this.authStore.user()?.id;
-                if (data.userId === currentUserId || (data.server.members && data.server.members.includes(currentUserId))) {
-                    this.loadServers();
+            if ((data.type === 'MEMBER_ADDED' || data.type === 'MEMBER_REMOVED') && data.serverId) {
+                this.loadServers();
+                if (data.serverId === this.activeServerId()) {
+                    this.loadServerMembers(data.serverId);
                 }
             }
         });
@@ -225,11 +230,13 @@ export class ServerService {
         if (!serverId) {
             this.activeServerId.set('');
             this.activeChannelId.set('');
+            this.activeServerMembers.set([]);
             this.router.navigate(['/friends']);
             return;
         }
 
         this.activeServerId.set(serverId);
+        this.loadServerMembers(serverId);
         const server = this.servers().find(s => s.id === serverId);
         const firstTextChannel = server?.channels.find(c => c.type === 'text');
         if (firstTextChannel) {
@@ -237,6 +244,44 @@ export class ServerService {
             this.loadChannelMessages(firstTextChannel.id);
             this.router.navigate(['/channels', serverId, firstTextChannel.id]);
         }
+    }
+
+    loadServerMembers(serverId: string) {
+        if (!serverId) {
+            this.activeServerMembers.set([]);
+            return;
+        }
+        this.http.get<ServerMember[]>(`${this.apiConfig.baseUrl}/servers/${serverId}/members`).subscribe({
+            next: (members) => {
+                if (members) {
+                    this.activeServerMembers.set(members);
+                }
+            },
+            error: (err) => console.warn(`Could not load members for server ${serverId}:`, err)
+        });
+    }
+
+    updateMemberRole(serverId: string, targetUserId: string, role: 'admin' | 'moderator' | 'member'): Promise<any> {
+        const userId = this.authStore.user()?.id || 'user';
+        return this.http.patch<any>(
+            `${this.apiConfig.baseUrl}/servers/${serverId}/members/${targetUserId}/role`,
+            { role },
+            { headers: { 'x-user-id': userId } }
+        ).toPromise().then((res) => {
+            this.loadServerMembers(serverId);
+            return res;
+        });
+    }
+
+    removeMember(serverId: string, targetUserId: string): Promise<any> {
+        const userId = this.authStore.user()?.id || 'user';
+        return this.http.delete<any>(
+            `${this.apiConfig.baseUrl}/servers/${serverId}/members/${targetUserId}`,
+            { headers: { 'x-user-id': userId } }
+        ).toPromise().then((res) => {
+            this.loadServerMembers(serverId);
+            return res;
+        });
     }
 
     selectChannel(channelOrId: Channel | string) {
@@ -283,9 +328,10 @@ export class ServerService {
         if (!name.trim()) return;
 
         const currentUserId = this.authStore.user()?.id;
+        const initialIcon = name.trim().charAt(0).toUpperCase() || '🔥';
         const payload = {
-            name: name,
-            icon: '🔥',
+            name: name.trim(),
+            icon: initialIcon,
             userId: currentUserId || 'user'
         };
 
@@ -301,8 +347,8 @@ export class ServerService {
 
                 const fallbackServer: Server = {
                     id: newServerId,
-                    name: name,
-                    icon: '🔥',
+                    name: name.trim(),
+                    icon: initialIcon,
                     channels: [
                         { id: defaultTextChannelId, name: 'thảo-luận-chung', type: 'text' },
                         { id: defaultVoiceChannelId, name: 'Phòng Chờ 🎙️', type: 'voice' }
