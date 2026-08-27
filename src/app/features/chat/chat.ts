@@ -387,18 +387,26 @@ export class Chat implements OnInit {
                             body: formData,
                             credentials: 'include',
                         });
-                        if (!res.ok) throw new Error('Upload thất bại');
+                        if (!res.ok) throw new Error(`Upload server error: ${res.status}`);
                         const data = await res.json() as { url: string; name: string; size: number; mimeType: string };
+                        const finalUrl = data.url.startsWith('http') ? data.url : `${backendBase}${data.url}`;
                         return {
-                            url: `${backendBase}${data.url}`,
+                            url: finalUrl,
                             name: data.name || p.name,
                             size: data.size || p.size,
                             type: p.type
                         };
-                    } catch {
-                        // Fallback: dùng object URL preview
+                    } catch (uploadErr) {
+                        console.warn('Upload lên backend thất bại, chuyển đổi sang Base64 để gửi đám mây:', uploadErr);
+                        // Fallback: convert to base64 Data URL so other users can see the image
+                        const base64Url = await new Promise<string>((resolve) => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => resolve(reader.result as string || p.previewUrl);
+                            reader.onerror = () => resolve(p.previewUrl);
+                            reader.readAsDataURL(p.file);
+                        });
                         return {
-                            url: p.previewUrl,
+                            url: base64Url,
                             name: p.name,
                             size: p.size,
                             type: p.type
