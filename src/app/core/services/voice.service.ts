@@ -19,6 +19,7 @@ export interface VoiceParticipant extends VoiceParticipantInfo {
   stream?: MediaStream;
   isScreenSharing?: boolean;
   isCameraOn?: boolean;
+  videoStream?: MediaStream;
 }
 
 @Injectable({
@@ -351,9 +352,40 @@ export class VoiceService {
     if (!this.room) return;
 
     const self = this.getSelfParticipant();
+    if (this.room.localParticipant) {
+      const isCam = this.room.localParticipant.isCameraEnabled;
+      const isScreen = this.room.localParticipant.isScreenShareEnabled;
+      self.isCameraOn = isCam;
+      self.isScreenSharing = isScreen;
+
+      let videoTrack: any = null;
+      if (isScreen) {
+        videoTrack = this.room.localParticipant.getTrackPublication(Track.Source.ScreenShare)?.track;
+      } else if (isCam) {
+        videoTrack = this.room.localParticipant.getTrackPublication(Track.Source.Camera)?.track;
+      }
+      if (videoTrack?.mediaStreamTrack) {
+        self.videoStream = new MediaStream([videoTrack.mediaStreamTrack]);
+      }
+    }
+
     const remoteList: VoiceParticipant[] = [];
 
     this.room.remoteParticipants.forEach((p: RemoteParticipant) => {
+      const isCam = p.isCameraEnabled;
+      const isScreen = p.isScreenShareEnabled;
+
+      let videoTrack: any = null;
+      if (isScreen) {
+        videoTrack = p.getTrackPublication(Track.Source.ScreenShare)?.track;
+      } else if (isCam) {
+        videoTrack = p.getTrackPublication(Track.Source.Camera)?.track;
+      }
+      let videoStream: MediaStream | undefined = undefined;
+      if (videoTrack?.mediaStreamTrack) {
+        videoStream = new MediaStream([videoTrack.mediaStreamTrack]);
+      }
+
       remoteList.push({
         socketId: p.sid,
         userId: p.identity,
@@ -362,7 +394,9 @@ export class VoiceService {
         isMuted: !p.isMicrophoneEnabled,
         isDeafened: false,
         isSpeaking: p.isSpeaking,
-        isScreenSharing: p.isScreenShareEnabled,
+        isScreenSharing: isScreen,
+        isCameraOn: isCam,
+        videoStream,
       });
     });
 

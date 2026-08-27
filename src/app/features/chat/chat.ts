@@ -27,6 +27,7 @@ import { AttachmentPreviewComponent, PendingAttachment } from './components/atta
 import { MediaViewerComponent } from './components/media-viewer/media-viewer.component';
 
 import { LanguageService } from '../../core/services/language.service';
+import { VideoStreamDirective } from '../../shared/directives/video-stream.directive';
 
 @Component({
     selector: 'fz-chat',
@@ -37,6 +38,7 @@ import { LanguageService } from '../../core/services/language.service';
         MediaPickerComponent,
         AttachmentPreviewComponent,
         MediaViewerComponent,
+        VideoStreamDirective,
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './chat.html',
@@ -71,6 +73,22 @@ export class Chat implements OnInit {
         return activeCh?.type === 'voice' &&
                this.voiceService.currentChannelId() === activeCh.id &&
                this.voiceService.isConnected();
+    });
+
+    // Participant đang chia sẻ màn hình (main focal point)
+    public focusedScreenShare = computed(() => {
+        const participants = this.voiceService.participants();
+        return participants.find(p => p.isScreenSharing && p.videoStream) || null;
+    });
+
+    // Tất cả participants có video (cam hoặc screen)
+    public participantsWithVideo = computed(() => {
+        return this.voiceService.participants().filter(p => p.videoStream);
+    });
+
+    // Số lượng participants có video active (dùng để tính layout)
+    public hasActiveVideo = computed(() => {
+        return this.voiceService.participants().some(p => p.videoStream);
     });
 
     public getUserCardBg(index: number): string {
