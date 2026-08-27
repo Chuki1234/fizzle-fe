@@ -15,7 +15,11 @@
         @for (server of serverService.servers(); track server.id) {
         <div (click)="serverService.selectServer(server.id)" class="server-icon-btn"
             [class.server-icon-btn--active]="serverService.activeServerId() === server.id">
-            <span class="server-icon-text">{{ server.icon }}</span>
+            @if (isImageIcon(server.icon)) {
+                <img [src]="server.icon" class="server-icon-img" [alt]="server.name" />
+            } @else {
+                <span class="server-icon-text">{{ getServerDisplayIcon(server) }}</span>
+            }
             <span class="server-tooltip">{{ server.name }}</span>
         </div>
         }

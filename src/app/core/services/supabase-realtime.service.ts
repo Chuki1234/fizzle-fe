@@ -17,9 +17,15 @@ export class SupabaseRealtimeService {
   // Multi-handler callback arrays
   private directMessageHandlers: Array<(senderId: string, recipientId: string, message: any) => void> = [];
   private channelMessageHandlers: Array<(channelId: string, message: any) => void> = [];
+  private directMessageDeletedHandlers: Array<(messageId: string) => void> = [];
+  private channelMessageDeletedHandlers: Array<(channelId: string, messageId: string) => void> = [];
+  private directReactionHandlers: Array<(data: { senderId: string; recipientId: string; messageId: string; reactions: Record<string, string[]> }) => void> = [];
+  private channelReactionHandlers: Array<(data: { channelId: string; messageId: string; reactions: Record<string, string[]> }) => void> = [];
   private friendshipChangeHandlers: Array<(payload: any) => void> = [];
   private serverChangeHandlers: Array<(payload: any) => void> = [];
   private profileChangeHandlers: Array<(payload: any) => void> = [];
+  private voiceRoomEventHandlers: Array<(data: any) => void> = [];
+  private serverInviteHandlers: Array<(data: any) => void> = [];
 
   init(userId: string) {
     if (!userId) return;
@@ -44,7 +50,7 @@ export class SupabaseRealtimeService {
           broadcast: { self: false },
         },
       })
-      // 1. Direct Messages via Postgres Changes
+      // 1. Direct Messages via Postgres Changes (INSERT & DELETE)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'direct_messages' },
@@ -68,7 +74,19 @@ export class SupabaseRealtimeService {
           });
         },
       )
-      // 2. Direct Messages via Direct Supabase Broadcast (Cross-machine / Cross-network instant sync)
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'direct_messages' },
+        (payload: { old: any }) => {
+          this.ngZone.run(() => {
+            const row = payload.old as any;
+            if (row?.id) {
+              this.directMessageDeletedHandlers.forEach(h => h(String(row.id)));
+            }
+          });
+        },
+      )
+      // 2. Direct Messages via Direct Supabase Broadcast
       .on(
         'broadcast',
         { event: 'dm_message' },
@@ -82,7 +100,7 @@ export class SupabaseRealtimeService {
           });
         },
       )
-      // 3. Channel Messages via Postgres Changes
+      // 3. Channel Messages via Postgres Changes (INSERT & DELETE)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'channel_messages' },
@@ -105,6 +123,18 @@ export class SupabaseRealtimeService {
           });
         },
       )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'channel_messages' },
+        (payload: { old: any }) => {
+          this.ngZone.run(() => {
+            const row = (payload as any)['old'] || payload.old;
+            if (row?.id) {
+              this.channelMessageDeletedHandlers.forEach(h => h(row.channel_id || '', String(row.id)));
+            }
+          });
+        },
+      )
       // 4. Channel Messages via Direct Supabase Broadcast
       .on(
         'broadcast',
@@ -117,7 +147,30 @@ export class SupabaseRealtimeService {
           });
         },
       )
-      // 5. Cloud Voice Signaling via Supabase Broadcast (100% Cross-machine / Cross-network voice sync)
+      // 4b. Message Reactions via Broadcast
+      .on(
+        'broadcast',
+        { event: 'channel_reaction' },
+        (payload: any) => {
+          this.ngZone.run(() => {
+            const data = payload && payload['payload'] ? payload['payload'] : payload;
+            if (!data?.channelId || !data?.messageId || !data?.reactions) return;
+            this.channelReactionHandlers.forEach(h => h(data));
+          });
+        },
+      )
+      .on(
+        'broadcast',
+        { event: 'dm_reaction' },
+        (payload: any) => {
+          this.ngZone.run(() => {
+            const data = payload && payload['payload'] ? payload['payload'] : payload;
+            if (!data?.messageId || !data?.reactions) return;
+            this.directReactionHandlers.forEach(h => h(data));
+          });
+        },
+      )
+      // 5. Cloud Voice Signaling via Supabase Broadcast
       .on(
         'broadcast',
         { event: 'voice_room_event' },
@@ -191,10 +244,6 @@ export class SupabaseRealtimeService {
       });
   }
 
-  // Multi-handler callback arrays
-  private voiceRoomEventHandlers: Array<(data: any) => void> = [];
-  private serverInviteHandlers: Array<(data: any) => void> = [];
-
   // --- Broadcast Send Helpers ---
   broadcastDirectMessage(senderId: string, recipientId: string, message: any) {
     if (!this.channel) return;
@@ -253,6 +302,48 @@ export class SupabaseRealtimeService {
   registerChannelMessageHandler(handler: (channelId: string, message: any) => void) {
     if (!this.channelMessageHandlers.includes(handler)) {
       this.channelMessageHandlers.push(handler);
+    }
+  }
+
+  broadcastDirectReaction(senderId: string, recipientId: string, messageId: string, reactions: Record<string, string[]>) {
+    if (!this.channel) return;
+    this.channel.send({
+      type: 'broadcast',
+      event: 'dm_reaction',
+      payload: { senderId, recipientId, messageId, reactions },
+    });
+  }
+
+  broadcastChannelReaction(channelId: string, messageId: string, reactions: Record<string, string[]>) {
+    if (!this.channel) return;
+    this.channel.send({
+      type: 'broadcast',
+      event: 'channel_reaction',
+      payload: { channelId, messageId, reactions },
+    });
+  }
+
+  registerDirectReactionHandler(handler: (data: { senderId: string; recipientId: string; messageId: string; reactions: Record<string, string[]> }) => void) {
+    if (!this.directReactionHandlers.includes(handler)) {
+      this.directReactionHandlers.push(handler);
+    }
+  }
+
+  registerChannelReactionHandler(handler: (data: { channelId: string; messageId: string; reactions: Record<string, string[]> }) => void) {
+    if (!this.channelReactionHandlers.includes(handler)) {
+      this.channelReactionHandlers.push(handler);
+    }
+  }
+
+  registerDirectMessageDeletedHandler(handler: (messageId: string) => void) {
+    if (!this.directMessageDeletedHandlers.includes(handler)) {
+      this.directMessageDeletedHandlers.push(handler);
+    }
+  }
+
+  registerChannelMessageDeletedHandler(handler: (channelId: string, messageId: string) => void) {
+    if (!this.channelMessageDeletedHandlers.includes(handler)) {
+      this.channelMessageDeletedHandlers.push(handler);
     }
   }
 

@@ -24,6 +24,12 @@ export class SocketService {
   // Multi-handler callback registries
   private channelMessageHandlers: Array<(channelId: string, message: any) => void> = [];
   private directMessageHandlers: Array<(senderId: string, targetId: string, message: any) => void> = [];
+  private channelTypingHandlers: Array<(data: { channelId: string; userId: string; displayName: string; isTyping: boolean }) => void> = [];
+  private dmTypingHandlers: Array<(data: { recipientId: string; userId: string; displayName: string; isTyping: boolean }) => void> = [];
+  private channelMessageDeletedHandlers: Array<(data: { channelId: string; messageId: string }) => void> = [];
+  private directMessageDeletedHandlers: Array<(data: { friendId: string; senderId?: string; recipientId?: string; messageId: string }) => void> = [];
+  private channelReactionHandlers: Array<(data: { channelId: string; messageId: string; reactions: Record<string, string[]> }) => void> = [];
+  private directReactionHandlers: Array<(data: { senderId?: string; recipientId?: string; messageId: string; reactions: Record<string, string[]> }) => void> = [];
   private friendRequestHandlers: Array<(data: any) => void> = [];
   private friendAcceptedHandlers: Array<(data: any) => void> = [];
   private serverInviteHandlers: Array<(data: any) => void> = [];
@@ -120,6 +126,57 @@ export class SocketService {
       this.ngZone.run(() => {
         if (data?.senderId && data?.recipientId && data?.message) {
           this.directMessageHandlers.forEach((h) => h(data.senderId, data.recipientId, data.message));
+        }
+      });
+    });
+
+    // ---- TYPING INDICATOR EVENTS ----
+    this.socket.on('channel_typing', (data: any) => {
+      this.ngZone.run(() => {
+        if (data?.channelId && data?.userId) {
+          this.channelTypingHandlers.forEach((h) => h(data));
+        }
+      });
+    });
+
+    this.socket.on('dm_typing', (data: any) => {
+      this.ngZone.run(() => {
+        if (data?.userId) {
+          this.dmTypingHandlers.forEach((h) => h(data));
+        }
+      });
+    });
+
+    // ---- MESSAGE DELETED EVENTS ----
+    this.socket.on('channel_message_deleted', (data: any) => {
+      this.ngZone.run(() => {
+        if (data?.channelId && data?.messageId) {
+          this.channelMessageDeletedHandlers.forEach((h) => h(data));
+        }
+      });
+    });
+
+    this.socket.on('direct_message_deleted', (data: any) => {
+      this.ngZone.run(() => {
+        if (data?.messageId) {
+          this.directMessageDeletedHandlers.forEach((h) => h(data));
+        }
+      });
+    });
+
+    // ---- MESSAGE REACTION EVENTS ----
+    this.socket.on('channel_message_reaction', (data: any) => {
+      this.ngZone.run(() => {
+        if (data?.channelId && data?.messageId && data?.reactions) {
+          this.channelReactionHandlers.forEach((h) => h(data));
+        }
+      });
+    });
+
+    this.socket.on('direct_message_reaction', (data: any) => {
+      this.ngZone.run(() => {
+        if (data?.messageId && data?.reactions) {
+          this.directReactionHandlers.forEach((h) => h(data));
         }
       });
     });
@@ -237,6 +294,42 @@ export class SocketService {
     }
   }
 
+  registerChannelTypingHandler(handler: (data: { channelId: string; userId: string; displayName: string; isTyping: boolean }) => void) {
+    if (!this.channelTypingHandlers.includes(handler)) {
+      this.channelTypingHandlers.push(handler);
+    }
+  }
+
+  registerDmTypingHandler(handler: (data: { recipientId: string; userId: string; displayName: string; isTyping: boolean }) => void) {
+    if (!this.dmTypingHandlers.includes(handler)) {
+      this.dmTypingHandlers.push(handler);
+    }
+  }
+
+  registerChannelMessageDeletedHandler(handler: (data: { channelId: string; messageId: string }) => void) {
+    if (!this.channelMessageDeletedHandlers.includes(handler)) {
+      this.channelMessageDeletedHandlers.push(handler);
+    }
+  }
+
+  registerDirectMessageDeletedHandler(handler: (data: { friendId: string; senderId?: string; recipientId?: string; messageId: string }) => void) {
+    if (!this.directMessageDeletedHandlers.includes(handler)) {
+      this.directMessageDeletedHandlers.push(handler);
+    }
+  }
+
+  registerChannelReactionHandler(handler: (data: { channelId: string; messageId: string; reactions: Record<string, string[]> }) => void) {
+    if (!this.channelReactionHandlers.includes(handler)) {
+      this.channelReactionHandlers.push(handler);
+    }
+  }
+
+  registerDirectReactionHandler(handler: (data: { senderId?: string; recipientId?: string; messageId: string; reactions: Record<string, string[]> }) => void) {
+    if (!this.directReactionHandlers.includes(handler)) {
+      this.directReactionHandlers.push(handler);
+    }
+  }
+
   registerFriendRequestHandler(handler: (data: any) => void) {
     if (!this.friendRequestHandlers.includes(handler)) {
       this.friendRequestHandlers.push(handler);
@@ -267,8 +360,7 @@ export class SocketService {
     }
   }
 
-  // --- Voice Handlers Registration ---
-
+  // Voice Handlers Registration
   registerVoiceRoomUsersHandler(handler: (data: { channelId: string; users: VoiceParticipantInfo[] }) => void) {
     if (!this.voiceRoomUsersHandlers.includes(handler)) {
       this.voiceRoomUsersHandlers.push(handler);
@@ -306,6 +398,14 @@ export class SocketService {
   }
 
   // --- Emit Methods ---
+
+  sendChannelTyping(channelId: string, userId: string, displayName: string, isTyping: boolean) {
+    this.socket?.emit('channel_typing', { channelId, userId, displayName, isTyping });
+  }
+
+  sendDmTyping(recipientId: string, userId: string, displayName: string, isTyping: boolean) {
+    this.socket?.emit('dm_typing', { recipientId, userId, displayName, isTyping });
+  }
 
   joinRoom(roomId: string) {
     this.socket?.emit('join_room', { roomId });
