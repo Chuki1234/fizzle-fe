@@ -18,6 +18,7 @@ export interface VoiceParticipant extends VoiceParticipantInfo {
   audioElement?: HTMLAudioElement;
   stream?: MediaStream;
   isScreenSharing?: boolean;
+  isCameraOn?: boolean;
 }
 
 @Injectable({
@@ -39,6 +40,7 @@ export class VoiceService {
   readonly isDeafened = signal<boolean>(false);
   readonly isSpeaking = signal<boolean>(false);
   readonly isScreenSharing = signal<boolean>(false);
+  readonly isCameraOn = signal<boolean>(false);
   readonly micLevel = signal<number>(0); // 0 - 100 VU Meter
   readonly activeScreenShare = signal<{ participantId: string; displayName: string; stream: MediaStream } | null>(null);
 
@@ -60,6 +62,8 @@ export class VoiceService {
         this.voiceChannelsUsers.set(states || {});
       });
     });
+    // Trực tiếp yêu cầu server phát danh sách người trong các kênh voice ngay khi service chạy
+    setTimeout(() => this.socketService.requestVoiceStates(), 500);
   }
 
   getSelfParticipant(): VoiceParticipant {
@@ -77,12 +81,13 @@ export class VoiceService {
       isDeafened: this.isDeafened(),
       isSpeaking: this.isSpeaking(),
       isScreenSharing: this.isScreenSharing(),
+      isCameraOn: this.isCameraOn(),
     };
   }
 
   getUsersInChannel(channelId: string): VoiceParticipant[] {
     const curId = this.currentChannelId();
-    if (curId === channelId && this.participants().length > 0) {
+    if (curId === channelId && this.isConnected() && this.participants().length > 0) {
       return this.participants();
     }
     const map = this.voiceChannelsUsers();
@@ -206,8 +211,13 @@ export class VoiceService {
     this.isConnected.set(false);
     this.isConnecting.set(false);
     this.isSpeaking.set(false);
+    this.isScreenSharing.set(false);
+    this.isCameraOn.set(false);
     this.micLevel.set(0);
     this.participants.set([]);
+
+    // Yêu cầu server phát lại voice states mới cho tất cả client
+    setTimeout(() => this.socketService.requestVoiceStates(), 300);
   }
 
   // ==========================================
@@ -363,6 +373,25 @@ export class VoiceService {
         ...map,
         [curChannelId]: [self, ...remoteList],
       }));
+    }
+  }
+
+  // ==========================================
+  // --- WEBCAM CAMERA (BẬT/TẮT CAMERA) ---
+  // ==========================================
+
+  async toggleCamera(): Promise<boolean> {
+    if (!this.room || !this.isConnected()) return false;
+    try {
+      const nextState = !this.isCameraOn();
+      await this.room.localParticipant.setCameraEnabled(nextState);
+      this.isCameraOn.set(nextState);
+      this.updateParticipantsList();
+      return nextState;
+    } catch (err) {
+      console.error('[LiveKit] Error toggling camera:', err);
+      this.isCameraOn.set(false);
+      return false;
     }
   }
 

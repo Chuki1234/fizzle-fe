@@ -637,88 +637,94 @@
     opacity: 1;
 }
 
-/* --- LIVEKIT SCREEN SHARE OVERLAY MODAL --- */
-.screenshare-overlay {
+/* --- DISCORD-STYLE FLOATING MINI-PLAYER BÊN PHẢI --- */
+.screenshare-pip-card {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(8px);
-    z-index: 99999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-    animation: fadeIn 0.2s ease-out;
-}
-
-.screenshare-window {
-    width: 100%;
-    max-width: 1100px;
-    height: 85vh;
-    background-color: #0f1013;
-    border: 1px solid #272930;
-    border-radius: 16px;
+    bottom: 24px;
+    right: 24px;
+    width: 380px;
+    height: 240px;
+    background-color: #111214;
+    border: 1px solid #2b2d31;
+    border-radius: 12px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 20px rgba(99, 102, 241, 0.2);
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    z-index: 99999;
+    animation: slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.screenshare-header {
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(40px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+.screenshare-pip-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 20px;
-    background-color: #16171d;
-    border-bottom: 1px solid #23252d;
+    padding: 8px 12px;
+    background-color: #18191c;
+    border-bottom: 1px solid #232428;
 }
 
-.screenshare-title {
+.screenshare-pip-title {
     display: flex;
     align-items: center;
-    gap: 10px;
-    color: #ffffff;
+    gap: 8px;
+    min-width: 0;
+}
+
+.screenshare-pip-name {
+    font-size: 12px;
     font-weight: 600;
-    font-size: 15px;
+    color: #f2f3f5;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .live-badge {
     background-color: #ef4444;
     color: #ffffff;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 800;
-    padding: 2px 8px;
+    padding: 2px 6px;
     border-radius: 4px;
     letter-spacing: 0.5px;
     animation: pulse 1.5s infinite;
 }
 
-.screenshare-close-btn {
+.pip-close-btn {
     background: transparent;
     border: none;
-    color: #9ca3af;
-    font-size: 18px;
+    color: #949ba4;
+    font-size: 14px;
     cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 6px;
+    padding: 2px 6px;
+    border-radius: 4px;
     transition: all 0.15s ease;
 }
 
-.screenshare-close-btn:hover {
-    background-color: rgba(239, 68, 68, 0.2);
-    color: #f87171;
+.pip-close-btn:hover {
+    background-color: rgba(242, 63, 67, 0.2);
+    color: #f23f43;
 }
 
-.screenshare-body {
+.screenshare-pip-body {
     flex: 1;
     background-color: #000000;
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
 }
 
 .screenshare-video {

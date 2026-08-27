@@ -284,22 +284,20 @@
 <!-- COMPONENT MODAL DÙNG CHUNG -->
 <app-modal></app-modal>
 
-<!-- LIVEKIT SCREEN SHARE VIDEO WINDOW OVERLAY -->
+<!-- DISCORD-STYLE FLOATING MINI-PLAYER BÊN PHẢI KHI SHARE MÀN HÌNH -->
 @if (voiceService.activeScreenShare()) {
-<div class="screenshare-overlay">
-    <div class="screenshare-window">
-        <div class="screenshare-header">
-            <div class="screenshare-title">
-                <span class="live-badge">● LIVE</span>
-                <span>Màn hình của {{ voiceService.activeScreenShare()?.displayName }}</span>
-            </div>
-            <div class="screenshare-actions">
-                <button (click)="voiceService.activeScreenShare.set(null)" class="screenshare-close-btn" title="Thu nhỏ / Ẩn">✕</button>
-            </div>
+<div class="screenshare-pip-card">
+    <div class="screenshare-pip-header">
+        <div class="screenshare-pip-title">
+            <span class="live-badge">● LIVE</span>
+            <span class="screenshare-pip-name">Màn hình của {{ voiceService.activeScreenShare()?.displayName }}</span>
         </div>
-        <div class="screenshare-body">
-            <video class="screenshare-video" autoplay playsinline muted></video>
+        <div class="screenshare-pip-controls">
+            <button (click)="voiceService.activeScreenShare.set(null)" class="pip-close-btn" title="Thu nhỏ / Đóng">✕</button>
         </div>
+    </div>
+    <div class="screenshare-pip-body">
+        <video class="screenshare-video" autoplay playsinline muted></video>
     </div>
 </div>
 }
