@@ -109,8 +109,11 @@ import { AuthStore } from '../../../core/auth/auth.store';
                 </span>
               </div>
 
-              <!-- Indicators: Speaking / Muted / Deafened -->
+              <!-- Indicators: Speaking / Muted / Deafened / ScreenSharing -->
               <div class="flex items-center gap-1 shrink-0">
+                @if (user.isScreenSharing) {
+                  <span class="text-[10px] bg-indigo-500/20 text-indigo-400 px-1 py-0.5 rounded font-bold" title="Đang chia sẻ màn hình">🖥️ Live</span>
+                }
                 @if (user.isSpeaking && !user.isMuted) {
                   <span class="text-[10px] text-[#23a55a] font-bold animate-pulse">● Đang nói</span>
                 }
@@ -125,14 +128,14 @@ import { AuthStore } from '../../../core/auth/auth.store';
           }
         </div>
 
-        <!-- Control Action Bar (Mute / Deafen) -->
+        <!-- Control Action Bar (Mute / Deafen / Screen Share) -->
         <div class="p-2 pt-1 flex items-center gap-1.5">
           <!-- Mute Button -->
           <button (click)="voiceService.toggleMute()" 
                   [class.bg-[#f23f43]/20]="voiceService.isMuted()"
                   [class.text-[#f23f43]]="voiceService.isMuted()"
                   [class.text-zinc-300]="!voiceService.isMuted()"
-                  class="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md bg-[#1e1f22] hover:bg-[#2b2d31] hover:text-white text-xs font-semibold transition-all duration-150 cursor-pointer shadow-sm"
+                  class="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-md bg-[#1e1f22] hover:bg-[#2b2d31] hover:text-white text-xs font-semibold transition-all duration-150 cursor-pointer shadow-sm"
                   [title]="voiceService.isMuted() ? 'Bật Mic' : 'Tắt Mic'">
             <span>{{ voiceService.isMuted() ? '🔇' : '🎙️' }}</span>
             <span>{{ voiceService.isMuted() ? 'Tắt Mic' : 'Mic' }}</span>
@@ -143,10 +146,21 @@ import { AuthStore } from '../../../core/auth/auth.store';
                   [class.bg-[#f23f43]/20]="voiceService.isDeafened()"
                   [class.text-[#f23f43]]="voiceService.isDeafened()"
                   [class.text-zinc-300]="!voiceService.isDeafened()"
-                  class="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md bg-[#1e1f22] hover:bg-[#2b2d31] hover:text-white text-xs font-semibold transition-all duration-150 cursor-pointer shadow-sm"
+                  class="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-md bg-[#1e1f22] hover:bg-[#2b2d31] hover:text-white text-xs font-semibold transition-all duration-150 cursor-pointer shadow-sm"
                   [title]="voiceService.isDeafened() ? 'Bật âm thanh' : 'Tắt âm thanh (Deafen)'">
             <span>{{ voiceService.isDeafened() ? '🔕' : '🎧' }}</span>
             <span>{{ voiceService.isDeafened() ? 'Điếc' : 'Loa' }}</span>
+          </button>
+
+          <!-- Screen Share Button -->
+          <button (click)="voiceService.toggleScreenShare()" 
+                  [class.bg-indigo-600]="voiceService.isScreenSharing()"
+                  [class.text-white]="voiceService.isScreenSharing()"
+                  [class.text-zinc-300]="!voiceService.isScreenSharing()"
+                  class="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-md bg-[#1e1f22] hover:bg-[#2b2d31] hover:text-white text-xs font-semibold transition-all duration-150 cursor-pointer shadow-sm"
+                  [title]="voiceService.isScreenSharing() ? 'Dừng chia sẻ màn hình' : 'Chia sẻ màn hình LiveKit'">
+            <span>🖥️</span>
+            <span>{{ voiceService.isScreenSharing() ? 'Dừng' : 'Màn hình' }}</span>
           </button>
         </div>
 
