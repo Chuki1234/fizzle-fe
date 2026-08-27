@@ -12,6 +12,159 @@
         </div>
     }
 
+    <!-- TRƯỜNG HỢP KÊNH VOICE CHAT (DISCORD STAGE UI) -->
+    @if (isVoiceChannelActive()) {
+        <div class="flex flex-1 flex-col h-full justify-between bg-[#0b0c0e] min-w-0 min-h-0 relative overflow-hidden select-none">
+            
+            <!-- 1. HEADER CHAT KÊNH THOẠI DISCORD -->
+            <div class="flex items-center justify-between px-6 py-3.5 border-b border-[#1e1f24] bg-[#0e0f12] shrink-0 z-20">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-[#1b1d22] text-[#23a55a] font-bold flex items-center justify-center text-base border border-[#2a2c33]">
+                        🔊
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold text-white text-base tracking-tight">{{ serverService.activeChannel()?.name }}</span>
+                        <span class="text-xs text-zinc-500 font-medium">({{ serverService.activeServer()?.name }})</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <span class="text-xs font-semibold px-3 py-1 rounded-full bg-[#23a55a]/15 text-[#23a55a] border border-[#23a55a]/30 flex items-center gap-1.5 shadow-sm">
+                        <span class="w-2 h-2 rounded-full bg-[#23a55a] animate-pulse"></span>
+                        {{ activeVoiceUsers().length }} Thành viên
+                    </span>
+                </div>
+            </div>
+
+            <!-- 2. CANVAS / STAGE CÁC THÀNH VIÊN TRONG PHÒNG THOẠI -->
+            <div class="flex-1 p-6 flex flex-col items-center justify-center min-h-0 overflow-y-auto">
+                <div class="w-full max-w-5xl flex-1 flex flex-wrap items-center justify-center gap-6 max-h-[70vh] my-auto">
+                    
+                    @for (user of activeVoiceUsers(); track user.socketId; let idx = $index) {
+                    <div class="relative rounded-3xl overflow-hidden flex flex-col items-center justify-center transition-all duration-200 shadow-2xl flex-1 min-w-[300px] max-w-[500px] h-[260px] border border-white/5"
+                         [style.background]="getUserCardBg(idx)"
+                         [class.ring-4]="user.isSpeaking && !user.isMuted"
+                         [class.ring-[#23a55a]]="user.isSpeaking && !user.isMuted"
+                         [class.shadow-[0_0_35px_rgba(35,165,90,0.4)]]="user.isSpeaking && !user.isMuted">
+                        
+                        <!-- Circular Avatar với Speaking Glow Ring -->
+                        <div class="relative w-28 h-28 rounded-full flex items-center justify-center text-4xl font-bold text-white shadow-2xl transition-all duration-200"
+                             [class.ring-4]="user.isSpeaking && !user.isMuted"
+                             [class.ring-[#23a55a]]="user.isSpeaking && !user.isMuted"
+                             [class.scale-105]="user.isSpeaking && !user.isMuted">
+                            @if (user.avatarUrl) {
+                                <img [src]="user.avatarUrl" class="w-full h-full rounded-full object-cover" alt="avatar" />
+                            } @else {
+                                <span>{{ (user.displayName || user.username || 'U').charAt(0).toUpperCase() }}</span>
+                            }
+                            @if (user.isSpeaking && !user.isMuted) {
+                                <span class="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-[#23a55a] ring-2 ring-[#0b0c0e] animate-ping"></span>
+                            }
+                        </div>
+
+                        <!-- Nameplate Pill Badge Bottom Left -->
+                        <div class="absolute bottom-4 left-4 bg-[#111214]/85 backdrop-blur-md px-3.5 py-1.5 rounded-xl flex items-center gap-2 border border-white/10 shadow-lg">
+                            @if (user.isMuted) {
+                                <span class="text-xs text-[#f23f43]" title="Tắt mic">🔇</span>
+                            } @else {
+                                <span class="text-xs text-[#23a55a]">🎙️</span>
+                            }
+                            
+                            <span class="text-xs font-bold text-white tracking-wide truncate max-w-[160px]">
+                                {{ user.displayName || user.username || 'Người dùng' }}
+                            </span>
+
+                            @if (user.isScreenSharing) {
+                                <span class="text-[9px] bg-indigo-600 text-white px-1.5 py-0.5 rounded font-extrabold tracking-wider">LIVE</span>
+                            }
+                        </div>
+                    </div>
+                    }
+
+                    <!-- Empty Slot Card Placeholder (Matching Discord Screenshot) -->
+                    @if (activeVoiceUsers().length === 0) {
+                    <div class="rounded-3xl border-2 border-dashed border-[#2b2d31] bg-[#141519]/70 flex flex-col items-center justify-center p-10 text-center max-w-md shadow-2xl">
+                        <div class="w-16 h-16 rounded-full bg-[#23a55a]/10 text-[#23a55a] flex items-center justify-center text-3xl mb-4 animate-bounce">🔊</div>
+                        <h3 class="text-xl font-bold text-white">Chưa có ai trong kênh thoại này</h3>
+                        <p class="text-xs text-zinc-400 mt-2 leading-relaxed">Hãy bấm nút kết nối ngay bên dưới để bắt đầu trò chuyện và truyền phát màn hình cùng mọi người!</p>
+                        
+                        <button (click)="joinCurrentVoiceChannel()" 
+                                class="mt-6 px-7 py-3 rounded-2xl bg-[#23a55a] hover:bg-[#1db954] text-white font-bold text-sm shadow-xl shadow-[#23a55a]/25 transition duration-150 cursor-pointer flex items-center gap-2.5">
+                            <span>🎙️ Tham gia Voice</span>
+                        </button>
+                    </div>
+                    } @else if (activeVoiceUsers().length === 1) {
+                    <!-- Action slot card matching Discord screenshot "Invite to Voice / Choose Activity" -->
+                    <div class="rounded-3xl bg-[#141519]/80 border border-[#232429] flex flex-col items-center justify-center p-8 text-center min-w-[300px] max-w-[500px] h-[260px] shadow-2xl backdrop-blur-md">
+                        <div class="text-4xl mb-3">🏆</div>
+                        <span class="text-xs font-semibold text-zinc-400 mb-5">Mời thêm bạn bè tham gia kênh thoại cùng bạn</span>
+                        
+                        <div class="flex items-center gap-3">
+                            <button (click)="modalService.open('INVITE_FRIENDS')" 
+                                    class="px-5 py-2.5 rounded-xl bg-[#2b2d31] hover:bg-[#35373c] text-white font-bold text-xs transition cursor-pointer flex items-center gap-2 shadow-md">
+                                <span>👥</span> Mời bạn bè
+                            </button>
+                        </div>
+                    </div>
+                    }
+
+                </div>
+            </div>
+
+            <!-- 3. DISCORD FLOATING CONTROL PILL DOCK (BOTTOM CENTER) -->
+            <div class="absolute bottom-7 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 px-5 py-3 rounded-2xl bg-[#111214]/90 backdrop-blur-xl border border-[#2b2d31] shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
+                
+                @if (isConnectedToActiveVoiceChannel()) {
+                    <!-- Mute Button -->
+                    <button (click)="voiceService.toggleMute()"
+                            [class.bg-[#f23f43]]="voiceService.isMuted()"
+                            [class.text-white]="voiceService.isMuted()"
+                            [class.bg-[#2b2d31]]="!voiceService.isMuted()"
+                            [class.hover:bg-[#35373c]]="!voiceService.isMuted()"
+                            class="w-12 h-12 rounded-2xl flex items-center justify-center text-xl transition duration-150 cursor-pointer shadow-md"
+                            [title]="voiceService.isMuted() ? 'Bật Mic' : 'Tắt Mic'">
+                        <span>{{ voiceService.isMuted() ? '🔇' : '🎙️' }}</span>
+                    </button>
+
+                    <!-- Camera Button -->
+                    <button (click)="voiceService.toggleCamera()"
+                            [class.bg-emerald-600]="voiceService.isCameraOn()"
+                            [class.bg-[#2b2d31]]="!voiceService.isCameraOn()"
+                            [class.hover:bg-[#35373c]]="!voiceService.isCameraOn()"
+                            class="w-12 h-12 rounded-2xl flex items-center justify-center text-xl transition duration-150 cursor-pointer text-white shadow-md"
+                            [title]="voiceService.isCameraOn() ? 'Tắt Cam' : 'Bật Cam'">
+                        <span>📹</span>
+                    </button>
+
+                    <!-- Screen Share Button -->
+                    <button (click)="voiceService.toggleScreenShare()"
+                            [class.bg-indigo-600]="voiceService.isScreenSharing()"
+                            [class.bg-[#2b2d31]]="!voiceService.isScreenSharing()"
+                            [class.hover:bg-[#35373c]]="!voiceService.isScreenSharing()"
+                            class="w-12 h-12 rounded-2xl flex items-center justify-center text-xl transition duration-150 cursor-pointer text-white shadow-md"
+                            [title]="voiceService.isScreenSharing() ? 'Dừng chia sẻ màn hình' : 'Chia sẻ màn hình LiveKit'">
+                        <span>🖥️</span>
+                    </button>
+
+                    <!-- Disconnect Red Button -->
+                    <button (click)="voiceService.leaveChannel()"
+                            class="px-6 h-12 rounded-2xl bg-[#da373c] hover:bg-[#a1282c] text-white font-bold text-sm flex items-center justify-center gap-2 transition duration-150 cursor-pointer shadow-lg shadow-[#da373c]/35"
+                            title="Ngắt kết nối Voice">
+                        <span class="text-base">📞</span>
+                        <span>Thoát</span>
+                    </button>
+                } @else {
+                    <!-- Connect Voice Button -->
+                    <button (click)="joinCurrentVoiceChannel()"
+                            class="px-7 h-12 rounded-2xl bg-[#23a55a] hover:bg-[#1db954] text-white font-bold text-sm flex items-center justify-center gap-2.5 transition duration-150 cursor-pointer shadow-lg shadow-[#23a55a]/35">
+                        <span class="text-base">🎙️</span>
+                        <span>Tham gia Kênh thoại</span>
+                    </button>
+                }
+            </div>
+
+        </div>
+    } @else {
     <!-- KHUNG CHAT CHÍNH -->
     <div class="flex flex-1 flex-col h-full justify-between border-r border-[#1e1f24] min-w-0 min-h-0">
 
@@ -539,6 +692,7 @@
             </div>
         </div>
     </div>
+    }
 
     <!-- BÊN PHẢI: SERVER MEMBERS PANEL -->
     @if (serverService.activeServerId()) {
