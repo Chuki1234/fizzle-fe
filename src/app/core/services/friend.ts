@@ -7,7 +7,7 @@ import { SupabaseRealtimeService } from './supabase-realtime.service';
 import { AuthStore } from '../auth/auth.store';
 import { NotificationService } from './notification.service';
 import { cleanStatusString } from './profile';
-import { normalizeMessage, isSameMessage } from './server';
+import { normalizeMessage, isSameMessage, isOptimisticId, isSameContent } from './server';
 
 
 @Injectable({
@@ -98,7 +98,7 @@ export class FriendService implements OnDestroy {
             return currentList;
         }
 
-        // 1. Kiểm tra trùng ID chính xác
+        // 1. Kiểm tra trùng ID chính xác (cùng tin nhắn cập nhật trạng thái/dữ liệu)
         const exactIdIndex = currentList.findIndex(m => String(m.id) === String(incoming.id));
         if (exactIdIndex !== -1) {
             const updated = [...currentList];
@@ -106,19 +106,29 @@ export class FriendService implements OnDestroy {
             return updated;
         }
 
-        // 2. Kiểm tra trùng nội dung / media / sender trong 20 tin nhắn gần nhất
-        const recentSliceIndex = Math.max(0, currentList.length - 20);
-        const recentMessages = currentList.slice(recentSliceIndex);
-        const matchIndexInRecent = recentMessages.findIndex(m => isSameMessage(m, incoming));
+        // 2. Nếu incoming là tin nhắn đã lưu từ server (id thật), tìm tin nhắn OPTIMISTIC đang chờ để thay thế
+        if (!isOptimisticId(incoming.id)) {
+            const recentSliceIndex = Math.max(0, currentList.length - 15);
+            const recentSlice = currentList.slice(recentSliceIndex);
+            const optRelIndex = recentSlice.findIndex(m => isOptimisticId(m.id) && isSameContent(m, incoming));
 
-        if (matchIndexInRecent !== -1) {
-            const actualIndex = recentSliceIndex + matchIndexInRecent;
-            const updated = [...currentList];
-            updated[actualIndex] = { ...currentList[actualIndex], ...incoming };
-            return updated;
+            if (optRelIndex !== -1) {
+                const actualIndex = recentSliceIndex + optRelIndex;
+                const updated = [...currentList];
+                updated[actualIndex] = { ...currentList[actualIndex], ...incoming };
+                return updated;
+            }
+        } else {
+            // Nếu incoming là optimistic message, tránh tạo 2 optimistic giống hệt
+            const recentSliceIndex = Math.max(0, currentList.length - 5);
+            const recentSlice = currentList.slice(recentSliceIndex);
+            const optRelIndex = recentSlice.findIndex(m => isOptimisticId(m.id) && isSameContent(m, incoming));
+            if (optRelIndex !== -1) {
+                return currentList;
+            }
         }
 
-        // 3. Nếu chưa có -> thêm vào danh sách
+        // 3. Tin nhắn mới hoàn toàn -> Thêm mới vào danh sách
         return [...currentList, incoming];
     }
 
@@ -182,11 +192,39 @@ export class FriendService implements OnDestroy {
             }
         };
 
+        // Deletion handler
+        const handleDMDeleted = (messageId: string) => {
+            if (!messageId) return;
+            this.messagesByFriend.update(store => {
+                const nextStore: Record<string, ChatMessage[]> = {};
+                for (const [fId, msgs] of Object.entries(store)) {
+                    nextStore[fId] = msgs.filter(m => String(m.id) !== String(messageId));
+                }
+                return nextStore;
+            });
+        };
+
+        // Reaction handler
+        const handleDMReaction = (data: { messageId: string; reactions: Record<string, string[]> }) => {
+            if (!data?.messageId || !data?.reactions) return;
+            this.messagesByFriend.update(store => {
+                const nextStore: Record<string, ChatMessage[]> = {};
+                for (const [fId, msgs] of Object.entries(store)) {
+                    nextStore[fId] = msgs.map(m => String(m.id) === String(data.messageId) ? { ...m, reactions: data.reactions } : m);
+                }
+                return nextStore;
+            });
+        };
+
         // 1. Listen via local Socket
         this.socketService.registerDirectMessageHandler(handleIncomingDM);
+        this.socketService.registerDirectMessageDeletedHandler((data) => handleDMDeleted(data?.messageId));
+        this.socketService.registerDirectReactionHandler((data) => handleDMReaction(data));
 
         // 2. Listen via Supabase Realtime (Cloud-wide sync for all devices/computers!)
         this.supabaseRealtime.registerDirectMessageHandler(handleIncomingDM);
+        this.supabaseRealtime.registerDirectMessageDeletedHandler((messageId) => handleDMDeleted(messageId));
+        this.supabaseRealtime.registerDirectReactionHandler((data) => handleDMReaction(data));
 
         // Friend request received via socket
         this.socketService.registerFriendRequestHandler((data) => {
@@ -432,6 +470,7 @@ export class FriendService implements OnDestroy {
             attachments?: any[];
             mediaUrl?: string | null;
             metadata?: Record<string, any> | null;
+            replyTo?: any;
         }
     ) {
         if (!text?.trim() && !options?.mediaUrl && !options?.attachments?.length) return;
@@ -443,7 +482,7 @@ export class FriendService implements OnDestroy {
         const avatarUrl = currentUser?.avatarUrl || null;
 
         const userMsg: ChatMessage = {
-            id: Date.now().toString(),
+            id: `opt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
             senderId: senderId,
             senderName: senderName,
             senderAvatarUrl: avatarUrl,
@@ -453,6 +492,8 @@ export class FriendService implements OnDestroy {
             attachments: options?.attachments || [],
             mediaUrl: options?.mediaUrl || null,
             metadata: options?.metadata || null,
+            replyTo: options?.replyTo || null,
+            reactions: {},
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
 
@@ -475,7 +516,8 @@ export class FriendService implements OnDestroy {
             type: userMsg.type,
             attachments: userMsg.attachments,
             mediaUrl: userMsg.mediaUrl,
-            metadata: userMsg.metadata
+            metadata: userMsg.metadata,
+            replyTo: userMsg.replyTo
         }).subscribe({
             next: (savedMsg) => {
                 if (savedMsg?.id) {
@@ -486,6 +528,85 @@ export class FriendService implements OnDestroy {
                 }
             },
             error: (err) => console.warn('Could not persist direct message to backend:', err)
+        });
+    }
+
+    // --- XÓA TIN NHẮN TRỰC TIẾP ---
+    deleteMessage(messageId: string) {
+        const friendId = this.activeChatId();
+        if (!friendId || !messageId) return;
+
+        const currentUserId = this.authStore.user()?.id;
+        const params = currentUserId ? `?userId=${currentUserId}` : '';
+
+        // Optimistically remove from local state
+        this.messagesByFriend.update(store => {
+            const current = store[friendId] || [];
+            return {
+                ...store,
+                [friendId]: current.filter(m => String(m.id) !== String(messageId))
+            };
+        });
+
+        // Call backend API
+        this.http.delete(`${this.apiConfig.baseUrl}/messages/direct/${friendId}/${messageId}${params}`).subscribe({
+            error: (err) => console.warn('Could not delete direct message:', err)
+        });
+    }
+
+    // --- THẢ / BỎ CẢM XÚC TIN NHẮN ---
+    toggleReaction(messageId: string, emoji: string) {
+        const friendId = this.activeChatId();
+        if (!friendId || !messageId || !emoji) return;
+
+        const currentUserId = this.authStore.user()?.id || 'user';
+
+        // Optimistically update reactions
+        this.messagesByFriend.update(store => {
+            const current = store[friendId] || [];
+            return {
+                ...store,
+                [friendId]: current.map(m => {
+                    if (String(m.id) === String(messageId)) {
+                        const reactions = { ...(m.reactions || {}) };
+                        const list = reactions[emoji] ? [...reactions[emoji]] : [];
+                        const idx = list.indexOf(currentUserId);
+                        if (idx > -1) {
+                            list.splice(idx, 1);
+                        } else {
+                            list.push(currentUserId);
+                        }
+                        if (list.length === 0) {
+                            delete reactions[emoji];
+                        } else {
+                            reactions[emoji] = list;
+                        }
+                        return { ...m, reactions };
+                    }
+                    return m;
+                })
+            };
+        });
+
+        // Call backend API
+        const params = currentUserId ? `?userId=${currentUserId}` : '';
+        this.http.post<{ success: boolean; reactions: Record<string, string[]> }>(
+            `${this.apiConfig.baseUrl}/messages/direct/${friendId}/${messageId}/reaction${params}`,
+            { emoji, userId: currentUserId }
+        ).subscribe({
+            next: (res) => {
+                if (res?.reactions) {
+                    this.messagesByFriend.update(store => {
+                        const current = store[friendId] || [];
+                        return {
+                            ...store,
+                            [friendId]: current.map(m => String(m.id) === String(messageId) ? { ...m, reactions: res.reactions } : m)
+                        };
+                    });
+                    this.supabaseRealtime.broadcastDirectReaction(currentUserId, friendId, messageId, res.reactions);
+                }
+            },
+            error: (err) => console.warn('Could not toggle direct message reaction:', err)
         });
     }
 

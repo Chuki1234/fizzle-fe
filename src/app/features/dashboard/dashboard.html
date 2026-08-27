@@ -15,7 +15,11 @@
         [class.server-card--mint]="idx % 2 !== 0">
         
         <div class="server-card__icon" [class.server-card__icon--pink]="idx % 2 !== 0">
-          {{ server.icon }}
+          @if (isImageIcon(server.icon)) {
+            <img [src]="server.icon" class="w-full h-full object-cover rounded-xl" [alt]="server.name" />
+          } @else {
+            {{ getServerDisplayIcon(server) }}
+          }
         </div>
 
         <div class="server-card__info">

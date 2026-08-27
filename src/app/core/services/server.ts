@@ -52,6 +52,9 @@ export function normalizeMessage(rawMsg: any): ChatMessage {
     let attachments = rawMsg.attachments || [];
     let metadata = rawMsg.metadata || null;
 
+    let replyTo = rawMsg.replyTo || null;
+    let reactions = rawMsg.reactions || {};
+
     if (typeof text === 'string' && (text.startsWith('{"__isRichMessage":true') || text.includes('"__isRichMessage":true'))) {
         try {
             const parsed = JSON.parse(text);
@@ -60,6 +63,8 @@ export function normalizeMessage(rawMsg: any): ChatMessage {
             mediaUrl = parsed.mediaUrl || mediaUrl;
             attachments = parsed.attachments || attachments;
             metadata = parsed.metadata || metadata;
+            replyTo = parsed.replyTo || replyTo;
+            reactions = parsed.reactions || reactions;
         } catch {
             // ignore
         }
@@ -95,21 +100,20 @@ export function normalizeMessage(rawMsg: any): ChatMessage {
         mediaUrl,
         attachments,
         metadata,
+        replyTo,
+        reactions,
         timestamp: rawMsg.timestamp || (rawMsg.created_at ? new Date(rawMsg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
     };
 }
 
-export function isSameMessage(a: ChatMessage, b: ChatMessage): boolean {
+export function isOptimisticId(id?: string | number): boolean {
+    if (!id) return false;
+    return String(id).startsWith('opt_');
+}
+
+export function isSameContent(a: ChatMessage, b: ChatMessage): boolean {
     if (!a || !b) return false;
     if (a.id && b.id && String(a.id) === String(b.id)) return true;
-
-    // Check mediaUrl (GIF, Sticker, Image)
-    if (a.mediaUrl && b.mediaUrl && a.mediaUrl === b.mediaUrl) return true;
-
-    // Check attachments
-    if (a.attachments?.length && b.attachments?.length && a.attachments[0].name === b.attachments[0].name) {
-        return true;
-    }
 
     // Sender flexible check
     const senderMatches = !a.senderId || !b.senderId ||
@@ -118,6 +122,14 @@ export function isSameMessage(a: ChatMessage, b: ChatMessage): boolean {
         (a.senderName && b.senderName && a.senderName.trim().toLowerCase() === b.senderName.trim().toLowerCase());
 
     if (!senderMatches) return false;
+
+    // Check mediaUrl (GIF, Sticker, Image)
+    if (a.mediaUrl && b.mediaUrl && a.mediaUrl === b.mediaUrl) return true;
+
+    // Check attachments
+    if (a.attachments?.length && b.attachments?.length && a.attachments[0].name === b.attachments[0].name) {
+        return true;
+    }
 
     // Both are stickers with same text or id
     if (a.type === 'sticker' && b.type === 'sticker') {
@@ -134,6 +146,10 @@ export function isSameMessage(a: ChatMessage, b: ChatMessage): boolean {
     const aText = (a.text || '').trim();
     const bText = (b.text || '').trim();
     return aText.length > 0 && aText === bText;
+}
+
+export function isSameMessage(a: ChatMessage, b: ChatMessage): boolean {
+    return isSameContent(a, b);
 }
 
 @Injectable({
@@ -179,14 +195,13 @@ export class ServerService {
         return this.channelMessages()[channelId] || [];
     });
 
-
     private upsertChannelMsg(currentList: ChatMessage[], incomingRaw: any): ChatMessage[] {
         const incoming = normalizeMessage(incomingRaw);
         if (!incoming || (!incoming.text && !incoming.mediaUrl && !incoming.attachments?.length)) {
             return currentList;
         }
 
-        // 1. Kiểm tra trùng ID chính xác
+        // 1. Kiểm tra trùng ID chính xác (cùng tin nhắn cập nhật trạng thái/dữ liệu)
         const exactIdIndex = currentList.findIndex(m => String(m.id) === String(incoming.id));
         if (exactIdIndex !== -1) {
             const updated = [...currentList];
@@ -194,18 +209,29 @@ export class ServerService {
             return updated;
         }
 
-        // 2. Kiểm tra trùng nội dung / media / sender trong 20 tin nhắn gần nhất
-        const recentSliceIndex = Math.max(0, currentList.length - 20);
-        const recentMessages = currentList.slice(recentSliceIndex);
-        const matchIndexInRecent = recentMessages.findIndex(m => isSameMessage(m, incoming));
+        // 2. Nếu incoming là tin nhắn đã lưu từ server (id thật), tìm tin nhắn OPTIMISTIC đang chờ để thay thế
+        if (!isOptimisticId(incoming.id)) {
+            const recentSliceIndex = Math.max(0, currentList.length - 15);
+            const recentSlice = currentList.slice(recentSliceIndex);
+            const optRelIndex = recentSlice.findIndex(m => isOptimisticId(m.id) && isSameContent(m, incoming));
 
-        if (matchIndexInRecent !== -1) {
-            const actualIndex = recentSliceIndex + matchIndexInRecent;
-            const updated = [...currentList];
-            updated[actualIndex] = { ...currentList[actualIndex], ...incoming };
-            return updated;
+            if (optRelIndex !== -1) {
+                const actualIndex = recentSliceIndex + optRelIndex;
+                const updated = [...currentList];
+                updated[actualIndex] = { ...currentList[actualIndex], ...incoming };
+                return updated;
+            }
+        } else {
+            // Nếu incoming là optimistic message (ví dụ broadcast từ tab khác), tránh tạo 2 optimistic giống hệt
+            const recentSliceIndex = Math.max(0, currentList.length - 5);
+            const recentSlice = currentList.slice(recentSliceIndex);
+            const optRelIndex = recentSlice.findIndex(m => isOptimisticId(m.id) && isSameContent(m, incoming));
+            if (optRelIndex !== -1) {
+                return currentList;
+            }
         }
 
+        // 3. Tin nhắn mới hoàn toàn -> Thêm mới vào danh sách
         return [...currentList, incoming];
     }
 
@@ -222,11 +248,41 @@ export class ServerService {
             });
         };
 
+        const handleChannelMsgDeleted = (data: { channelId?: string; messageId: string }) => {
+            if (!data?.messageId) return;
+            this.channelMessages.update(store => {
+                const nextStore: Record<string, ChatMessage[]> = {};
+                for (const [chId, msgs] of Object.entries(store)) {
+                    if (!data.channelId || data.channelId === chId) {
+                        nextStore[chId] = msgs.filter(m => String(m.id) !== String(data.messageId));
+                    } else {
+                        nextStore[chId] = msgs;
+                    }
+                }
+                return nextStore;
+            });
+        };
+
+        const handleChannelReaction = (data: { channelId: string; messageId: string; reactions: Record<string, string[]> }) => {
+            if (!data?.channelId || !data?.messageId || !data?.reactions) return;
+            this.channelMessages.update(store => {
+                const current = store[data.channelId] || [];
+                return {
+                    ...store,
+                    [data.channelId]: current.map(m => String(m.id) === String(data.messageId) ? { ...m, reactions: data.reactions } : m)
+                };
+            });
+        };
+
         // 1. Socket handler
         this.socketService.registerChannelMessageHandler(handleIncomingChannelMsg);
+        this.socketService.registerChannelMessageDeletedHandler((data) => handleChannelMsgDeleted(data));
+        this.socketService.registerChannelReactionHandler((data) => handleChannelReaction(data));
 
         // 2. Supabase Realtime cloud handler
         this.supabaseRealtime.registerChannelMessageHandler(handleIncomingChannelMsg);
+        this.supabaseRealtime.registerChannelMessageDeletedHandler((channelId, messageId) => handleChannelMsgDeleted({ channelId, messageId }));
+        this.supabaseRealtime.registerChannelReactionHandler((data) => handleChannelReaction(data));
         this.supabaseRealtime.registerServerChangeHandler(() => {
             this.loadServers();
         });
@@ -501,6 +557,7 @@ export class ServerService {
             attachments?: any[];
             mediaUrl?: string | null;
             metadata?: Record<string, any> | null;
+            replyTo?: any;
         }
     ) {
         if (!text?.trim() && !options?.mediaUrl && !options?.attachments?.length) return;
@@ -510,7 +567,7 @@ export class ServerService {
         const avatarUrl = currentUser?.avatarUrl || null;
 
         const userMsg: ChatMessage = {
-            id: Date.now().toString(),
+            id: `opt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
             senderId: senderId,
             senderName: senderName,
             senderAvatarUrl: avatarUrl,
@@ -520,6 +577,8 @@ export class ServerService {
             attachments: options?.attachments || [],
             mediaUrl: options?.mediaUrl || null,
             metadata: options?.metadata || null,
+            replyTo: options?.replyTo || null,
+            reactions: {},
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
 
@@ -541,7 +600,8 @@ export class ServerService {
             type: userMsg.type,
             attachments: userMsg.attachments,
             mediaUrl: userMsg.mediaUrl,
-            metadata: userMsg.metadata
+            metadata: userMsg.metadata,
+            replyTo: userMsg.replyTo
         }).subscribe({
             next: (savedMsg) => {
                 if (savedMsg?.id) {
@@ -578,5 +638,84 @@ export class ServerService {
             `${this.apiConfig.baseUrl}/servers/${serverId}/invite-friend`,
             { friendId, inviterId: userId }
         ).toPromise() as any;
+    }
+
+    // --- XÓA TIN NHẮN KÊNH ---
+    deleteMessage(messageId: string) {
+        const channelId = this.activeChannelId();
+        if (!channelId || !messageId) return;
+
+        const currentUserId = this.authStore.user()?.id;
+        const params = currentUserId ? `?userId=${currentUserId}` : '';
+
+        // Optimistically delete from UI
+        this.channelMessages.update(store => {
+            const current = store[channelId] || [];
+            return {
+                ...store,
+                [channelId]: current.filter(m => String(m.id) !== String(messageId))
+            };
+        });
+
+        // Call backend API
+        this.http.delete(`${this.apiConfig.baseUrl}/messages/channel/${channelId}/${messageId}${params}`).subscribe({
+            error: (err) => console.warn('Could not delete channel message:', err)
+        });
+    }
+
+    // --- THẢ / BỎ CẢM XÚC TIN NHẮN KÊNH ---
+    toggleReaction(messageId: string, emoji: string) {
+        const channelId = this.activeChannelId();
+        if (!channelId || !messageId || !emoji) return;
+
+        const currentUserId = this.authStore.user()?.id || 'user';
+
+        // Optimistically update reactions
+        this.channelMessages.update(store => {
+            const current = store[channelId] || [];
+            return {
+                ...store,
+                [channelId]: current.map(m => {
+                    if (String(m.id) === String(messageId)) {
+                        const reactions = { ...(m.reactions || {}) };
+                        const list = reactions[emoji] ? [...reactions[emoji]] : [];
+                        const idx = list.indexOf(currentUserId);
+                        if (idx > -1) {
+                            list.splice(idx, 1);
+                        } else {
+                            list.push(currentUserId);
+                        }
+                        if (list.length === 0) {
+                            delete reactions[emoji];
+                        } else {
+                            reactions[emoji] = list;
+                        }
+                        return { ...m, reactions };
+                    }
+                    return m;
+                })
+            };
+        });
+
+        // Call backend API
+        const params = currentUserId ? `?userId=${currentUserId}` : '';
+        this.http.post<{ success: boolean; reactions: Record<string, string[]> }>(
+            `${this.apiConfig.baseUrl}/messages/channel/${channelId}/${messageId}/reaction${params}`,
+            { emoji, userId: currentUserId }
+        ).subscribe({
+            next: (res) => {
+                if (res?.reactions) {
+                    this.channelMessages.update(store => {
+                        const current = store[channelId] || [];
+                        return {
+                            ...store,
+                            [channelId]: current.map(m => String(m.id) === String(messageId) ? { ...m, reactions: res.reactions } : m)
+                        };
+                    });
+                    this.supabaseRealtime.broadcastChannelReaction(channelId, messageId, res.reactions);
+                }
+            },
+            error: (err) => console.warn('Could not toggle channel message reaction:', err)
+        });
     }
 }

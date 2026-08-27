@@ -15,6 +15,14 @@ export interface MessageAttachment {
     type?: 'image' | 'video' | 'audio' | 'file';
 }
 
+export interface MessageReplyTo {
+    id: string;
+    senderName: string;
+    text?: string;
+    type?: string;
+    mediaUrl?: string | null;
+}
+
 export interface ChatMessage {
     id: string;
     senderId: string;
@@ -27,4 +35,7 @@ export interface ChatMessage {
     attachments?: MessageAttachment[];
     mediaUrl?: string | null;
     metadata?: Record<string, any> | null;
-}
+    replyTo?: MessageReplyTo | null;
+    reactions?: Record<string, string[]>;
+}
+
