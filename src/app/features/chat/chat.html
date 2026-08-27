@@ -64,8 +64,8 @@
                                             <video class="thumb-card__media" [appVideoStream]="user.videoStream" autoplay muted playsinline></video>
                                         } @else {
                                             <div class="thumb-card__avatar">
-                                                @if (user.avatarUrl) {
-                                                    <img [src]="user.avatarUrl" alt="avatar"/>
+                                                @if (getVoiceParticipantAvatar(user)) {
+                                                    <img [src]="getVoiceParticipantAvatar(user)" alt="avatar"/>
                                                 } @else {
                                                     {{ (user.displayName || 'U').charAt(0).toUpperCase() }}
                                                 }
@@ -112,8 +112,8 @@
                             @for (user of activeVoiceUsers(); track user.socketId; let idx = $index) {
                                 <div class="voice-card" [class.voice-card--speaking]="user.isSpeaking && !user.isMuted" [style.background]="getUserCardBg(idx)">
                                     <div class="voice-card__avatar" [class.voice-card__avatar--speaking]="user.isSpeaking && !user.isMuted">
-                                        @if (user.avatarUrl) {
-                                            <img [src]="user.avatarUrl" alt="avatar" />
+                                        @if (getVoiceParticipantAvatar(user)) {
+                                            <img [src]="getVoiceParticipantAvatar(user)" alt="avatar" />
                                         } @else {
                                             {{ (user.displayName || user.username || 'U').charAt(0).toUpperCase() }}
                                         }

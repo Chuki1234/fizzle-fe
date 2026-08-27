@@ -66,57 +66,6 @@ import { LanguageService } from '../../../core/services/language.service';
           </span>
         </div>
 
-        <!-- Participant List Grid (Mini Avatars & Speaking Indicators) -->
-        <div class="px-3 py-2 max-h-28 overflow-y-auto custom-scrollbar flex flex-col gap-1">
-          @for (user of voiceService.participants(); track user.socketId) {
-            <div class="flex items-center justify-between px-2 py-1 rounded-md hover:bg-zinc-800/50 transition-colors group"
-                 [class.bg-zinc-800/30]="user.isSpeaking">
-              
-              <div class="flex items-center gap-2 min-w-0">
-                <!-- Avatar & Speaking Ring -->
-                <div class="relative flex items-center justify-center shrink-0">
-                  <div class="w-6 h-6 rounded-full bg-zinc-700 text-white text-xs font-bold flex items-center justify-center overflow-hidden border border-zinc-600 shadow-sm"
-                       [class.ring-2]="user.isSpeaking && !user.isMuted"
-                       [class.ring-[#23a55a]]="user.isSpeaking && !user.isMuted"
-                       [class.shadow-[0_0_10px_rgba(35,165,90,0.5)]]="user.isSpeaking && !user.isMuted">
-                    @if (user.avatarUrl) {
-                      <img [src]="user.avatarUrl" class="w-full h-full object-cover" alt="avatar" />
-                    } @else {
-                      <span>{{ getUserInitial(user) }}</span>
-                    }
-                  </div>
-                  @if (user.isSpeaking && !user.isMuted) {
-                    <span class="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#23a55a] ring-1 ring-[#111214]"></span>
-                  }
-                </div>
-
-                <!-- Display Name & Username -->
-                <div class="flex items-center gap-1.5 min-w-0">
-                  <span class="text-xs font-semibold text-zinc-200 truncate leading-tight group-hover:text-white"
-                        [class.text-[#23a55a]]="user.isSpeaking && !user.isMuted">
-                    {{ user.displayName || user.username }}
-                  </span>
-                  @if (isSelf(user)) {
-                    <span class="text-[9px] px-1 py-0.2 bg-zinc-700/60 text-zinc-300 rounded font-medium">Bạn</span>
-                  }
-                </div>
-              </div>
-
-              <!-- Indicators (Mute/Deafen) -->
-              <div class="flex items-center gap-1 shrink-0">
-                @if (user.isMuted) {
-                  <span class="text-xs text-[#da373c]" title="Đã tắt mic">🔇</span>
-                } @else if (user.isSpeaking) {
-                  <span class="text-xs text-[#23a55a] animate-pulse" title="Đang phát biểu">🎙️</span>
-                }
-                @if (user.isDeafened) {
-                  <span class="text-xs text-[#da373c]" title="Đã tắt loa">🔕</span>
-                }
-              </div>
-            </div>
-          }
-        </div>
-
         <!-- Control Action Bar -->
         <div class="p-2 border-t border-[#1f2023] grid grid-cols-4 gap-1.5 bg-[#0e0f11]">
           <!-- Mute Button -->

@@ -1,5 +1,6 @@
 import { Component, computed, inject, effect, signal } from '@angular/core';
 import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+
 import { ServerService } from '../../core/services/server';
 import { FriendService } from '../../core/services/friend';
 import { VoiceService } from '../../core/services/voice.service';
@@ -228,10 +229,42 @@ export class MainLayout {
         }
     }
 
+    public getVoiceUserAvatar(vUser: any): string | null {
+        if (!vUser) return null;
+        if (vUser.avatarUrl && typeof vUser.avatarUrl === 'string' && vUser.avatarUrl.length > 5) {
+            return vUser.avatarUrl;
+        }
+        const targetUserId = vUser.userId || vUser.id;
+        if (!targetUserId) return null;
+
+        // Fallback 1: Nếu là tài khoản đang đăng nhập
+        const currentUser = this.authStore.user();
+        if (currentUser && currentUser.id === targetUserId && currentUser.avatarUrl) {
+            return currentUser.avatarUrl;
+        }
+
+        // Fallback 2: Tra cứu trong danh sách thành viên Server hiện tại
+        const members = this.serverService.activeServerMembers();
+        const foundMember = members.find(m => m.userId === targetUserId);
+        if (foundMember?.avatarUrl) {
+            return foundMember.avatarUrl;
+        }
+
+        // Fallback 3: Tra cứu trong danh sách bạn bè
+        const friends = this.friendService.friends();
+        const foundFriend = friends.find(f => f.id === targetUserId);
+        if (foundFriend?.avatarUrl) {
+            return foundFriend.avatarUrl;
+        }
+
+        return null;
+    }
+
     public isImageUrl(icon: string | undefined): boolean {
         if (!icon) return false;
         return icon.startsWith('http://') || icon.startsWith('https://') || icon.startsWith('data:image/') || icon.startsWith('/') || icon.includes('/');
     }
+
 
     public userInitial = computed(() => {
         const name = this.authStore.user()?.displayName || this.authStore.user()?.username || 'U';
@@ -328,6 +361,10 @@ export class MainLayout {
         return (server.name || 'S').charAt(0).toUpperCase();
     }
 
+    public openServerSettings(): void {
+        this.modalService.open('SERVER_SETTINGS');
+    }
+
     public logout(): void {
         this.socketService.disconnect();
         this.supabaseRealtime.disconnect();
@@ -342,3 +379,4 @@ export class MainLayout {
         });
     }
 }
+
