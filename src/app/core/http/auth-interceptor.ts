@@ -44,6 +44,14 @@ function withBearer(
 }
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
+  // Chỉ thêm auth headers cho API backend nội bộ, không thêm cho GIPHY, Tenor, LottieFiles, CDN...
+  const isExternalApi = req.url.startsWith('http://') || req.url.startsWith('https://');
+  const isBackend = req.url.includes(':3000') || req.url.includes('/api') || !isExternalApi;
+
+  if (isExternalApi && !isBackend) {
+    return next(req);
+  }
+
   const store = inject(AuthStore);
   const auth = inject(AuthService);
 

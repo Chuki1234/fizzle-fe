@@ -1,0 +1,254 @@
+<div class="media-picker-panel flex flex-col bg-[#14151b] border border-[#242733] rounded-2xl shadow-2xl overflow-hidden w-[380px] h-[460px] select-none animate-pickerPop"
+     (click)="$event.stopPropagation()">
+
+    <!-- 1. TOP HEADER & TABS -->
+    <div class="flex items-center justify-between px-3.5 py-2.5 bg-[#101116] border-b border-[#20222c] shrink-0">
+        <div class="flex items-center gap-1.5 p-1 bg-[#181a22] rounded-xl border border-[#252836]">
+            <button type="button" (click)="setTab('emoji')"
+                    class="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                    [class.bg-emerald-500]="activeTab === 'emoji'"
+                    [class.text-black]="activeTab === 'emoji'"
+                    [class.text-zinc-400]="activeTab !== 'emoji'"
+                    [class.hover:text-white]="activeTab !== 'emoji'">
+                <span>😀</span>
+                <span>Emoji</span>
+            </button>
+
+            <button type="button" (click)="setTab('gif')"
+                    class="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                    [class.bg-emerald-500]="activeTab === 'gif'"
+                    [class.text-black]="activeTab === 'gif'"
+                    [class.text-zinc-400]="activeTab !== 'gif'"
+                    [class.hover:text-white]="activeTab !== 'gif'">
+                <span class="font-extrabold text-[10px] bg-zinc-800 px-1 rounded text-white" [class.bg-black\/30]="activeTab === 'gif'">GIF</span>
+                <span>GIPHY</span>
+            </button>
+
+            <button type="button" (click)="setTab('sticker')"
+                    class="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                    [class.bg-emerald-500]="activeTab === 'sticker'"
+                    [class.text-black]="activeTab === 'sticker'"
+                    [class.text-zinc-400]="activeTab !== 'sticker'"
+                    [class.hover:text-white]="activeTab !== 'sticker'">
+                <span>✨</span>
+                <span>Stickers</span>
+            </button>
+        </div>
+
+        <button type="button" (click)="close.emit()"
+                class="w-7 h-7 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center text-xs transition cursor-pointer">
+            ✕
+        </button>
+    </div>
+
+    <!-- 2. TAB CONTENT: EMOJI -->
+    @if (activeTab === 'emoji') {
+        <div class="flex flex-col flex-1 min-h-0 overflow-hidden">
+            <!-- Search Bar -->
+            <div class="p-3 border-b border-[#20222c] bg-[#121319] shrink-0">
+                <div class="flex items-center gap-2 px-3 py-1.5 bg-[#1b1d26] rounded-xl border border-[#282b3a] focus-within:border-emerald-500/50">
+                    <span class="text-xs text-zinc-500">🔍</span>
+                    <input type="text" [(ngModel)]="emojiSearch"
+                           placeholder="Tìm kiếm biểu cảm emoji..."
+                           class="flex-1 bg-transparent text-xs text-white outline-none placeholder-zinc-500" />
+                    @if (emojiSearch) {
+                        <button (click)="emojiSearch = ''" class="text-zinc-500 hover:text-white text-xs">✕</button>
+                    }
+                </div>
+            </div>
+
+            <!-- Emoji Category Selector -->
+            @if (!emojiSearch) {
+                <div class="flex items-center gap-1 px-3 py-1.5 bg-[#101116] border-b border-[#1f212a] overflow-x-auto scrollbar-none shrink-0">
+                    <button (click)="activeEmojiCategory = 'all'"
+                            class="px-2 py-1 rounded-md text-[11px] font-medium transition whitespace-nowrap cursor-pointer"
+                            [class.bg-zinc-800]="activeEmojiCategory === 'all'"
+                            [class.text-white]="activeEmojiCategory === 'all'"
+                            [class.text-zinc-400]="activeEmojiCategory !== 'all'">
+                        Tất cả
+                    </button>
+                    @for (cat of emojiCategories; track cat.id) {
+                        <button (click)="activeEmojiCategory = cat.id"
+                                class="px-2 py-1 rounded-md text-xs transition hover:bg-zinc-800/80 cursor-pointer"
+                                [class.bg-zinc-800]="activeEmojiCategory === cat.id"
+                                [title]="cat.name">
+                            {{ cat.icon }}
+                        </button>
+                    }
+                </div>
+            }
+
+            <!-- Emoji Scroll List -->
+            <div class="flex-1 overflow-y-auto p-3 space-y-4 scrollbar-thin">
+                <!-- Recent Emojis -->
+                @if (!emojiSearch && recentEmojis.length > 0 && activeEmojiCategory === 'all') {
+                    <div>
+                        <div class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                            <span>🕒</span> GẦN ĐÂY
+                        </div>
+                        <div class="grid grid-cols-8 gap-1">
+                            @for (e of recentEmojis; track e) {
+                                <button type="button" (click)="onSelectEmoji(e)"
+                                        class="w-9 h-9 rounded-lg hover:bg-[#232633] text-xl flex items-center justify-center transition hover:scale-125 active:scale-95 cursor-pointer">
+                                    {{ e }}
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <!-- Categorized Emojis -->
+                @for (cat of filteredEmojiCategories; track cat.id) {
+                    <div>
+                        <div class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                            <span>{{ cat.icon }}</span> {{ cat.name }}
+                        </div>
+                        <div class="grid grid-cols-8 gap-1">
+                            @for (e of cat.emojis; track e) {
+                                <button type="button" (click)="onSelectEmoji(e)"
+                                        class="w-9 h-9 rounded-lg hover:bg-[#232633] text-xl flex items-center justify-center transition hover:scale-125 active:scale-95 cursor-pointer">
+                                    {{ e }}
+                                </button>
+                            }
+                        </div>
+                    </div>
+                } @empty {
+                    <div class="flex flex-col items-center justify-center py-10 text-zinc-500 text-xs">
+                        <span class="text-2xl mb-1">🥺</span>
+                        <span>Không tìm thấy biểu cảm phù hợp</span>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- 3. TAB CONTENT: GIF (GIPHY) -->
+    @if (activeTab === 'gif') {
+        <div class="flex flex-col flex-1 min-h-0 overflow-hidden">
+            <!-- Search Bar -->
+            <div class="p-3 border-b border-[#20222c] bg-[#121319] shrink-0">
+                <div class="flex items-center gap-2 px-3 py-1.5 bg-[#1b1d26] rounded-xl border border-[#282b3a] focus-within:border-emerald-500/50">
+                    <span class="text-xs text-zinc-500">🔍</span>
+                    <input type="text" [ngModel]="gifSearch" (ngModelChange)="gifSearch = $event; onGifSearchChange($event)"
+                           placeholder="Tìm GIF trên GIPHY (vd: anime, dance, meme)..."
+                           class="flex-1 bg-transparent text-xs text-white outline-none placeholder-zinc-500" />
+                    @if (gifSearch) {
+                        <button (click)="gifSearch = ''; onGifSearchChange('')" class="text-zinc-500 hover:text-white text-xs">✕</button>
+                    }
+                </div>
+
+                <!-- Category Pills -->
+                <div class="flex items-center gap-1.5 mt-2 overflow-x-auto scrollbar-none pb-0.5">
+                    @for (c of gifCategories; track c.label) {
+                        <button type="button" (click)="selectGifCategory(c.query)"
+                                class="px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap transition cursor-pointer border"
+                                [class.bg-emerald-500]="activeGifCategory === c.query"
+                                [class.text-black]="activeGifCategory === c.query"
+                                [class.border-emerald-400]="activeGifCategory === c.query"
+                                [class.bg-[#1b1d26]]="activeGifCategory !== c.query"
+                                [class.text-zinc-300]="activeGifCategory !== c.query"
+                                [class.border-[#282b3a]]="activeGifCategory !== c.query"
+                                [class.hover:border-zinc-500]="activeGifCategory !== c.query">
+                            {{ c.label }}
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <!-- GIF Scroll Grid -->
+            <div class="flex-1 overflow-y-auto p-2.5 scrollbar-thin">
+                @if (isGifsLoading && gifs.length === 0) {
+                    <div class="grid grid-cols-2 gap-2">
+                        @for (i of [1,2,3,4,5,6]; track i) {
+                            <div class="h-28 bg-[#1b1d26] rounded-xl animate-pulse border border-[#282b3a]"></div>
+                        }
+                    </div>
+                } @else {
+                    <div class="grid grid-cols-2 gap-2">
+                        @for (g of gifs; track g.id) {
+                            <div (click)="onSelectGif(g)"
+                                 class="relative group rounded-xl overflow-hidden cursor-pointer bg-[#181a22] border border-[#282b3a] hover:border-emerald-500/80 transition aspect-video flex items-center justify-center shadow-sm">
+                                <img [src]="g.previewUrl" [alt]="g.title"
+                                     loading="lazy"
+                                     class="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition p-2 flex items-end">
+                                    <span class="text-[10px] text-white font-medium truncate">{{ g.title }}</span>
+                                </div>
+                            </div>
+                        } @empty {
+                            <div class="col-span-2 flex flex-col items-center justify-center py-10 text-zinc-500 text-xs">
+                                <span class="text-2xl mb-1">🎬</span>
+                                <span>Không tìm thấy GIF nào</span>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Load More Button -->
+                    @if (gifs.length > 0 && hasMoreGifs) {
+                        <div class="flex items-center justify-center pt-3 pb-1">
+                            <button type="button"
+                                    (click)="loadMoreGifs()"
+                                    [disabled]="isGifsLoading"
+                                    class="px-4 py-1.5 rounded-xl bg-[#1e212b] hover:bg-emerald-500 hover:text-black text-xs font-semibold text-zinc-300 border border-[#2a2e3d] transition cursor-pointer flex items-center gap-1.5 shadow-sm">
+                                @if (isGifsLoading) {
+                                    <span class="animate-spin text-xs">⏳</span>
+                                    <span>Đang tải thêm...</span>
+                                } @else {
+                                    <span>Tải thêm GIF 🎬</span>
+                                }
+                            </button>
+                        </div>
+                    }
+                }
+
+                <!-- Powered by Giphy badge -->
+                <div class="flex items-center justify-center gap-1.5 py-3 mt-2 text-[10px] text-zinc-500 border-t border-[#1e2029]">
+                    <span>Powered by</span>
+                    <span class="font-black text-zinc-400 tracking-wider">GIPHY & TENOR</span>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- 4. TAB CONTENT: STICKERS (LOTTIE) -->
+    @if (activeTab === 'sticker') {
+        <div class="flex flex-col flex-1 min-h-0 overflow-hidden">
+            <!-- Search Bar -->
+            <div class="p-3 border-b border-[#20222c] bg-[#121319] shrink-0">
+                <div class="flex items-center gap-2 px-3 py-1.5 bg-[#1b1d26] rounded-xl border border-[#282b3a] focus-within:border-emerald-500/50">
+                    <span class="text-xs text-zinc-500">🔍</span>
+                    <input type="text" [(ngModel)]="stickerSearch"
+                           placeholder="Tìm sticker động..."
+                           class="flex-1 bg-transparent text-xs text-white outline-none placeholder-zinc-500" />
+                    @if (stickerSearch) {
+                        <button (click)="stickerSearch = ''" class="text-zinc-500 hover:text-white text-xs">✕</button>
+                    }
+                </div>
+            </div>
+
+            <!-- Stickers Grid -->
+            <div class="flex-1 overflow-y-auto p-3 scrollbar-thin">
+                <div class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                    <span>✨</span> BỘ STICKER ĐỘNG FIZZLE
+                </div>
+
+                <div class="grid grid-cols-3 gap-2.5">
+                    @for (s of filteredStickers; track s.id) {
+                        <div (click)="onSelectSticker(s)"
+                             class="group flex flex-col items-center justify-center p-2 rounded-2xl bg-[#181a24] border border-[#262938] hover:border-emerald-500/80 hover:bg-[#202330] transition cursor-pointer shadow-sm">
+                            <fz-lottie-sticker [animationUrl]="s.lottieUrl" [width]="80" [height]="80"></fz-lottie-sticker>
+                            <span class="text-[10px] text-zinc-400 group-hover:text-emerald-400 font-medium mt-1 truncate max-w-full">
+                                {{ s.name }}
+                            </span>
+                        </div>
+                    } @empty {
+                        <div class="col-span-3 flex flex-col items-center justify-center py-10 text-zinc-500 text-xs">
+                            <span class="text-2xl mb-1">📦</span>
+                            <span>Không tìm thấy sticker nào</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>

@@ -53,4 +53,30 @@ export class Dashboard {
   public getVoiceChannelCount(server: Server): number {
     return server.channels.filter(c => c.type === 'voice').length;
   }
+
+  public isImageIcon(icon?: string): boolean {
+    if (!icon) return false;
+    const trimmed = icon.trim();
+    return (
+      trimmed.startsWith('http://') ||
+      trimmed.startsWith('https://') ||
+      trimmed.startsWith('data:image') ||
+      trimmed.startsWith('/uploads/') ||
+      trimmed.startsWith('blob:') ||
+      trimmed.endsWith('.png') ||
+      trimmed.endsWith('.jpg') ||
+      trimmed.endsWith('.jpeg') ||
+      trimmed.endsWith('.webp') ||
+      trimmed.endsWith('.svg') ||
+      trimmed.endsWith('.gif') ||
+      trimmed.length > 8
+    );
+  }
+
+  public getServerDisplayIcon(server: Server): string {
+    if (!server) return 'S';
+    const icon = server.icon?.trim();
+    if (icon && icon.length <= 3) return icon;
+    return (server.name || 'S').charAt(0).toUpperCase();
+  }
 }
